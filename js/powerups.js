@@ -42,21 +42,22 @@ function maybeDropPowerup(invader) {
   else if (roll < 0.7) type = POWERUP_TYPES.find((powerup) => powerup.id === "rapid") || POWERUP_TYPES[0];
   else type = POWERUP_TYPES.find((powerup) => powerup.id === "slow") || POWERUP_TYPES[0];
 
-  spawnPowerupAt(invader.x + invader.w / 2, invader.y + invader.h / 2, type);
+  spawnPowerupAt(invader.x + invader.w / 2, invader.y + invader.h / 2, type,
+    false, 6, invaderDirection * (26 + Math.random() * 10));
 }
 
-function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 5.5) {
+function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 6, vx = null) {
   const powerup = {
     type,
     x: Math.max(22, Math.min(W - 48, x - 13)),
     y: Math.max(52, Math.min(H - 90, y - 12)),
     w: 26,
     h: 24,
-    vx: (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 22),
+    vx: vx === null ? (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 22) : vx,
     vy: 34 + level * 2,
     fromUfo,
-    ttl: Infinity,
-    persist: true
+    ttl,
+    persist: !Number.isFinite(ttl)
   };
   powerups.push(powerup);
   return powerup;
@@ -89,7 +90,8 @@ function spawnUfoLootCrate(ufo) {
     ufo.y + ufo.h / 2,
     POWERUP_TYPES.find((powerup) => powerup.id === "loot") || POWERUP_TYPES[0],
     true,
-    Infinity
+    Infinity,
+    ufo.vx
   );
 
   crate.lootQuality = quality;

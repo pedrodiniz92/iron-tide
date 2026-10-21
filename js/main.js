@@ -327,7 +327,7 @@ function addScore(points, x, y) {
     playComboScore(gained);
   }
 
-  while (score >= (extraLivesAwarded + 1) * 10000) {
+  while (score >= (extraLivesAwarded + 1) * 6000) {
     lives += 1;
     extraLivesAwarded += 1;
     playExtraLife();
