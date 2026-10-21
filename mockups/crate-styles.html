@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — UFO LOOT CRATE</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 12px; max-width: 860px; line-height: 1.55; }
+      .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; align-items: center; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #98a3c8; border-radius: 999px; padding: 5px 11px; font: 11px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      canvas { border: 1px solid #33365a; border-radius: 6px; display: block; max-width: 100%; touch-action: none; }
+      #notes { color: #6f7aa5; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>UFO LOOT CRATE — simple</h1>
+    <div class="sub">
+      A plain wooden supply crate: box, lid planks, corner bands, front lock.
+      Quality ring cycles with the QUALITY chip (gold = high).
+    </div>
+    <div class="row"><div id="chips" class="row" style="margin:0"></div></div>
+    <canvas id="stage" width="1000" height="480"></canvas>
+    <div id="notes"></div>
+    <script src="crate-styles.bundle.js"></script>
+  </body>
+</html>

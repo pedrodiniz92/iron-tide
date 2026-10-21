@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IRON TIDE — Leaderboard</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 14px 'Courier New', monospace; padding: 30px; }
+      h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .1em; }
+      .sub { color: #98a3c8; margin-bottom: 18px; }
+      table { border-collapse: collapse; min-width: 560px; }
+      th, td { padding: 6px 14px; text-align: left; border-bottom: 1px solid #23263f; }
+      th { color: #9ae6ff; font-size: 11px; letter-spacing: .1em; }
+      tr.me td { color: #ffe066; }
+      td.t { color: #9fffc9; }
+      a.btn {
+        display: inline-block; margin-top: 18px;
+        background: #171b36; border: 1px solid #454a7a; border-radius: 999px;
+        color: #9ae6ff; font: 12px 'Courier New', monospace; letter-spacing: .08em;
+        padding: 8px 18px; cursor: pointer; text-decoration: none;
+      }
+      a.btn:hover { border-color: #9ae6ff; }
+      #empty { color: #6f7aa5; }
+    </style>
+  </head>
+  <body>
+    <h1>IRON TIDE — LEADERBOARD</h1>
+    <div class="sub">Beat the TURTLE BULWARK on wave 9 to enter. Fewer seconds wins ties.</div>
+    <table>
+      <thead><tr><th>#</th><th>Pilot</th><th>Score</th><th>Time</th><th>Date</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty"></div>
+    <a class="btn" href="index.html">BACK TO GAME</a>
+    <script>
+      const NAME_KEY = "it25_name";
+      const SCORES_KEY = "it25_scores";
+      function loadScores() {
+        try { return JSON.parse(localStorage.getItem(SCORES_KEY) || "[]"); } catch (e) { return []; }
+      }
+      function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return m + ":" + String(s).padStart(2, "0");
+      }
+      const me = (function () { try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; } })();
+      const rows = document.getElementById("rows");
+      const list = loadScores();
+      list.forEach((entry, i) => {
+        const tr = document.createElement("tr");
+        if (entry.name === me) tr.className = "me";
+        [i + 1, entry.name, entry.score, formatTime(entry.time), entry.date].forEach((value, c) => {
+          const td = document.createElement("td");
+          td.textContent = value;
+          if (c === 3) td.className = "t";
+          tr.appendChild(td);
+        });
+        rows.appendChild(tr);
+      });
+      if (!list.length) document.getElementById("empty").textContent = "No runs recorded yet.";
+    </script>
+  </body>
+</html>

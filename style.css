@@ -180,3 +180,57 @@ kbd {
   background: #23284a;
   border-color: #454a7a;
 }
+
+#nameInput {
+  background: #171b36;
+  border: 1px solid #454a7a;
+  border-radius: 6px;
+  color: #9fffc9;
+  font: 16px 'Courier New', monospace;
+  text-align: center;
+  letter-spacing: .12em;
+  padding: 8px 10px;
+  width: 200px;
+  margin: 8px 0;
+}
+.overlayBtnRow { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 8px 0; }
+#nameStart, .chipLink {
+  background: #171b36;
+  border: 1px solid #454a7a;
+  border-radius: 999px;
+  color: #9ae6ff;
+  font: 12px 'Courier New', monospace;
+  letter-spacing: .08em;
+  padding: 7px 16px;
+  cursor: pointer;
+  text-decoration: none;
+}
+#nameStart:hover, .chipLink:hover { border-color: #9ae6ff; }
+.boardTop {
+  list-style: decimal;
+  text-align: left;
+  margin: 10px auto 0;
+  padding-left: 24px;
+  color: #cfe8d4;
+  font: 12px 'Courier New', monospace;
+  max-width: 340px;
+}
+.boardTop li { margin: 2px 0; }
+.boardTop li.you { color: #ffe066; }
+
+.overlay .panel {
+  pointer-events: auto;
+}
+#nameInput {
+  pointer-events: auto;
+}
+.overlay {
+  z-index: 3;
+}
+#nameLabel {
+  color: #ffe066;
+  font: 16px 'Courier New', monospace;
+  letter-spacing: .12em;
+  margin: 8px 0 2px;
+}
+#nameLabel .who { color: #9fffc9; }

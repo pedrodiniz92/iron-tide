@@ -148,6 +148,7 @@ function render(t) {
       });
     });
     if (item.glow !== item.wasGlow || item.crack !== item.wasCrack) {
+      item.fadeT = 0.3;
       item.wasGlow = item.glow;
       item.wasCrack = item.crack;
       const shM = m.userData.shell || (m.children[0] && m.children[0].userData && m.children[0].userData.shell);
@@ -156,21 +157,51 @@ function render(t) {
         if (o.isMesh && o.material.uniforms && o.material.uniforms.uRim) {
           if (!o.material.userData.rim0) o.material.userData.rim0 = o.material.uniforms.uRim.value.clone();
           if (item.glow) {
-            o.material.uniforms.uRim.value.setRGB(1.0, 0.22, 0.3);
+            const u = o.material.uniforms;
+            if (!o.material.userData.col0) {
+              o.material.userData.col0 = {
+                lit: u.uLit.value.clone(), mid: u.uMid.value.clone(),
+                shadow: u.uShadow.value.clone(), deep: u.uDeep.value.clone()
+              };
+            }
+            o.material.uniforms.uRim.value.setRGB(1.0, 0.35, 0.4);
             o.material.uniforms.uRimW.value = 1.5;
             item.glowMats = item.glowMats || [];
-            item.glowMats.push(o.material);
+            if (item.glowMats.indexOf(o.material) < 0) item.glowMats.push(o.material);
           } else {
             o.material.uniforms.uRim.value.copy(o.material.userData.rim0);
             o.material.uniforms.uRimW.value = RIG.rim;
           }
-          item.glowMats = null;
         }
       });
     }
     if (item.glowMats && item.glow) {
       const w = 1.25 + 0.6 * (0.5 + 0.5 * Math.sin(t / 130));
       item.glowMats.forEach((mat) => { mat.uniforms.uRimW.value = w; });
+    }
+    if (item.glowMats && item.fadeT > 0) {
+      const on = item.glow ? 1 : 0;
+      let done = true;
+      item.glowMats.forEach((mat) => {
+        const u = mat.uniforms;
+        const c0 = mat.userData.col0;
+        if (!c0) return;
+        const keys = [["uLit", "lit", [1.0, 0.55, 0.6]], ["uMid", "mid", [1.0, 0.16, 0.28]],
+          ["uShadow", "shadow", [0.55, 0.06, 0.16]], ["uDeep", "deep", [0.25, 0.02, 0.08]]];
+        keys.forEach(([uni, key, red]) => {
+          const v = u[uni].value;
+          const tgt = on ? { r: red[0], g: red[1], b: red[2] } : c0[key];
+          v.lerp(tgt, 0.18);
+          const gap = Math.abs(v.r - tgt.r) + Math.abs(v.g - tgt.g) + Math.abs(v.b - tgt.b);
+          if (gap > 0.03) done = false;
+          else v.copy(tgt);
+        });
+      });
+      item.fadeT -= 0.016;
+      if (done) {
+        item.fadeT = 0;
+        if (!on) item.glowMats = null;
+      }
     }
     const aT = item.flicker ? 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t / 240)) : item.alphaT;
     if (item.alphaCur === undefined) item.alphaCur = 1;
@@ -217,6 +248,16 @@ window.Iron3D = { sync, render, count: () => pool.size, ready: true, keys: KEY,
       mapS: sh && sh.material.uniforms.uMapS ? sh.material.uniforms.uMapS.value.toArray() : null,
       mapO: sh && sh.material.uniforms.uMapO ? sh.material.uniforms.uMapO.value.toArray() : null,
       uv0: sh ? sh.geometry.attributes.uv.array.slice(0, 4) : null,
+      glow: it.glow, fadeT: it.fadeT, mats: it.glowMats ? it.glowMats.length : null,
+      lit: (function () {
+        const out = [];
+        it.mesh.traverse(function (o) {
+          if (out.length < 2 && o.isMesh && o.material.uniforms && o.material.uniforms.uLit) {
+            out.push(o.material.uniforms.uLit.value.toArray().map(function (n) { return Math.round(n * 100) / 100; }));
+          }
+        });
+        return out;
+      })(),
       texel: (function () {
         const im = crackTexture().image;
         const d = im.getContext("2d").getImageData(683, 128, 1, 1).data;

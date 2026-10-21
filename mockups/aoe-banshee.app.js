@@ -33,12 +33,12 @@ function step(dt, t) {
   }
   mobs.forEach((m) => {
     m.frenzied = !!zone && Math.hypot(m.x - zone.hx, m.y - zone.hy) < state.r;
-    m.cool -= dt * (m.frenzied ? 2.4 : 1);
+    m.cool -= dt * (m.frenzied ? 3.3 : 1);
     if (m.cool <= 0) {
       m.cool = m.base * (0.6 + Math.random() * 0.8) / (m.frenzied ? 1 : 1);
       m.flash = 0.15;
       shots.push({ x: m.x, y: m.y + 14, vy: 240, fr: m.frenzied });
-      if (m.frenzied && Math.random() < 0.6) shots.push({ x: m.x + 8, y: m.y + 14, vy: 252, fr: true });
+      if (m.frenzied && Math.random() < 0.85) shots.push({ x: m.x + 8, y: m.y + 14, vy: 252, fr: true });
     }
     m.flash = Math.max(0, m.flash - dt);
   });
@@ -62,15 +62,6 @@ function draw(t) {
     ctx.arc(zone.hx, zone.hy, state.r, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = (0.22 + 0.18 * pulse) * fade;
-    ctx.lineWidth = 2;
-    mobs.forEach((m) => {
-      if (!m.frenzied) return;
-      ctx.beginPath();
-      ctx.moveTo(zone.hx, zone.hy);
-      ctx.lineTo(m.x, m.y);
-      ctx.stroke();
-    });
     ctx.globalAlpha = 0.85 * fade;
     ctx.fillStyle = "#ff4455";
     ctx.font = "bold 22px 'Courier New', monospace";

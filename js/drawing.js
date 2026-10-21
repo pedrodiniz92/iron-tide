@@ -45,6 +45,12 @@ function draw() {
     hideOverlay();
   } else if (state === "ready") {
     showOverlay("IRON TIDE", "Press Enter, click to start");
+    showStartExtras();
+  } else if (state === "victory") {
+    showOverlay("YOU BEAT IT", "");
+    overlaySub.innerHTML = "The Iron Tide is broken.<br>SCORE " + score +
+      " &middot; TIME " + formatTime(runTime) + " &middot; RANK #" + victoryRank +
+      "<br><br>Press <kbd>Enter</kbd> for the board";
   } else if (state === "gameover") {
     showOverlay("GAME OVER", `Score ${score} · Press Enter`);
   } else if (state === "paused") {
@@ -249,19 +255,19 @@ function drawInvaders() {
     if (!invader.alive) return;
     if (push3D({ id: "inv" + invader.id, key: invader.type.name, x: invader.x, y: invader.y,
       w: invader.w, h: invader.h, color: invader.type.color, phase: invader.x * 0.02,
-      alpha: invader.ghosted ? 0.16 + 0.08 * Math.sin(Date.now() / 260) : 1, glow: invader.frenzied,
+      alpha: invader.ghostAlpha === undefined ? 1 : invader.ghostAlpha, glow: invader.frenzied,
       crack: (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2 })) {
       // model drawn on the 3D layer
     } else {
       const shapeName = invader.type.name === "octopus" ? "octo" : invader.type.name;
       const fitW = invader.h * (SIL[shapeName].bb.w / SIL[shapeName].bb.h);
-      ctx.globalAlpha = invader.ghosted ? 0.22 : 1;
+      ctx.globalAlpha = invader.ghostAlpha === undefined ? 1 : invader.ghostAlpha;
       if (invader.frenzied) {
         ctx.shadowColor = "#ff4455";
         ctx.shadowBlur = 16;
       }
       neon(shapeName, invader.x + invader.w / 2, invader.y + invader.h / 2, Math.min(invader.w, fitW * 1.35),
-        invader.type.color);
+        invader.frenzied ? "#ff2f4f" : invader.type.color);
       const eyeR = Math.max(2.1, invader.w * 0.068);
       const eyeY = invader.y + invader.h * 0.38;
       ctx.beginPath();
@@ -299,16 +305,7 @@ function drawFrenzy() {
     ctx.font = "bold 22px 'Courier New', monospace";
     ctx.textAlign = "center";
     ctx.fillText("!", zone.sx, zone.sy - 26);
-    ctx.globalAlpha = (0.22 + 0.18 * pulse) * fade;
-    ctx.lineWidth = 2;
-    invaders.forEach((invader) => {
-      if (!invader.alive || !invader.frenzied) return;
-      if (Math.hypot(invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y) > zone.r) return;
-      ctx.beginPath();
-      ctx.moveTo(zone.sx, zone.sy);
-      ctx.lineTo(invader.x + invader.w / 2, invader.y + invader.h / 2);
-      ctx.stroke();
-    });
+
   });
   ctx.restore();
 }
@@ -764,6 +761,27 @@ function drawScorePopups() {
   });
 }
 
+function showStartExtras() {
+  const box = document.getElementById("startExtras");
+  const nameEl = document.getElementById("nameInput");
+  const board = document.getElementById("boardTop");
+  if (!box || !board) return;
+  box.style.display = "block";
+  refreshNameWidgets();
+  board.innerHTML = "";
+  loadScores().slice(0, 10).forEach((entry) => {
+    const li = document.createElement("li");
+    li.textContent = entry.name + " - " + entry.score + " - " + formatTime(entry.time);
+    if (entry.name === loadName()) li.className = "you";
+    board.appendChild(li);
+  });
+  if (!board.children.length) {
+    const li = document.createElement("li");
+    li.textContent = "no runs yet - beat the TURTLE BULWARK on wave 9";
+    board.appendChild(li);
+  }
+}
+
 function drawGameMessages() {
   gameMessages.forEach((message, index) => {
     const alpha = Math.max(0, Math.min(1, message.ttl / Math.max(0.2, message.maxTtl * 0.45)));
@@ -821,3 +839,38 @@ function drawUpgradeChoices() {
   ctx.restore();
 }
 
+function refreshNameWidgets() {
+  const input = document.getElementById("nameInput");
+  const label = document.getElementById("nameLabel");
+  const who = document.getElementById("nameWho");
+  const change = document.getElementById("changeName");
+  if (!input || !label || !who || !change) return;
+  const saved = loadName() === "PILOT" ? "" : loadName();
+  const editing = window.__nameEditing === true || !saved;
+  window.__nameEditing = editing;
+  input.style.display = editing ? "inline-block" : "none";
+  label.style.display = editing ? "none" : "block";
+  change.style.display = editing ? "none" : "inline-block";
+  who.textContent = saved;
+  if (editing && !input.value) input.value = saved;
+}
+
+function effectiveName() {
+  const input = document.getElementById("nameInput");
+  if (window.__nameEditing && input) return input.value.trim().slice(0, 12);
+  return loadName() === "PILOT" ? "" : loadName();
+}
+
+const changeNameBtn = document.getElementById("changeName");
+if (changeNameBtn) {
+  changeNameBtn.addEventListener("click", () => {
+    window.__nameEditing = true;
+    refreshNameWidgets();
+    const input = document.getElementById("nameInput");
+    if (input) {
+      input.value = loadName() === "PILOT" ? "" : loadName();
+      input.focus();
+      input.select();
+    }
+  });
+}

@@ -128,6 +128,7 @@ function buildTestPanel() {
   waveBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   waveBtn.addEventListener("click", () => {
     level = Number(waveSelect.value) || 1;
+    testJumpLevel = level;
     newWave();
     updateStatus("Jumped to wave " + level);
   });

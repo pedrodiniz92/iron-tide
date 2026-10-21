@@ -9522,11 +9522,14 @@ void main() {
   var SURF_FS = `
 uniform vec3 uLit, uMid, uShadow, uDeep, uKey, uRim, uBack;
 uniform float uToon, uSoft, uRimW, uBackW, uAlpha;
+uniform vec3 uTintMul;
 varying vec3 vN;
 varying vec3 vV;
 varying vec2 vUv;
 #ifdef USE_MAP
 uniform sampler2D uMap;
+uniform vec2 uMapS;
+uniform vec2 uMapO;
 #endif
 void main() {
   vec3 N = normalize(vN);
@@ -9541,8 +9544,9 @@ void main() {
   float d = mix(flatD, core, uToon);
   vec3 c = mix(uShadow, uMid, t);
   c = mix(uDeep, c, d);
+  c *= uTintMul;
   #ifdef USE_MAP
-  c *= texture2D(uMap, vUv).rgb * 1.25;
+  c *= texture2D(uMap, vUv * uMapS + uMapO).rgb * 1.25;
   #endif
   float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
   c += uRim * fres * uRimW * (0.30 + 0.70 * max(N.y, 0.0));
@@ -9582,6 +9586,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       fragmentShader: hasMap ? "#define USE_MAP\n" + SURF_FS : SURF_FS,
       uniforms: {
         uMap: { value: cfg.map || new yi() },
+        uMapS: { value: cfg.mapS || new Jn(1, 1) },
+        uMapO: { value: cfg.mapO || new Jn(0, 0) },
+        uTintMul: { value: new Ci(1, 1, 1) },
         uLit: { value: r.lit },
         uMid: { value: r.mid },
         uShadow: { value: r.shadow },
@@ -10103,7 +10110,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       part(g, new id(0.11, 14, 12), DARK, cfg, 0, 0.22, 0.38, 5e-3, 0.8, 1.2, 0.75);
       [[0.3, -0.1], [0.23, -0.38], [0.16, -0.62], [0.09, -0.82]].forEach(([r, y2], i) => {
         const spin = new jl();
-        const ball = part(spin, new id(r, 18, 12), "#dfe9ff", cfg, 0.06, y2, -0.14, 0.01, 1.15, 1, 1);
+        const ball = part(spin, new id(r, 18, 12), body, cfg, 0.06, y2, -0.14, 0.01, 1.15, 1, 1);
         ball.rotation.y = i * 0.9;
         g.add(spin);
         g.userData.spin.push({ obj: spin, speed: 2.4 - i * 0.3 });
@@ -10139,7 +10146,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   var cam = new Js(26, canvas.width / canvas.height, 0.5, 300);
   var target = new Ci(0, 0, 0);
   var TINTS = [["BONE", "#dfe9ff"], ["SPECTRAL", "#c4a8ff"], ["PHASE", "#9dffd4"]];
-  var BANSHEE_TINTS = [["WRAITH", "#c4a8ff"], ["CRIMSON", "#ff7a9c"], ["CAULD", "#8fffc8"]];
+  var BANSHEE_TINTS = [["EMBER", "#ff6a3d"], ["SCARLET", "#ff4a2a"], ["SOLAR", "#ff8a45"]];
   var state = {
     kind: "ghost",
     tint: 0,

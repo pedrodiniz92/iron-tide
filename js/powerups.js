@@ -227,7 +227,8 @@ function explodeBombShot(shot) {
     const dy = invader.y + invader.h / 2 - centerShotY;
     if (dx * dx + dy * dy <= shot.radius * shot.radius) {
       invader.shieldHp = 0;
-      invader.hp = Math.max(0, (invader.hp || 1) - 1);
+      invader.hp = Math.max(0, (invader.hp || 1) - 2);
+      if (invader.hp === 1 && (invader.maxHp || 1) >= 2) invader.threatened = 5;
       if (invader.hp > 0) {
         comboAddHit();
         addExplosion(invader.x + invader.w / 2, invader.y + invader.h / 2, invaderHitColor(invader));

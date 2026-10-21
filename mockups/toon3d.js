@@ -64,6 +64,7 @@ void main() {
 const SURF_FS = `
 uniform vec3 uLit, uMid, uShadow, uDeep, uKey, uRim, uBack;
 uniform float uToon, uSoft, uRimW, uBackW, uAlpha;
+uniform vec3 uTintMul;
 varying vec3 vN;
 varying vec3 vV;
 varying vec2 vUv;
@@ -85,6 +86,7 @@ void main() {
   float d = mix(flatD, core, uToon);
   vec3 c = mix(uShadow, uMid, t);
   c = mix(uDeep, c, d);
+  c *= uTintMul;
   #ifdef USE_MAP
   c *= texture2D(uMap, vUv * uMapS + uMapO).rgb * 1.25;
   #endif
@@ -225,6 +227,7 @@ function surfMaterial(color, cfg) {
       uMap: { value: cfg.map || new THREE.Texture() },
       uMapS: { value: cfg.mapS || new THREE.Vector2(1, 1) },
       uMapO: { value: cfg.mapO || new THREE.Vector2(0, 0) },
+      uTintMul: { value: new THREE.Vector3(1, 1, 1) },
       uLit: { value: r.lit }, uMid: { value: r.mid }, uShadow: { value: r.shadow }, uDeep: { value: r.deep },
       uKey: { value: new THREE.Vector3(-0.55, 0.72, 0.62) },
       uRim: { value: r.rim }, uBack: { value: r.back },

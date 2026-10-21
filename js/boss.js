@@ -724,6 +724,9 @@ function damageBoss(amount) {
     showGameMessage(mini ? "MINIBOSS DOWN!" : "BOSS DOWN!", 1.35, design.color);
     if (mini) {
       if (!invaders.some((invader) => invader.alive)) checkWaveClear();
+    } else if (design.name === "TURTLE BULWARK") {
+      winGame();
+      return;
     } else {
       finishBossFight();
     }
@@ -1068,7 +1071,7 @@ function drawBoss() {
   }
 
   if (laser.state === "fire") {
-    ctx.lineCap = "round";
+    ctx.lineCap = "butt";
     ctx.strokeStyle = "rgba(255, 51, 102, 0.24)";
     ctx.lineWidth = laser.width * 2.6;
     ctx.beginPath();

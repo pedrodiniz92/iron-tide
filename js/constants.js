@@ -89,7 +89,7 @@ const INVADER_TYPES = [
   { rows: [0, 1], name: "squid", score: 30, sprite: SPRITES.squid, color: COLORS.squid },
   { rows: [2, 3], name: "crab", score: 20, sprite: SPRITES.crab, color: COLORS.crab },
   { rows: [4], name: "octopus", score: 10, sprite: SPRITES.octopus, color: COLORS.octopus },
-  { rows: [], name: "banshee", score: 25, sprite: SPRITES.banshee, color: "#c4a8ff" },
+  { rows: [], name: "banshee", score: 25, sprite: SPRITES.banshee, color: "#ff6a3d" },
   { rows: [], name: "ghost", score: 40, sprite: SPRITES.ghost, color: "#dfe9ff" },
   { rows: [], name: "stinger", score: 20, sprite: SPRITES.stinger, color: "#ffb04c" }
 ];
@@ -209,6 +209,30 @@ const UPGRADE_TREES = [
     ]
   }
 ];
+
+const NAME_KEY = "it25_name";
+const SCORES_KEY = "it25_scores";
+function loadName() {
+  try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; }
+}
+function saveName(n) {
+  try { localStorage.setItem(NAME_KEY, n); } catch (e) { /* private mode */ }
+}
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(SCORES_KEY) || "[]"); } catch (e) { return []; }
+}
+function saveScore(entry) {
+  const list = loadScores();
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score || a.time - b.time);
+  try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* ignore */ }
+  return list.findIndex((s) => s === entry) + 1;
+}
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return m + ":" + String(s).padStart(2, "0");
+}
 
 const btnSound = document.getElementById("btnSound");
 const btnPauseSfx = document.getElementById("btnPauseSfx");

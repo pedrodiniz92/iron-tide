@@ -12,7 +12,7 @@ const cam = new THREE.PerspectiveCamera(26, canvas.width / canvas.height, 0.5, 3
 const target = new THREE.Vector3(0, 0, 0);
 
 const TINTS = [["BONE", "#dfe9ff"], ["SPECTRAL", "#c4a8ff"], ["PHASE", "#9dffd4"]];
-const BANSHEE_TINTS = [["WRAITH", "#c4a8ff"], ["CRIMSON", "#ff7a9c"], ["CAULD", "#8fffc8"]];
+const BANSHEE_TINTS = [["EMBER", "#ff6a3d"], ["SCARLET", "#ff4a2a"], ["SOLAR", "#ff8a45"]];
 
 const state = {
   kind: "ghost", tint: 0, bTint: 0, toon: 1, rim: 0.5, backRim: 0.3, inkHull: 0,

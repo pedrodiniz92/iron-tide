@@ -94,7 +94,7 @@ function updateEnemyBullets(dt) {
   enemyFireTimer -= dt;
   if (enemyFireTimer <= 0) {
     lastShotFast = fireEnemyBullet();
-    enemyFireTimer = Math.max(0.62, 2.15 - level * 0.07 - Math.random() * 0.75) * (lastShotFast === "frenzy" ? 0.42 : lastShotFast === "threat" ? 0.67 : lastShotFast ? 0.7 : 1);
+    enemyFireTimer = Math.max(0.62, 2.15 - level * 0.07 - Math.random() * 0.75) * (lastShotFast === "frenzy" ? 0.3 : lastShotFast === "threat" ? 0.67 : lastShotFast ? 0.7 : 1);
   }
 }
 
@@ -105,7 +105,7 @@ function applyRowRoles() {
 }
 
 function fireEnemyBullet() {
-  const maxBullets = boss ? 2 : Math.min(3, 2 + Math.floor(level / 3));
+  const maxBullets = frenzyZones.some((zone) => zone.arm <= 0) ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
   if (enemyBullets.length >= maxBullets) return false;
 
   const alive = invaders.filter((invader) => invader.alive);
@@ -118,13 +118,11 @@ function fireEnemyBullet() {
   )) : [];
   const threatened = free.filter((invader) => invader.threatened > 0);
   const front = free.filter((invader) => invader.rowRole === "last");
-  const pool = frenzied.length && Math.random() < 0.85 ? frenzied
-    : (threatened.length && Math.random() < 0.8 ? threatened
-      : (front.length && Math.random() < 0.7 ? front : (free.length ? free : alive)));
+  const pool = threatened.length && Math.random() < 0.8 ? threatened
+    : (front.length && Math.random() < 0.7 ? front : (free.length ? free : alive));
   const source = pool[Math.floor(Math.random() * pool.length)];
 
-  const inFrenzy = frenzied.indexOf(source) >= 0;
-  const aimed = inFrenzy || (source.rowRole === "last" && level >= 2);
+  const aimed = (source.rowRole === "last" && level >= 2) || source.type.name === "stinger";
   const sx = source.x + source.w / 2;
   const vx = aimed ? Math.max(-190, Math.min(190, (player.x + player.w / 2 - sx) * 1.5)) : 0;
 
@@ -140,15 +138,7 @@ function fireEnemyBullet() {
     color: source.type.color,
     shooterId: source.id
   });
-  if (inFrenzy && enemyBullets.length < maxBullets + 1 && Math.random() < 0.6) {
-    enemyBullets.push({
-      x: sx - 2, y: source.y + source.h, w: 4, h: 14,
-      speed: 560 * Math.min(1, 0.85 + (level - 1) * 0.05) * 1.06,
-      vx: Math.max(-190, Math.min(190, vx + (Math.random() - 0.5) * 90)),
-      hp: 2, maxHp: 2, color: source.type.color, shooterId: source.id
-    });
-  }
-  return inFrenzy ? "frenzy" : (source.threatened > 0 ? "threat" : aimed);
+  return source.threatened > 0 ? "threat" : aimed;
 }
 
 function updateInvaders(dt) {
@@ -157,7 +147,11 @@ function updateInvaders(dt) {
 
   ghostPhaseT = (ghostPhaseT + dt) % 4;
   const ghosted = ghostPhaseT >= 3;
-  frenzyZones.forEach((zone) => { zone.t -= dt; });
+  frenzyZones.forEach((zone) => {
+    zone.t -= dt;
+    if (zone.arm > 0) zone.arm = Math.max(0, zone.arm - dt);
+  });
+  const armedZones = frenzyZones.filter((zone) => zone.arm <= 0);
   frenzyZones.forEach((zone) => {
     if (zone.b && zone.b.alive) {
       zone.x = zone.b.x + zone.b.w / 2;
@@ -169,21 +163,65 @@ function updateInvaders(dt) {
   frenzyZones = frenzyZones.filter((zone) => zone.t > 0);
   alive.forEach((invader) => {
     if (invader.threatened > 0) invader.threatened = Math.max(0, invader.threatened - dt);
-    if (invader.type.name === "ghost") invader.ghosted = ghosted;
+    if (invader.type.name === "ghost") {
+      invader.ghosted = ghosted;
+      invader.ghostAlpha = ghostPhaseT < 3 ? 1
+        : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
+        : ghostPhaseT < 3.75 ? 0.18
+        : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+    }
     invader.frenzied = frenzyZones.some((zone) => Math.hypot(
       invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y
     ) < zone.r);
+    invader.frenzyLive = armedZones.some((zone) => Math.hypot(
+      invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y
+    ) < zone.r);
   });
+  const frenzyCap = armedZones.length ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
+  alive.forEach((invader) => {
+    if (!invader.frenzyLive || invader.type.name === "ghost") return;
+    invader.frenzyShotT = (invader.frenzyShotT === undefined ? 0.3 + Math.random() * 1.1 : invader.frenzyShotT) - dt;
+    if (invader.frenzyShotT > 0) return;
+    invader.frenzyShotT = 0.95 + Math.random() * 0.8;
+    if (enemyBullets.length >= frenzyCap) return;
+    const fx = invader.x + invader.w / 2;
+    const faim = (invader.rowRole === "last" && level >= 2) || invader.type.name === "stinger";
+    enemyBullets.push({
+      x: fx - 2, y: invader.y + invader.h, w: 4, h: 14,
+      speed: 560 * Math.min(1, 0.85 + (level - 1) * 0.05),
+      vx: faim ? Math.max(-380, Math.min(380, (player.x + player.w / 2 - fx) * 1.5)) : 0,
+      hp: 2, maxHp: 2, color: invader.type.color, shooterId: invader.id
+    });
+  });
+  if (boss && boss.alive && boss.mini && armedZones.length &&
+      armedZones.some((zone) => Math.hypot(boss.x + boss.w / 2 - zone.x, boss.y + boss.h / 2 - zone.y) < zone.r + 40)) {
+    boss.frenzyShotT = (boss.frenzyShotT === undefined ? 0.2 : boss.frenzyShotT) - dt;
+    if (boss.frenzyShotT <= 0) {
+      boss.frenzyShotT = 1.1 + Math.random() * 0.8;
+      if (enemyBullets.length < frenzyCap) {
+        const bx = boss.x + boss.w / 2;
+        addBossBullet(bx - 2, boss.y + boss.h,
+          Math.max(-190, Math.min(190, (player.x + player.w / 2 - bx) * 1.5)),
+          560 * Math.min(1, 0.85 + (level - 1) * 0.05));
+      }
+    }
+  }
   screamTimer -= dt;
   if (screamTimer <= 0) {
     const wailing = alive.filter((invader) => invader.type.name === "banshee");
     if (wailing.length) {
       const b = wailing[Math.floor(Math.random() * wailing.length)];
       playScream();
-      frenzyZones.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, r: 210, t: 3.2, sx: b.x + b.w / 2, sy: b.y + b.h / 2, b });
+      frenzyZones.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, r: 210, t: 3.2, arm: 0.8, sx: b.x + b.w / 2, sy: b.y + b.h / 2, b });
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 210);
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 165);
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 120);
+      alive.forEach((invader) => {
+        if (invader.type.name === "ghost") return;
+        if (Math.hypot(invader.x + invader.w / 2 - b.x - b.w / 2, invader.y + invader.h / 2 - b.y - b.h / 2) < 210) {
+          invader.frenzyShotT = 0.3 + Math.random() * 1.1;
+        }
+      });
       screamTimer = 8;
     } else {
       screamTimer = 1;

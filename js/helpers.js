@@ -204,6 +204,8 @@ function showOverlay(title, subtitle) {
   overlayTitle.textContent = title;
   overlaySub.textContent = subtitle;
   if (pauseToggles) pauseToggles.style.display = "none";
+  const extras = document.getElementById("startExtras");
+  if (extras) extras.style.display = "none";
   overlay.classList.remove("hidden");
 }
 

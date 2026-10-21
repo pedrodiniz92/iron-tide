@@ -35,6 +35,16 @@
           <div class="panel">
             <h2 id="overlayTitle">IRON TIDE</h2>
             <p id="overlaySub">Press Enter, click to start</p>
+            <div id="startExtras" style="display:none">
+              <div id="nameLabel" style="display:none">PILOT: <span class="who" id="nameWho"></span></div>
+              <input id="nameInput" maxlength="12" placeholder="YOUR NAME" autocomplete="off" />
+              <div><button id="changeName" type="button" class="chipLink" style="display:none;border:1px solid #454a7a;background:#171b36;color:#9ae6ff;border-radius:999px;padding:6px 14px;font:11px 'Courier New',monospace;cursor:pointer">CHANGE NAME</button></div>
+              <div class="overlayBtnRow">
+                <button id="nameStart" type="button">START</button>
+                <a id="moreBtn" class="chipLink" href="leaderboard.html">SHOW MORE</a>
+              </div>
+              <ol id="boardTop" class="boardTop"></ol>
+            </div>
             <div id="pauseToggles" class="audio-controls" style="display:none; justify-content:center;">
               <button id="btnPauseSfx" type="button" aria-pressed="true">SFX: on</button>
               <button id="btnPauseMusic" type="button" aria-pressed="true">Music: on</button>

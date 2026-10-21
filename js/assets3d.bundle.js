@@ -9522,6 +9522,7 @@ void main() {
   var SURF_FS = `
 uniform vec3 uLit, uMid, uShadow, uDeep, uKey, uRim, uBack;
 uniform float uToon, uSoft, uRimW, uBackW, uAlpha;
+uniform vec3 uTintMul;
 varying vec3 vN;
 varying vec3 vV;
 varying vec2 vUv;
@@ -9543,6 +9544,7 @@ void main() {
   float d = mix(flatD, core, uToon);
   vec3 c = mix(uShadow, uMid, t);
   c = mix(uDeep, c, d);
+  c *= uTintMul;
   #ifdef USE_MAP
   c *= texture2D(uMap, vUv * uMapS + uMapO).rgb * 1.25;
   #endif
@@ -9586,6 +9588,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         uMap: { value: cfg.map || new yi() },
         uMapS: { value: cfg.mapS || new Jn(1, 1) },
         uMapO: { value: cfg.mapO || new Jn(0, 0) },
+        uTintMul: { value: new Ci(1, 1, 1) },
         uLit: { value: r.lit },
         uMid: { value: r.mid },
         uShadow: { value: r.shadow },
@@ -10754,15 +10757,14 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     drop_loot(cfg, color, quality) {
       const g = new jl();
       const hex = color || "#ffd166";
-      const b = dropBase(cfg, hex, g);
-      const lower = part(g, new pu(13.6, 13.6, 11.6, 8), "#c08f2f", cfg, 0, -2.6, 0, 0.01);
-      lower.rotation.y = Math.PI / 8;
-      const belt = part(g, new pu(13.9, 13.9, 3.6, 8), "#8a6a20", cfg, 0, 4, 0, 0.01);
-      belt.rotation.y = Math.PI / 8;
-      dropIcon(g, b.front + 0.4, (inner) => {
-        part(inner, new ks(6, 5, 3.4), "#2b2b0e", cfg, 0, 0.5, 2.4, 0.01);
-        qualityFrame(g, QUALITY[quality] || QUALITY[2], b.front + 3);
-      });
+      const body = part(g, new ks(20, 18, 16), hex, cfg, 0, 0, 0, 0.016);
+      addHull(g, body, body.geometry, 0.022, cfg, hex);
+      part(g, new ks(20.6, 3, 16.6), "#8a6a20", cfg, 0, 6, 0, 0.01);
+      part(g, new ks(3, 18.6, 16.6), "#8a6a20", cfg, 0, 0, 0, 0.01);
+      part(g, new ks(20.6, 18.6, 3), "#8a6a20", cfg, 0, 0, 0, 0.01);
+      part(g, new ks(5, 4.4, 3), "#2b2b0e", cfg, 0, 1.5, 8.6, 8e-3);
+      part(g, new id(1.1, 10, 8), "#ffe066", cfg, 0, 1.5, 10.2, 5e-3);
+      qualityFrame(g, QUALITY[quality] || QUALITY[2], 11.5);
       return finishMob(g, 2.1);
     }
   };
@@ -10859,7 +10861,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       part(g, new id(0.11, 14, 12), DARK, cfg, 0, 0.22, 0.38, 5e-3, 0.8, 1.2, 0.75);
       [[0.3, -0.1], [0.23, -0.38], [0.16, -0.62], [0.09, -0.82]].forEach(([r, y2], i) => {
         const spin = new jl();
-        const ball = part(spin, new id(r, 18, 12), "#dfe9ff", cfg, 0.06, y2, -0.14, 0.01, 1.15, 1, 1);
+        const ball = part(spin, new id(r, 18, 12), body, cfg, 0.06, y2, -0.14, 0.01, 1.15, 1, 1);
         ball.rotation.y = i * 0.9;
         g.add(spin);
         g.userData.spin.push({ obj: spin, speed: 2.4 - i * 0.3 });
@@ -11059,6 +11061,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         });
       });
       if (item.glow !== item.wasGlow || item.crack !== item.wasCrack) {
+        item.fadeT = 0.3;
         item.wasGlow = item.glow;
         item.wasCrack = item.crack;
         const shM = m.userData.shell || m.children[0] && m.children[0].userData && m.children[0].userData.shell;
@@ -11067,15 +11070,23 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
           if (o.isMesh && o.material.uniforms && o.material.uniforms.uRim) {
             if (!o.material.userData.rim0) o.material.userData.rim0 = o.material.uniforms.uRim.value.clone();
             if (item.glow) {
-              o.material.uniforms.uRim.value.setRGB(1, 0.22, 0.3);
+              const u2 = o.material.uniforms;
+              if (!o.material.userData.col0) {
+                o.material.userData.col0 = {
+                  lit: u2.uLit.value.clone(),
+                  mid: u2.uMid.value.clone(),
+                  shadow: u2.uShadow.value.clone(),
+                  deep: u2.uDeep.value.clone()
+                };
+              }
+              o.material.uniforms.uRim.value.setRGB(1, 0.35, 0.4);
               o.material.uniforms.uRimW.value = 1.5;
               item.glowMats = item.glowMats || [];
-              item.glowMats.push(o.material);
+              if (item.glowMats.indexOf(o.material) < 0) item.glowMats.push(o.material);
             } else {
               o.material.uniforms.uRim.value.copy(o.material.userData.rim0);
               o.material.uniforms.uRimW.value = RIG.rim;
             }
-            item.glowMats = null;
           }
         });
       }
@@ -11084,6 +11095,34 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         item.glowMats.forEach((mat) => {
           mat.uniforms.uRimW.value = w2;
         });
+      }
+      if (item.glowMats && item.fadeT > 0) {
+        const on = item.glow ? 1 : 0;
+        let done = true;
+        item.glowMats.forEach((mat) => {
+          const u2 = mat.uniforms;
+          const c0 = mat.userData.col0;
+          if (!c0) return;
+          const keys = [
+            ["uLit", "lit", [1, 0.55, 0.6]],
+            ["uMid", "mid", [1, 0.16, 0.28]],
+            ["uShadow", "shadow", [0.55, 0.06, 0.16]],
+            ["uDeep", "deep", [0.25, 0.02, 0.08]]
+          ];
+          keys.forEach(([uni, key, red]) => {
+            const v = u2[uni].value;
+            const tgt = on ? { r: red[0], g: red[1], b: red[2] } : c0[key];
+            v.lerp(tgt, 0.18);
+            const gap = Math.abs(v.r - tgt.r) + Math.abs(v.g - tgt.g) + Math.abs(v.b - tgt.b);
+            if (gap > 0.03) done = false;
+            else v.copy(tgt);
+          });
+        });
+        item.fadeT -= 0.016;
+        if (done) {
+          item.fadeT = 0;
+          if (!on) item.glowMats = null;
+        }
       }
       const aT = item.flicker ? 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t2 / 240)) : item.alphaT;
       if (item.alphaCur === void 0) item.alphaCur = 1;
@@ -11132,6 +11171,20 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         mapS: sh2 && sh2.material.uniforms.uMapS ? sh2.material.uniforms.uMapS.value.toArray() : null,
         mapO: sh2 && sh2.material.uniforms.uMapO ? sh2.material.uniforms.uMapO.value.toArray() : null,
         uv0: sh2 ? sh2.geometry.attributes.uv.array.slice(0, 4) : null,
+        glow: it.glow,
+        fadeT: it.fadeT,
+        mats: it.glowMats ? it.glowMats.length : null,
+        lit: (function() {
+          const out = [];
+          it.mesh.traverse(function(o) {
+            if (out.length < 2 && o.isMesh && o.material.uniforms && o.material.uniforms.uLit) {
+              out.push(o.material.uniforms.uLit.value.toArray().map(function(n) {
+                return Math.round(n * 100) / 100;
+              }));
+            }
+          });
+          return out;
+        })(),
         texel: (function() {
           const im = crackTexture().image;
           const d2 = im.getContext("2d").getImageData(683, 128, 1, 1).data;

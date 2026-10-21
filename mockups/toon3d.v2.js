@@ -687,15 +687,14 @@ export const DROPS_V2 = {
   drop_loot(cfg, color, quality) {
     const g = new THREE.Group();
     const hex = color || "#ffd166";
-    const b = dropBase(cfg, hex, g);
-    const lower = part(g, new THREE.CylinderGeometry(13.6, 13.6, 11.6, 8), "#c08f2f", cfg, 0, -2.6, 0, 0.010);
-    lower.rotation.y = Math.PI / 8;
-    const belt = part(g, new THREE.CylinderGeometry(13.9, 13.9, 3.6, 8), "#8a6a20", cfg, 0, 4, 0, 0.010);
-    belt.rotation.y = Math.PI / 8;
-    dropIcon(g, b.front + 0.4, (inner) => {
-      part(inner, new THREE.BoxGeometry(6, 5, 3.4), "#2b2b0e", cfg, 0, 0.5, 2.4, 0.010);
-      qualityFrame(g, QUALITY[quality] || QUALITY[2], b.front + 3);
-    });
+    const body = part(g, new THREE.BoxGeometry(20, 18, 16), hex, cfg, 0, 0, 0, 0.016);
+    addHull(g, body, body.geometry, 0.022, cfg, hex);
+    part(g, new THREE.BoxGeometry(20.6, 3, 16.6), "#8a6a20", cfg, 0, 6, 0, 0.010);
+    part(g, new THREE.BoxGeometry(3, 18.6, 16.6), "#8a6a20", cfg, 0, 0, 0, 0.010);
+    part(g, new THREE.BoxGeometry(20.6, 18.6, 3), "#8a6a20", cfg, 0, 0, 0, 0.010);
+    part(g, new THREE.BoxGeometry(5, 4.4, 3), "#2b2b0e", cfg, 0, 1.5, 8.6, 0.008);
+    part(g, new THREE.SphereGeometry(1.1, 10, 8), "#ffe066", cfg, 0, 1.5, 10.2, 0.005);
+    qualityFrame(g, QUALITY[quality] || QUALITY[2], 11.5);
     return finishMob(g, 2.1);
   }
 };

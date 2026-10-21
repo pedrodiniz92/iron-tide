@@ -6,6 +6,10 @@ let state = "ready";
 let score = 0;
 let highScore = loadHighScore();
 let level = 1;
+let runTime = 0;
+let playerName = "";
+let victoryRank = 0;
+let testJumpLevel = 0;
 let lives = 3;
 let extraLivesAwarded = 0;
 

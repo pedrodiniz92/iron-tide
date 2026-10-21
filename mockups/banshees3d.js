@@ -43,7 +43,7 @@ export function buildBanshee(kind, cfg, hex) {
     part(g, new THREE.SphereGeometry(0.11, 14, 12), DARK, cfg, 0, 0.22, 0.38, 0.005, 0.8, 1.2, 0.75);
     [[0.3, -0.1], [0.23, -0.38], [0.16, -0.62], [0.09, -0.82]].forEach(([r, y], i) => {
       const spin = new THREE.Group();
-      const ball = part(spin, new THREE.SphereGeometry(r, 18, 12), "#dfe9ff", cfg, 0.06, y, -0.14, 0.010, 1.15, 1, 1);
+      const ball = part(spin, new THREE.SphereGeometry(r, 18, 12), body, cfg, 0.06, y, -0.14, 0.010, 1.15, 1, 1);
       ball.rotation.y = i * 0.9;
       g.add(spin);
       g.userData.spin.push({ obj: spin, speed: 2.4 - i * 0.3 });

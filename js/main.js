@@ -13,7 +13,8 @@ function startGame() {
   state = "playing";
   score = 0;
   lives = 3;
-  level = 1;
+  level = testJumpLevel || 1;
+  testJumpLevel = 0;
   extraLivesAwarded = 0;
   playerBullets = [];
   enemyBullets = [];
@@ -64,6 +65,9 @@ function startGame() {
   maxShieldHits = 1;
   shieldRestoreDelay = 0;
   shieldRestoreTimer = 0;
+  runTime = 0;
+  playerName = effectiveName() || "PILOT";
+  saveName(playerName);
   resetPlayer();
   updateDashHint();
   newWave();
@@ -83,7 +87,16 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+function winGame() {
+  state = "victory";
+  clearEnemyFire();
+  victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10) });
+  playLevelClear();
+  updateStatus("THE IRON TIDE IS BROKEN.");
+}
+
 function update(dt) {
+  runTime += dt;
   movePlayer(dt);
   updateDash(dt);
   updateFire(dt);
@@ -405,10 +418,29 @@ function applyUpgrade(choice) {
   updateDashHint();
 }
 
-canvas.addEventListener("mousedown", () => {
+function tryStart() {
   initAudio();
-  if (state === "ready" || state === "gameover") startGame();
-});
+  if (state === "victory") { state = "ready"; return; }
+  if (state !== "ready" && state !== "gameover") return;
+  if (!effectiveName()) {
+    window.__nameEditing = true;
+    refreshNameWidgets();
+    const input = document.getElementById("nameInput");
+    if (input) input.focus();
+    updateStatus("TYPE YOUR NAME FIRST");
+    return;
+  }
+  startGame();
+}
+
+canvas.addEventListener("mousedown", tryStart);
+
+const nameStartBtn = document.getElementById("nameStart");
+if (nameStartBtn) {
+  nameStartBtn.addEventListener("click", () => {
+    if (state === "ready") tryStart();
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
@@ -433,7 +465,22 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (key === "enter" && (state === "ready" || state === "gameover")) {
-    startGame();
+    if (key === "enter" && document.activeElement === document.getElementById("nameInput") && !effectiveName()) {
+      updateStatus("TYPE YOUR NAME FIRST");
+      return;
+    }
+    tryStart();
+    return;
+  }
+
+  if (key === "enter" && state === "victory") {
+    state = "ready";
+    return;
+  }
+
+  if (key === "enter" && document.activeElement === document.getElementById("nameInput") &&
+      (state === "ready" || state === "gameover")) {
+    tryStart();
     return;
   }
 
