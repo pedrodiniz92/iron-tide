@@ -234,3 +234,18 @@ kbd {
   margin: 8px 0 2px;
 }
 #nameLabel .who { color: #9fffc9; }
+h1 .ver {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(154, 230, 255, 0.55);
+  letter-spacing: .18em;
+  margin-left: 10px;
+  vertical-align: middle;
+  position: relative;
+  top: -0.08em;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+h1:hover .ver {
+  opacity: 1;
+}

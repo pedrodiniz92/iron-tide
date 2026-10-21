@@ -130,6 +130,11 @@ function buildTestPanel() {
     level = Number(waveSelect.value) || 1;
     testJumpLevel = level;
     newWave();
+    nextWaveIsBoss = isFullBossWave(level);
+    if (nextWaveIsBoss) {
+      spawnBoss();
+      nextWaveIsBoss = false;
+    }
     updateStatus("Jumped to wave " + level);
   });
   waveRow.appendChild(waveLabel);
