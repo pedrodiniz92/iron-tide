@@ -339,9 +339,12 @@ function gameOver() {
   state = "gameover";
   screenShake = 0;
   saveHighScore(highScore);
+  if (score > 0) {
+    victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: false });
+  }
   stopMusic();
   playGameOver();
-  updateStatus("Press Enter to play again.");
+  updateStatus(victoryRank ? `RANK #${victoryRank} - Press Enter to play again.` : "Press Enter to play again.");
 }
 
 function finishBossFight() {
@@ -355,8 +358,9 @@ function finishBossFight() {
   setMusic(7);
   state = "choices";
   upgradeChoices = buildUpgradeChoices();
+  upgradeSel = 0;
   showGameMessage("CHOOSE A PERMANENT UPGRADE", 2.2, "#ffe066");
-  updateStatus("Pick 1, 2, or 3.");
+  updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
 }
 
 function buildUpgradeChoices() {
@@ -433,7 +437,25 @@ function tryStart() {
   startGame();
 }
 
-canvas.addEventListener("mousedown", tryStart);
+function pickUpgradeAt(event) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (event.clientX - rect.left) * (W / rect.width);
+  const my = (event.clientY - rect.top) * (H / rect.height);
+  for (let i = 0; i < upgradeChoices.length; i += 1) {
+    const y = 225 + i * 70;
+    if (mx > 82 && mx < W - 82 && my > y - 28 && my < y + 26) {
+      upgradeSel = i;
+      chooseUpgrade(i);
+      return true;
+    }
+  }
+  return false;
+}
+
+canvas.addEventListener("mousedown", (event) => {
+  if (state === "choices" && pickUpgradeAt(event)) return;
+  tryStart();
+});
 
 const nameStartBtn = document.getElementById("nameStart");
 if (nameStartBtn) {
@@ -486,6 +508,21 @@ document.addEventListener("keydown", (event) => {
 
   if (state === "choices" && ["1", "2", "3"].includes(key)) {
     chooseUpgrade(Number(key) - 1);
+    return;
+  }
+
+  if (state === "choices" && (key === "arrowup" || key === "arrowleft")) {
+    upgradeSel = (upgradeSel + upgradeChoices.length - 1) % upgradeChoices.length;
+    return;
+  }
+
+  if (state === "choices" && (key === "arrowdown" || key === "arrowright")) {
+    upgradeSel = (upgradeSel + 1) % upgradeChoices.length;
+    return;
+  }
+
+  if (state === "choices" && (key === "enter" || key === " ")) {
+    chooseUpgrade(upgradeSel);
     return;
   }
 

@@ -819,14 +819,17 @@ function drawUpgradeChoices() {
   ctx.fillText("CHOOSE A PERMANENT UPGRADE", W / 2, 152);
   ctx.fillStyle = "#cfe8d4";
   ctx.font = "14px 'Courier New', monospace";
-  ctx.fillText("Press 1, 2, or 3. Trees keep your spent points.", W / 2, 174);
+  ctx.fillText("Click a card, arrows + Enter, or press 1, 2, 3.", W / 2, 174);
 
   upgradeChoices.forEach((choice, index) => {
     const y = 225 + index * 70;
-    ctx.fillStyle = "rgba(0,40,0,0.55)";
+    const selected = index === upgradeSel;
+    ctx.fillStyle = selected ? "rgba(40,60,0,0.7)" : "rgba(0,40,0,0.55)";
     ctx.fillRect(82, y - 28, W - 164, 54);
-    ctx.strokeStyle = "#66ff66";
+    ctx.strokeStyle = selected ? "#ffe066" : "#66ff66";
+    ctx.lineWidth = selected ? 3 : 1;
     ctx.strokeRect(82, y - 28, W - 164, 54);
+    ctx.lineWidth = 1;
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 18px 'Courier New', monospace";
     ctx.textAlign = "left";
