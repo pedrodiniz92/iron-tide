@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iron Tide 2.5</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>IRON TIDE</h1>
+        <p><kbd>←</kbd>/<kbd>→</kbd> move · <kbd>Space</kbd> fire · <kbd>Q</kbd> bomb · <span id="dashHint" style="display:none"><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> dash · </span><kbd>P</kbd> pause · <kbd>M</kbd> SFX · <kbd>N</kbd> music</p>
+        <div class="audio-controls">
+          <button id="btnSound" type="button" aria-pressed="true">SFX: on</button>
+          <button id="btnMusic" type="button" aria-pressed="true">Music: on</button>
+          <button id="btnBoth" type="button" aria-pressed="true">Audio: on</button>
+        </div>
+      </header>
+
+      <div class="frame">
+        <div class="stage">
+          <canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+          <canvas id="game" width="900" height="600" aria-label="Iron Tide 2.5 game"></canvas>
+        </div>
+
+        <div id="hud" class="hud">
+          <span id="score">SCORE 0</span>
+          <span id="hi">HI 0</span>
+          <span id="wave">WAVE 1</span>
+          <span id="lives">LIVES 3</span>
+        </div>
+
+        <div id="overlay" class="overlay">
+          <div class="panel">
+            <h2 id="overlayTitle">IRON TIDE</h2>
+            <p id="overlaySub">Press Enter, click to start</p>
+            <div id="pauseToggles" class="audio-controls" style="display:none; justify-content:center;">
+              <button id="btnPauseSfx" type="button" aria-pressed="true">SFX: on</button>
+              <button id="btnPauseMusic" type="button" aria-pressed="true">Music: on</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <span id="status">2.5D renderer: Three.js mob models with the toon ramp + sky rim, 2D canvas for bullets, bombs, HUD and effects.</span>
+      </footer>
+    </main>
+    <script src="js/constants.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/invaders.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/powerups.js"></script>
+    <script src="js/boss.js"></script>
+    <script src="js/silhouettes.js"></script>
+    <script src="js/drawing.js"></script>
+    <script src="js/testmode.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/assets3d.bundle.js"></script>
+  </body>
+</html>

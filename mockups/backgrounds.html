@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wave background mockups</title>
+    <style>
+      body { background: #000; color: #cfe8d4; font: 14px 'Courier New', monospace; margin: 24px; }
+      h1 { color: #66ff66; font-size: 18px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, 470px); gap: 20px; }
+      .card { border: 1px solid #1c3a1c; padding: 10px; text-align: center; }
+      .card canvas { background: #000; display: block; margin: 0 auto; image-rendering: pixelated; }
+      .name { color: #9ae6ff; margin-top: 8px; }
+      .note { color: #6a8fa5; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>WAVE BACKGROUND OPTIONS (animated, 3:2 like the game)</h1>
+    <div class="grid" id="grid"></div>
+    <script>
+      function rand(seed) {
+        let s = seed;
+        return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+      }
+
+      const OPTIONS = [
+        { name: "1. STARFIELD", note: "3-layer parallax stars drifting down", draw: starfield },
+        { name: "2. NEBULA", note: "slow shifting color clouds + stars", draw: nebula },
+        { name: "3. PLANET HORIZON", note: "planet curve + atmosphere glow below", draw: planet },
+        { name: "4. SYNTH GRID", note: "retro sun + scrolling perspective grid", draw: synthGrid },
+        { name: "5. ASTEROID DRIFT", note: "rock silhouettes tumbling past", draw: asteroids },
+        { name: "6. ICE MOONS", note: "two moons, aurora band, fine snow", draw: iceMoons }
+      ];
+
+      function starfield(g, w, h, t) {
+        for (let layer = 0; layer < 3; layer += 1) {
+          const r = rand(100 + layer * 7);
+          const speed = 10 + layer * 18;
+          const size = 1 + layer;
+          g.fillStyle = layer === 2 ? "#cfe8d4" : "#7f9f8f";
+          for (let i = 0; i < 40; i += 1) {
+            const x = r() * w;
+            const y = (r() * h + t * speed) % h;
+            g.fillRect(x, y, size, size);
+          }
+        }
+      }
+
+      function nebula(g, w, h, t) {
+        const blobs = [["rgba(111,60,180,0.34)", 0.3, 0.4], ["rgba(30,120,160,0.30)", 0.7, 0.6], ["rgba(190,60,140,0.22)", 0.5, 0.8]];
+        blobs.forEach((blob, i) => {
+          const cx = w * blob[1] + Math.sin(t * 0.2 + i * 2) * 30;
+          const cy = h * blob[2] + Math.cos(t * 0.15 + i) * 20;
+          const grad = g.createRadialGradient(cx, cy, 10, cx, cy, 170);
+          grad.addColorStop(0, blob[0]);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          g.fillStyle = grad;
+          g.fillRect(0, 0, w, h);
+        });
+        const r = rand(42);
+        g.fillStyle = "#cfe8d4";
+        for (let i = 0; i < 60; i += 1) g.fillRect(r() * w, r() * h, 1, 1);
+      }
+
+      function planet(g, w, h, t) {
+        const r = rand(7);
+        g.fillStyle = "#9ab5a2";
+        for (let i = 0; i < 50; i += 1) g.fillRect(r() * w, r() * h * 0.7, 1, 1);
+        const cx = w / 2 + Math.sin(t * 0.05) * 40;
+        const grad = g.createRadialGradient(cx, h + 250, 60, cx, h + 250, 360);
+        grad.addColorStop(0, "#20303f");
+        grad.addColorStop(0.85, "#101a24");
+        grad.addColorStop(0.93, "rgba(111,220,255,0.35)");
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+      }
+
+      function synthGrid(g, w, h, t) {
+        const grad = g.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#1a0526");
+        grad.addColorStop(1, "#000");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+        const sunY = h * 0.42;
+        const sun = g.createLinearGradient(0, sunY - 60, 0, sunY + 60);
+        sun.addColorStop(0, "#ff5ea0");
+        sun.addColorStop(1, "#ffb04c");
+        g.fillStyle = sun;
+        g.beginPath();
+        g.arc(w / 2, sunY, 55, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#1a0526";
+        for (let i = 0; i < 5; i += 1) g.fillRect(w / 2 - 60, sunY + 6 + i * 10, 120, 4);
+        g.strokeStyle = "rgba(111,220,255,0.5)";
+        for (let i = -8; i <= 8; i += 1) {
+          g.beginPath();
+          g.moveTo(w / 2 + i * 10, h * 0.62);
+          g.lineTo(w / 2 + i * 70, h);
+          g.stroke();
+        }
+        for (let i = 0; i < 7; i += 1) {
+          const p = (i + (t % 1)) / 7;
+          const y = h * 0.62 + p * p * h * 0.38;
+          g.beginPath();
+          g.moveTo(0, y);
+          g.lineTo(w, y);
+          g.stroke();
+        }
+      }
+
+      function asteroids(g, w, h, t) {
+        const rocks = [];
+        const r = rand(23);
+        for (let i = 0; i < 7; i += 1) rocks.push(r() * w, r() * h, 12 + r() * 26, r() * 6.28, 6 + r() * 14);
+        for (let i = 0; i < rocks.length; i += 5) {
+          const x = rocks[i] + Math.sin(t * 0.1 + i) * 8;
+          const y = (rocks[i + 1] + t * rocks[i + 4] * 0.6) % (h + 60) - 30;
+          const size = rocks[i + 2];
+          const rot = rocks[i + 3] + t * 0.2;
+          g.save();
+          g.translate(x, y);
+          g.rotate(rot);
+          g.fillStyle = "#26323c";
+          g.strokeStyle = "#46586a";
+          g.beginPath();
+          for (let k = 0; k < 7; k += 1) {
+            const a = (k / 7) * Math.PI * 2;
+            const rad = size * (0.7 + 0.3 * Math.sin(a * 3 + i));
+            if (k === 0) g.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
+            else g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+          }
+          g.closePath();
+          g.fill();
+          g.stroke();
+          g.restore();
+        }
+      }
+
+      function iceMoons(g, w, h, t) {
+        const r = rand(11);
+        g.fillStyle = "#8fb5c8";
+        for (let i = 0; i < 45; i += 1) g.fillRect(r() * w, r() * h, 1, 1);
+        for (let band = 0; band < 3; band += 1) {
+          g.strokeStyle = band === 1 ? "rgba(98,255,161,0.14)" : "rgba(111,220,255,0.12)";
+          g.lineWidth = 16;
+          g.beginPath();
+          for (let x = 0; x <= w; x += 10) {
+            const y = h * 0.3 + band * 22 + Math.sin(x * 0.02 + t * 0.6 + band) * 14;
+            if (x === 0) g.moveTo(x, y);
+            else g.lineTo(x, y);
+          }
+          g.stroke();
+          g.lineWidth = 1;
+        }
+        g.fillStyle = "#cfd8e8";
+        g.beginPath();
+        g.arc(w * 0.78, h * 0.22, 34, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#8d99ab";
+        g.beginPath();
+        g.arc(w * 0.2, h * 0.14, 16, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "rgba(200,230,255,0.7)";
+        for (let i = 0; i < 30; i += 1) {
+          const x = (r() * w + Math.sin(t + i) * 6) % w;
+          const y = (r() * h + t * 12) % h;
+          g.fillRect(x, y, 1, 2);
+        }
+      }
+
+      const grid = document.getElementById("grid");
+      const cards = OPTIONS.map((opt) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const cv = document.createElement("canvas");
+        cv.width = 450;
+        cv.height = 300;
+        const label = document.createElement("div");
+        label.className = "name";
+        label.textContent = opt.name;
+        const note = document.createElement("div");
+        note.className = "note";
+        note.textContent = opt.note;
+        card.appendChild(cv);
+        card.appendChild(label);
+        card.appendChild(note);
+        grid.appendChild(card);
+        return { cv, g: cv.getContext("2d"), draw: opt.draw };
+      });
+
+      function loop(ts) {
+        const t = ts / 1000;
+        cards.forEach((card) => {
+          card.g.fillStyle = "#000";
+          card.g.fillRect(0, 0, 450, 300);
+          card.draw(card.g, 450, 300, t);
+        });
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>

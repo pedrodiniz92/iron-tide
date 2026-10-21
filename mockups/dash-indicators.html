@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dash-ready indicator options</title>
+    <style>
+      body { background: #000; color: #cfe8d4; font: 14px 'Courier New', monospace; margin: 24px; }
+      h1 { color: #66ff66; font-size: 18px; }
+      p.hint { color: #6a8fa5; font-size: 12px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, 220px); gap: 18px; }
+      .card { border: 1px solid #1c3a1c; padding: 10px; text-align: center; }
+      .card canvas { background: #000; display: block; margin: 0 auto; }
+      .name { color: #ffe066; margin-top: 8px; }
+      .note { color: #6a8fa5; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>DASH READY INDICATORS (ship = the player)</h1>
+    <p class="hint">Loop: 3.5s reloading, then READY flashes - same cycle the game uses.</p>
+    <div class="grid" id="grid"></div>
+    <script>
+      const CYCLE = 5;
+      const RELOAD = 3.5;
+
+      function state(t) {
+        const p = t % CYCLE;
+        return p < RELOAD ? { ready: false, progress: p / RELOAD } : { ready: true, progress: 1 };
+      }
+
+      function ship(g, x, y) {
+        g.fillStyle = "#78ff78";
+        g.fillRect(x - 28, y + 8, 56, 14);
+        g.fillRect(x - 6, y, 12, 10);
+        g.fillRect(x - 2, y - 4, 4, 6);
+      }
+
+      const OPTIONS = [
+        { name: "1. RELOAD BAR", note: "bar over the ship fills up, blinks full", draw: barDraw },
+        { name: "2. CORNER BRACKETS", note: "four brackets light up as reload fills", draw: bracketDraw },
+        { name: "3. EG RELOAD-ONLY", note: "blue charge flame on reload, dead calm when ready", draw: reloadEngine },
+        { name: "4. EG READY-ONLY", note: "nothing on reload, green idle flame when ready", draw: readyEngine },
+        { name: "5. EG FULL CYCLE", note: "blue charge -> flash -> green idle, live", draw: cycleEngine },
+        { name: "6. EG 3 STATES", note: "reload / ready / dash shown side by side", draw: engineDraw, wide: true }
+      ];
+
+      function reloadEngine(g, x, y, t, s) {
+        ship(g, x, y);
+        if (!s.ready) {
+          const heat = 0.3 + s.progress * 0.7;
+          g.fillStyle = `rgba(102, 136, 170, ${heat})`;
+          g.fillRect(x - 8, y + 22, 16, 4 + s.progress * 5 + Math.random() * 2);
+        } else {
+          g.fillStyle = "#2a3038";
+          g.fillRect(x - 5, y + 22, 10, 2);
+        }
+      }
+
+      function barDraw(g, x, y, t, s) {
+        ship(g, x, y);
+        g.fillStyle = "#222";
+        g.fillRect(x - 28, y - 22, 56, 5);
+        if (s.ready && Math.sin(t * 10) > 0) g.fillStyle = "#ffe066";
+        else g.fillStyle = s.ready ? "#8a7a30" : "#6688aa";
+        g.fillRect(x - 28, y - 22, 56 * s.progress, 5);
+        g.fillStyle = s.ready ? "#ffe066" : "#5a7086";
+        g.font = "9px 'Courier New', monospace";
+        g.textAlign = "center";
+        g.fillText(s.ready ? "DASH" : "RELOAD", x, y - 26);
+        g.textAlign = "left";
+      }
+
+      function readyEngine(g, x, y, t, s) {
+        ship(g, x, y);
+        if (s.ready) {
+          const flash = (t % CYCLE) < 0.3;
+          g.fillStyle = flash ? "#ffe066" : "#78ff78";
+          g.fillRect(x - 7, y + 22, 14, (flash ? 10 : 6) + Math.random() * 2);
+          if (!flash) {
+            g.fillStyle = "#d7ffd9";
+            g.fillRect(x - 3, y + 22, 6, 3);
+          }
+        } else {
+          g.fillStyle = "#2a3038";
+          g.fillRect(x - 5, y + 22, 10, 2);
+        }
+      }
+
+      function cycleEngine(g, x, y, t, s) {
+        ship(g, x, y);
+        const phase = t % CYCLE;
+        if (!s.ready) {
+          const heat = 0.3 + s.progress * 0.7;
+          g.fillStyle = `rgba(102, 136, 170, ${heat})`;
+          g.fillRect(x - 8, y + 22, 16, 4 + s.progress * 5 + Math.random() * 2);
+        } else if (phase < RELOAD + 0.3) {
+          g.fillStyle = "#ffe066";
+          g.fillRect(x - 10, y + 22, 20, 9 + Math.random() * 4);
+          g.fillStyle = "#ffffff";
+          g.fillRect(x - 5, y + 22, 10, 4 + Math.random() * 2);
+        } else {
+          g.fillStyle = "#78ff78";
+          g.fillRect(x - 7, y + 22, 14, 6 + Math.random() * 2);
+          g.fillStyle = "#d7ffd9";
+          g.fillRect(x - 3, y + 22, 6, 3);
+        }
+      }
+
+      function miniShip(g, x, y, k) {
+        g.fillStyle = "#78ff78";
+        g.fillRect(x - 28 * k, y + 8 * k, 56 * k, 14 * k);
+        g.fillRect(x - 6 * k, y, 12 * k, 10 * k);
+        g.fillRect(x - 2 * k, y - 4 * k, 4 * k, 6 * k);
+      }
+
+      function engineDraw(g, x, y, t) {
+        const p = (t % CYCLE) / CYCLE;
+        const flick = Math.random() * 4;
+
+        miniShip(g, 38, 56, 0.6);
+        const heat = 0.3 + p * 0.7;
+        g.fillStyle = `rgba(102, 136, 170, ${heat})`;
+        g.fillRect(38 - 7, 56 + 14, 14, 4 + p * 3);
+        g.fillStyle = "#5a7086";
+        g.font = "9px 'Courier New', monospace";
+        g.textAlign = "center";
+        g.fillText("RELOADING", 38, 92);
+
+        miniShip(g, 95, 56, 0.6);
+        const flash = (t % CYCLE) < 0.3;
+        g.fillStyle = flash ? "#ffe066" : "#78ff78";
+        g.fillRect(95 - 7, 56 + 14, 14, (flash ? 10 : 6) + flick * 0.6);
+        if (!flash) {
+          g.fillStyle = "#d7ffd9";
+          g.fillRect(95 - 3, 56 + 14, 6, 3);
+        }
+        g.fillStyle = "#ffe066";
+        g.fillText("READY", 95, 92);
+
+        miniShip(g, 152, 56, 0.6);
+        g.fillStyle = "#ffe066";
+        g.fillRect(152 - 10, 56 + 14, 20, 9 + flick);
+        g.fillStyle = "#ffffff";
+        g.fillRect(152 - 5, 56 + 14, 10, 4 + flick * 0.6);
+        g.fillStyle = "#ff6600";
+        g.fillRect(152 - 14, 56 + 14, 4, 3);
+        g.fillRect(152 + 10, 56 + 14, 4, 3);
+        g.fillStyle = "#78ff78";
+        g.fillText("DASHING", 152, 92);
+
+        g.textAlign = "left";
+      }
+
+      function bracketDraw(g, x, y, t, s) {
+        ship(g, x, y);
+        const l = 10;
+        const corners = [[x - 38, y - 14, 1, 1], [x + 38, y - 14, -1, 1], [x - 38, y + 28, 1, -1], [x + 38, y + 28, -1, -1]];
+        const lit = Math.floor(s.progress * 4 + 0.001);
+        const blinkAll = s.ready && Math.sin(t * 10) > 0;
+        corners.forEach((c, i) => {
+          const on = blinkAll || i < lit;
+          g.strokeStyle = on ? "#ffe066" : "rgba(255, 224, 102, 0.18)";
+          g.lineWidth = 3;
+          g.beginPath();
+          g.moveTo(c[0], c[1] + c[3] * l);
+          g.lineTo(c[0], c[1]);
+          g.lineTo(c[0] + c[2] * l, c[1]);
+          g.stroke();
+        });
+        g.lineWidth = 1;
+      }
+
+      const grid = document.getElementById("grid");
+      const cards = OPTIONS.map((opt) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const cv = document.createElement("canvas");
+        cv.width = opt.wide ? 200 : 190;
+        cv.height = 120;
+        const label = document.createElement("div");
+        label.className = "name";
+        label.textContent = opt.name;
+        const note = document.createElement("div");
+        note.className = "note";
+        note.textContent = opt.note;
+        card.appendChild(cv);
+        card.appendChild(label);
+        card.appendChild(note);
+        grid.appendChild(card);
+        return { cv, g: cv.getContext("2d"), draw: opt.draw };
+      });
+
+      function loop(ts) {
+        const t = ts / 1000;
+        const s = state(t);
+        cards.forEach((card) => {
+          card.g.fillStyle = "#000";
+          card.g.fillRect(0, 0, card.cv.width, card.cv.height);
+          card.draw(card.g, 95, 62, t, s);
+        });
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>

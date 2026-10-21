@@ -1,0 +1,385 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mockups — Cel-Shaded 2.5D · 2 treatments</title>
+<style>
+body{margin:0;background:#0b0c14;color:#e8ecff;font:14px system-ui,monospace;padding:24px 28px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:#98a3c8;margin-bottom:20px}
+.panel{margin-bottom:26px}
+.panel h2{font-size:14px;margin:0 0 8px;color:#ffe066;letter-spacing:.08em}
+canvas{border:1px solid #33365a;border-radius:6px;background:#141d3d;max-width:100%}
+.note{color:#98a3c8;font-size:12px;margin-top:6px;max-width:640px;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>CEL-SHADED STYLE — 3 treatments</h1>
+<div class="sub">Same scene (player, squid, crab, UFO, bomb, explosion, turtle) in two 2.5D cel looks. All canvas 2D, no images. Techniques grounded in the moonjump.com toon-shading article: quantized N·L ramp, hard specular cutoff, Fresnel rim, inverted-hull outline.</div>
+<div id="panels"></div>
+
+<script>
+const INK = '#0d0d14';
+// hue-shifted 3-tone ramp: highlights drift toward yellow, shadows toward blue/purple,
+// saturation peaks in the midtone (per Slynyrd's framework, ~10-20 deg per step)
+function hexToHsl(hex){
+  const n = hex.replace('#','');
+  const r = parseInt(n.slice(0,2),16)/255, g = parseInt(n.slice(2,4),16)/255, b = parseInt(n.slice(4,6),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h = 0, s = 0, l = (max+min)/2;
+  if(max !== min){
+    const d = max-min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    if(max===r) h = ((g-b)/d + (g<b?6:0));
+    else if(max===g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h *= 60;
+  }
+  return [h, s*100, l*100];
+}
+function hslCss(h, s, l){ return `hsl(${((h%360)+360)%360}, ${Math.max(0,Math.min(100,s))}%, ${Math.max(0,Math.min(100,l))}%)`; }
+function toward(h, target, deg){
+  const d = ((target - h + 540) % 360) - 180;
+  return h + Math.sign(d) * Math.min(Math.abs(d), deg);
+}
+function ramp(hex){
+  const [h, s, l] = hexToHsl(hex);
+  const hi  = hslCss(toward(h, 55, 16), s*0.62, Math.min(92, l+24));  // drift toward yellow
+  const lit = hslCss(toward(h, 55, 8),  s*0.95, Math.min(88, l+11));  // darker lit, saturation kept
+  const mid = hslCss(h, s, l);                                         // true color, max saturation lives here
+  const lo  = hslCss(toward(h, 265, 20), s*0.8, Math.max(12, l-20));  // drift toward blue/violet
+  return { hi, lit, mid, lo };
+}
+
+const BB = {
+  ship:  {x:-20,y:-20,w:40,h:32},
+  squid: {x:-13,y:-16,w:26,h:34},
+  crab:  {x:-18,y:-8, w:36,h:26},
+  ufo:   {x:-26,y:-12,w:52,h:32},
+  turtle:{x:-40,y:-28,w:80,h:50},
+  bomb:  {x:-9, y:-9, w:18,h:18},
+};
+const panels = document.getElementById('panels');
+
+const FLOORED = new Set(['pre','bands','ww']);
+const VARIANTS = [
+  { key:'pre', title:'1 · PRE-RENDERED 3D MODELS — smooth volume, baked lighting',
+    note:'The Donkey-Kong-Country look: smooth lit-model shading — dome highlight, core shadow, bounce light, specular glint — over the perspective floor with contact shadows. Smooth ramps, no banding.' },
+  { key:'bands', title:'2 · QUANTIZED TOON RAMP — banded sphere lighting (real 2.5D cel)',
+    note:'Straight from the toon shader math (quantized N·L): each sprite is lit as a fake sphere, the smooth gradient snapped to 3 hard bands, with a binary specular crescent, a Fresnel rim glow on the far edge, and an inverted-hull ink outline (offset black copy). Smooth shading that reads as volume, cel bands that read as cartoon — the true "2.5D cel" answer.' },
+  { key:'ww', title:'3 · PHANTOM HOURGLASS — Wind Waker recipe: two tones, fat ink, rim pop',
+    note:'Replicates what the Wind Waker shader recreations document: exactly two colors (lit + shadow) with an ever-so-slight gradient at the boundary, warm daytime palette, fat black outline, a small rim highlight on the top edge, bright painterly sky. No specular, no bands, no vignette — flat and cartoon, the most "hand-drawn" of the three.' },
+];
+
+const SKY = { top:'#1a2f6e', mid:'#2b4f92', low:'#3f6fae', ground:'#233a66' };
+
+// ---------- shape builders (path at origin, ~unit scale) ----------
+function shipPath(ctx){
+  ctx.beginPath();
+  ctx.moveTo(0,-20); ctx.lineTo(4,-7); ctx.lineTo(9,-2); ctx.lineTo(20,10);
+  ctx.lineTo(11,11); ctx.lineTo(3,5); ctx.lineTo(-3,5); ctx.lineTo(-11,11);
+  ctx.lineTo(-20,10); ctx.lineTo(-9,-2); ctx.lineTo(-4,-7); ctx.closePath();
+}
+function squidPath(ctx){
+  ctx.beginPath();
+  ctx.moveTo(0,-16); ctx.quadraticCurveTo(13,-13,12,0); ctx.quadraticCurveTo(11,8,6,9);
+  ctx.lineTo(8,17); ctx.lineTo(4,10); ctx.lineTo(2,18); ctx.lineTo(-1,10);
+  ctx.lineTo(-3,18); ctx.lineTo(-6,9); ctx.quadraticCurveTo(-11,8,-12,0);
+  ctx.quadraticCurveTo(-13,-13,0,-16); ctx.closePath();
+}
+function crabPath(ctx){
+  ctx.beginPath();
+  ctx.moveTo(-14,-8); ctx.lineTo(14,-8); ctx.quadraticCurveTo(18,2,12,10);
+  ctx.lineTo(16,18); ctx.lineTo(10,12); ctx.lineTo(6,18); ctx.lineTo(0,12);
+  ctx.lineTo(-6,18); ctx.lineTo(-10,12); ctx.lineTo(-16,18); ctx.lineTo(-12,10);
+  ctx.quadraticCurveTo(-18,2,-14,-8); ctx.closePath();
+}
+function ufoPath(ctx){
+  ctx.beginPath();
+  ctx.moveTo(-26,4); ctx.quadraticCurveTo(0,-12,26,4);
+  ctx.quadraticCurveTo(0,20,-26,4); ctx.closePath();
+}
+function turtlePath(ctx){
+  ctx.beginPath();
+  ctx.moveTo(-38,10); ctx.quadraticCurveTo(-40,-26,0,-28);
+  ctx.quadraticCurveTo(40,-26,38,10); ctx.quadraticCurveTo(20,22,0,22);
+  ctx.quadraticCurveTo(-20,22,-38,10); ctx.closePath();
+}
+function bombPath(ctx){
+  ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.closePath();
+}
+function starPath(ctx,r){
+  ctx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4, ri=i%2?r*0.5:r;
+    ctx.lineTo(Math.cos(a)*ri, Math.sin(a)*ri);
+  }
+  ctx.closePath();
+}
+function cloudPath(ctx,x,y,s){
+  ctx.beginPath();
+  ctx.arc(x-22*s,y+6*s,14*s,Math.PI*0.6,Math.PI*1.55);
+  ctx.arc(x-8*s,y-6*s,15*s,Math.PI*1.05,Math.PI*1.75);
+  ctx.arc(x+9*s,y-8*s,13*s,Math.PI*1.35,Math.PI*0.05);
+  ctx.arc(x+22*s,y+4*s,12*s,Math.PI*1.85,Math.PI*0.65);
+  ctx.closePath();
+}
+
+// ---------- 2.5D helpers ----------
+function extrude(ctx, shape, depth, sideColor){
+  for(let i=depth; i>0; i--){
+    ctx.save();
+    ctx.translate(i*0.9, i*0.55);
+    shape(ctx);
+    ctx.fillStyle = sideColor; ctx.fill();
+    ctx.restore();
+  }
+}
+function dropShadow(ctx, x, y, rx, ry){
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(x + rx*0.45, y, rx, ry, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(6,8,20,0.5)';
+  ctx.fill();
+  ctx.restore();
+}
+function floorPlane(ctx, W, H, fill){
+  const vpX = W/2, vpY = H*0.42, top = H*0.74;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, top, W, H-top); ctx.clip();
+  ctx.fillStyle = fill; ctx.fillRect(0, top, W, H-top);
+  ctx.strokeStyle = 'rgba(13,13,20,0.4)'; ctx.lineWidth = 1.4;
+  for(let x=-260; x<=W+260; x+=64){
+    ctx.beginPath(); ctx.moveTo(x, H); ctx.lineTo(vpX, vpY); ctx.stroke();
+  }
+  let y = top + 4; let gap = 3;
+  while(y < H){
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    gap *= 1.35; y += gap;
+  }
+  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top);
+  ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.stroke();
+}
+
+// ---------- cel painting core ----------
+function shadeDiagonal(ctx, shadowColor, dotPattern){
+  // fill the lower-right half of the current clip with shadow
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(-60,60); ctx.lineTo(60,-60); ctx.lineTo(60,60); ctx.closePath();
+  if(dotPattern){ ctx.fillStyle = dotPattern; ctx.globalAlpha = 0.85; }
+  else ctx.fillStyle = shadowColor;
+  ctx.fill();
+  ctx.restore();
+}
+function cel(ctx, shape, base, shadow, highlight, variant, dotPattern){
+  shape(ctx);
+  ctx.fillStyle = base; ctx.fill();
+  ctx.save(); shape(ctx); ctx.clip();
+  void dotPattern;
+  if(variant==='pre'){
+    const b = ctx.__bb || {x:-20,y:-20,w:40,h:40};
+    const g = ctx.createLinearGradient(0, b.y, 0, b.y+b.h);
+    g.addColorStop(0, highlight); g.addColorStop(0.42, base); g.addColorStop(1, shadow);
+    ctx.fillStyle = g; ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
+    const rg = ctx.createRadialGradient(-b.w*0.18, b.y+b.h*0.18, 2, -b.w*0.18, b.y+b.h*0.18, b.w*0.55);
+    rg.addColorStop(0, 'rgba(255,255,255,0.85)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rg; ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
+    const bounce = ctx.createLinearGradient(0, b.y+b.h, 0, b.y+b.h*0.6);
+    bounce.addColorStop(0, 'rgba(255,236,170,0.35)'); bounce.addColorStop(1, 'rgba(255,236,170,0)');
+    ctx.fillStyle = bounce; ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
+    ctx.restore();
+    shape(ctx); ctx.lineJoin='round'; ctx.lineWidth=2; ctx.strokeStyle=INK; ctx.stroke();
+    return;
+  }
+  if(variant==='bands'){
+    const b = ctx.__bb || {x:-20,y:-20,w:40,h:40};
+    const lx = b.x + b.w*0.28, ly = b.y + b.h*0.2, R = b.w*1.25;
+    const lit = ctx.__lit || highlight;
+    const g = ctx.createRadialGradient(lx, ly, 2, lx, ly, R);
+    g.addColorStop(0, lit);         g.addColorStop(0.4, lit);
+    g.addColorStop(0.44, base);     g.addColorStop(0.68, base);
+    g.addColorStop(0.72, shadow);   g.addColorStop(1, shadow);
+    ctx.fillStyle = g; ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(lx + b.w*0.06, ly + b.h*0.14, b.w*0.34, Math.PI*1.05, Math.PI*1.75);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+    ctx.save(); ctx.translate(1.8, 1.8);
+    shape(ctx); ctx.strokeStyle = highlight; ctx.lineWidth = 3.4; ctx.stroke();
+    ctx.restore();
+    shape(ctx); ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle=INK; ctx.stroke();
+    return;
+  }
+  if(variant==='ww'){
+    const b = ctx.__bb || {x:-20,y:-20,w:40,h:40};
+    const g = ctx.createLinearGradient(b.x, b.y, b.x + b.w*0.55, b.y + b.h);
+    g.addColorStop(0, base);  g.addColorStop(0.46, base);
+    g.addColorStop(0.54, shadow); g.addColorStop(1, shadow);
+    ctx.fillStyle = g; ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
+    ctx.restore();
+    ctx.save(); ctx.translate(0, -2);
+    shape(ctx); ctx.strokeStyle = highlight; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.restore();
+    shape(ctx); ctx.lineJoin='round'; ctx.lineWidth=3.6; ctx.strokeStyle=INK; ctx.stroke();
+    return;
+  }
+
+  ctx.restore();
+  shape(ctx);
+  ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle=INK; ctx.stroke();
+}
+
+// dot pattern for halftone
+function makeDots(color, gap){
+  const p = document.createElement('canvas'); p.width=gap; p.height=gap;
+  const pctx = p.getContext('2d');
+  pctx.fillStyle = color;
+  pctx.beginPath(); pctx.arc(gap/2,gap/2,gap*0.28,0,Math.PI*2); pctx.fill();
+  return pctx.canvas;
+}
+
+// ---------- scene ----------
+function drawScene(canvas, variant){
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  const dots = makeDots('#0d0d14', 7);
+  const dotPattern = ctx.createPattern(dots,'repeat');
+
+  // sky
+  if(variant==='ww'){
+    const sg = ctx.createLinearGradient(0,0,0,H);
+    sg.addColorStop(0,'#5fa8dd'); sg.addColorStop(0.5,'#9fd0ec');
+    sg.addColorStop(0.74,'#eaf4d6'); sg.addColorStop(1,'#f7e6b4');
+    ctx.fillStyle=sg; ctx.fillRect(0,0,W,H);
+  } else {
+    ctx.fillStyle=SKY.top; ctx.fillRect(0,0,W,H*0.42);
+    ctx.fillStyle=SKY.mid; ctx.fillRect(0,H*0.42,W,H*0.34);
+    ctx.fillStyle=SKY.low; ctx.fillRect(0,H*0.76,W,H*0.24);
+  }
+  if(FLOORED.has(variant)) floorPlane(ctx, W, H, variant==='ww' ? '#e6cd93' : '#2a3f74');
+  // sun
+  ctx.save(); ctx.translate(W-62,52);
+  ctx.beginPath(); ctx.arc(0,0,24,0,Math.PI*2);
+  ctx.fillStyle='#ffd23f'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,24,Math.PI*0.75,Math.PI*1.75); ctx.lineTo(0,0); ctx.closePath();
+  ctx.fillStyle='#e8a22a'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,24,0,Math.PI*2);
+  ctx.lineWidth=3; ctx.strokeStyle=INK; ctx.stroke();
+  ctx.restore();
+  // clouds
+  ctx.save();
+  [[70,70,1],[190,45,0.8],[300,88,1.15]].forEach(([x,y,s])=>{
+    cloudPath(ctx,x,y,s); ctx.fillStyle='#dfe8ff'; ctx.fill();
+    ctx.save(); cloudPath(ctx,x,y,s); ctx.clip();
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x-50,y+40); ctx.lineTo(x+50,y-10); ctx.lineTo(x+50,y+50); ctx.closePath();
+    if(variant==='half'){ ctx.fillStyle=dotPattern; ctx.globalAlpha=0.5; } else ctx.fillStyle='#9fb0d8';
+    ctx.fill(); ctx.restore(); ctx.restore();
+    cloudPath(ctx,x,y,s); ctx.lineWidth=3; ctx.strokeStyle=INK; ctx.stroke();
+  });
+  ctx.restore();
+
+  // turtle boss
+  if(FLOORED.has(variant)){ dropShadow(ctx, W/2, 244, 44, 10); }
+  ctx.save(); ctx.translate(W/2,74);
+  ctx.__bb = BB.turtle;
+  const rT = ramp('#2fbf71');
+  ctx.__lit = rT.lit;
+  cel(ctx, turtlePath, rT.mid, rT.lo, rT.hi, variant, dotPattern);
+  ctx.save(); ctx.clip();
+  ctx.strokeStyle=INK; ctx.lineWidth=2.4;
+  for(const px of [-24,-8,8,24]){ ctx.beginPath(); ctx.moveTo(px,-30); ctx.quadraticCurveTo(px*0.7,0,px*0.55,24); ctx.stroke(); }
+  ctx.restore();
+  // eyes
+  ctx.fillStyle='#0d0d14'; ctx.beginPath(); ctx.arc(-10,16,2.6,0,Math.PI*2); ctx.arc(10,16,2.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // UFO
+  if(FLOORED.has(variant)){ dropShadow(ctx, W-86, 258, 24, 6); }
+  ctx.save(); ctx.translate(W-86,148);
+  ctx.__bb = BB.ufo;
+  const rU = ramp('#ff6d3b');
+  ctx.__lit = rU.lit;
+  cel(ctx, ufoPath, rU.mid, rU.lo, rU.hi, variant, dotPattern);
+  ctx.fillStyle='#ffe9a8';
+  [[-14,4],[0,7],[14,4]].forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],2.4,0,Math.PI*2); ctx.fill(); });
+  ctx.restore();
+
+  // squid
+  if(FLOORED.has(variant)){ dropShadow(ctx, W/2-110, 272, 16, 5); }
+  ctx.save(); ctx.translate(W/2-110,150);
+  ctx.__bb = BB.squid;
+  const rS = ramp('#ff5c8a');
+  ctx.__lit = rS.lit;
+  cel(ctx, squidPath, rS.mid, rS.lo, rS.hi, variant, dotPattern);
+  ctx.fillStyle='#0d0d14'; ctx.beginPath(); ctx.arc(-4,-4,2.6,0,Math.PI*2); ctx.arc(5,-4,2.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // crab
+  if(FLOORED.has(variant)){ dropShadow(ctx, W/2, 278, 16, 5); }
+  ctx.save(); ctx.translate(W/2,158);
+  ctx.__bb = BB.crab;
+  const rC = ramp('#3fd0e0');
+  ctx.__lit = rC.lit;
+  cel(ctx, crabPath, rC.mid, rC.lo, rC.hi, variant, dotPattern);
+  ctx.fillStyle='#0d0d14'; ctx.beginPath(); ctx.arc(-5,-2,2.6,0,Math.PI*2); ctx.arc(6,-2,2.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // second squid
+  ctx.save(); ctx.translate(W/2+110,150);   ctx.scale(-1,1);
+  ctx.__bb = BB.squid;
+  cel(ctx, squidPath, rS.mid, rS.lo, rS.hi, variant, dotPattern);
+  ctx.fillStyle='#0d0d14'; ctx.beginPath(); ctx.arc(-4,-4,2.6,0,Math.PI*2); ctx.arc(5,-4,2.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // bomb
+  ctx.save(); ctx.translate(W/2+34,226);
+  ctx.__bb = BB.bomb;
+  ctx.beginPath(); ctx.moveTo(-6,8); ctx.lineTo(0,26); ctx.lineTo(6,8); ctx.closePath();
+  ctx.fillStyle='#ff9f1c'; ctx.fill(); ctx.lineWidth=2.5; ctx.strokeStyle=INK; ctx.stroke();
+  const rB = ramp('#ffe066');
+  ctx.__lit = rB.lit;
+  cel(ctx, bombPath, rB.mid, rB.lo, rB.hi, variant, dotPattern);
+  ctx.restore();
+
+  // explosion (with comic speed lines in halftone, star burst everywhere)
+  ctx.save(); ctx.translate(W/2-64,236);
+  starPath(ctx, 26); ctx.fillStyle='#ffd23f'; ctx.fill();
+  starPath(ctx, 15); ctx.fillStyle='#ff7a2f'; ctx.fill();
+  starPath(ctx, 26); ctx.lineWidth=3; ctx.strokeStyle=INK; ctx.stroke();
+  if(variant!=='flat'){
+    ctx.strokeStyle=INK; ctx.lineWidth=2;
+    for(let i=0;i<7;i++){ const a=i*0.9+0.3; ctx.beginPath(); ctx.moveTo(Math.cos(a)*32,Math.sin(a)*32); ctx.lineTo(Math.cos(a)*44,Math.sin(a)*44); ctx.stroke(); }
+  }
+  ctx.restore();
+
+  // player
+  if(FLOORED.has(variant)){ dropShadow(ctx, W/2, 270, 24, 7); }
+  ctx.save(); ctx.translate(W/2,H-52);
+  ctx.__bb = BB.ship;
+  const rP = ramp('#3fd6c9');
+  ctx.__lit = rP.lit;
+  cel(ctx, shipPath, rP.mid, rP.lo, rP.hi, variant, dotPattern);
+  ctx.fillStyle='#0d0d14'; ctx.beginPath(); ctx.arc(0,-8,3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+}
+
+for(const v of VARIANTS){
+  const div = document.createElement('div');
+  div.className='panel';
+  div.innerHTML = `<h2>${v.title}</h2>`;
+  const c = document.createElement('canvas');
+  c.width=440; c.height=300;
+  div.appendChild(c);
+  const n = document.createElement('div'); n.className='note'; n.textContent=v.note;
+  div.appendChild(n);
+  panels.appendChild(div);
+  drawScene(c, v.key);
+}
+</script>
+</body>
+</html>

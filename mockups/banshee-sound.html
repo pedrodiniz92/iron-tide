@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — BANSHEE SCREAM sound bench</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 16px; max-width: 760px; line-height: 1.55; }
+      .opt { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #ffe066; border-radius: 999px; padding: 8px 16px; font: 12px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      .chip:active { background: #2a2f5c; }
+      .txt { color: #c9d3f2; }
+    </style>
+  </head>
+  <body>
+    <h1>BANSHEE SCREAM — sound bench</h1>
+    <div class="sub">
+      All three are synthesized live (WebAudio, no files). Click to play. This is the wave-4 banshee ability scream:
+      every 8s one banshee screams and nearby mobs frenzy-shoot.
+    </div>
+    <div class="opt"><button class="chip" data-opt="A">▶ A</button><span class="txt">LONE WAIL — rising siren cry with echo tail. Classic ghost-story scream.</span></div>
+    <div class="opt"><button class="chip" data-opt="B">▶ B</button><span class="txt">CAULD SHRIEK — two detuned voices beating against each other + rising noise sweep. Most alarming.</span></div>
+    <div class="opt"><button class="chip" data-opt="D">▶ D</button><span class="txt">GASLIGHT CRY — same moan as C, raised out of the bass. Less rumble, more wail.</span></div>
+    <div class="opt"><button class="chip" data-opt="C">▶ C</button><span class="txt">GASLIGHT GROAN — low moan that bends up then sinks, with a sub-bass tail. Dread, not shock.</span></div>
+    <script src="banshee-sound.bundle.js"></script>
+  </body>
+</html>

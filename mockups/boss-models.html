@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Boss & miniboss model sheet</title>
+    <style>
+      body { background: #000; color: #cfe8d4; font: 14px 'Courier New', monospace; margin: 24px; }
+      h1 { color: #66ff66; font-size: 18px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, 470px); gap: 20px; }
+      .card { border: 1px solid #1c3a1c; padding: 10px; }
+      .card canvas { background: #000; display: block; margin: 0 auto; }
+      .name { color: #ffe066; margin-top: 8px; text-align: center; }
+      .stats { color: #6a8fa5; font-size: 12px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <h1>BOSS MODEL SHEET (drawn with the game's exact code)</h1>
+    <div class="grid" id="grid"></div>
+    <script>
+      const MODELS = [
+        { kind: "MINIBOSS", tier: 0, design: { name: "SCRAPLING", hp: 8, hpScale: 2, speed: 76, color: "#99d4ff", accent: "#ffe066", ability: "RAPID STREAM" } },
+        { kind: "MINIBOSS", tier: 0, design: { name: "SPINE SENTRY", hp: 11, hpScale: 3, speed: 64, color: "#9fffc9", accent: "#62ffa1", ability: "MINE SEED" } },
+        { kind: "BOSS", tier: 1, design: { name: "SKULL CRUISER", hp: 22, hpScale: 5, speed: 95, color: "#ff3366", accent: "#ffe066", ability: "SPREAD SHOTS + LASER" } },
+        { kind: "BOSS", tier: 2, design: { name: "WINGED VIPER", hp: 18, hpScale: 4, speed: 122, color: "#2fc96f", accent: "#7dff66", ability: "TRIPLE BOMBS" } },
+        { kind: "BOSS", tier: 3, design: { name: "TURTLE BULWARK", hp: 26, hpScale: 6, speed: 62, color: "#2fc96f", accent: "#ffe066", ability: "SHELL BURROW" } }
+      ];
+
+      function drawDesignShape(g, b, design, tier) {
+        const cx = b.x + b.w / 2;
+        const cy = b.y + b.h / 2;
+        g.save();
+        g.shadowBlur = 10 + tier * 7;
+        g.shadowColor = design.color;
+
+        if (design.name === "WINGED VIPER") {
+          g.fillStyle = design.color;
+          g.fillRect(b.x + 8, b.y + 24, b.w - 16, 18);
+          g.beginPath();
+          g.moveTo(b.x + 22, b.y + 12);
+          g.lineTo(b.x + b.w - 22, b.y + 12);
+          g.lineTo(b.x + b.w - 6, b.y + 34);
+          g.lineTo(b.x + 6, b.y + 34);
+          g.closePath();
+          g.fill();
+          g.fillStyle = design.accent;
+          g.fillRect(b.x + 18, b.y + 44, 12, 18);
+          g.fillRect(b.x + b.w - 30, b.y + 44, 12, 18);
+          g.beginPath();
+          g.moveTo(b.x - 12, b.y + 26);
+          g.lineTo(b.x + 14, b.y + 12);
+          g.lineTo(b.x + 14, b.y + 40);
+          g.closePath();
+          g.fill();
+          g.beginPath();
+          g.moveTo(b.x + b.w + 12, b.y + 26);
+          g.lineTo(b.x + b.w - 14, b.y + 12);
+          g.lineTo(b.x + b.w - 14, b.y + 40);
+          g.closePath();
+          g.fill();
+        } else if (design.name === "TURTLE BULWARK") {
+          g.fillStyle = design.color;
+          g.beginPath();
+          g.ellipse(cx, b.y + 42, b.w / 2 - 4, 30, 0, 0, Math.PI * 2);
+          g.fill();
+          g.beginPath();
+          g.ellipse(cx, b.y + 28, b.w / 2 - 16, 22, 0, Math.PI, 0);
+          g.fill();
+          g.fillStyle = design.accent;
+          for (let i = -1; i <= 1; i += 1) {
+            g.fillRect(cx + i * 30 - 7, b.y + 20, 14, 28);
+          }
+          g.beginPath();
+          g.arc(b.x + b.w - 12, b.y + 46, 13, 0, Math.PI * 2);
+          g.fill();
+          g.fillRect(b.x + 18, b.y + 58, 22, 16);
+          g.fillRect(b.x + b.w - 40, b.y + 58, 22, 16);
+          g.fillStyle = "#000";
+          g.fillRect(b.x + b.w - 24, b.y + 40, 7, 6);
+          g.fillStyle = "#62ffa1";
+          g.fillRect(b.x + b.w - 22, b.y + 42, 3, 3);
+        } else if (design.name === "SCRAPLING") {
+          g.fillStyle = design.color;
+          g.fillRect(b.x + 24, b.y + 24, 80, 22);
+          g.fillRect(b.x + 38, b.y + 12, 52, 18);
+          g.fillStyle = design.accent;
+          g.fillRect(b.x + 20, b.y + 46, 14, 18);
+          g.fillRect(b.x + b.w - 34, b.y + 46, 14, 18);
+          g.beginPath();
+          g.moveTo(b.x + 12, b.y + 30);
+          g.lineTo(b.x + 32, b.y + 18);
+          g.lineTo(b.x + 32, b.y + 42);
+          g.closePath();
+          g.fill();
+          g.beginPath();
+          g.moveTo(b.x + b.w - 12, b.y + 30);
+          g.lineTo(b.x + b.w - 32, b.y + 18);
+          g.lineTo(b.x + b.w - 32, b.y + 42);
+          g.closePath();
+          g.fill();
+        } else if (design.name === "SPINE SENTRY") {
+          g.fillStyle = design.color;
+          g.beginPath();
+          g.moveTo(b.x + 34, b.y + 14);
+          g.lineTo(b.x + b.w - 34, b.y + 14);
+          g.lineTo(b.x + b.w - 16, b.y + 48);
+          g.lineTo(b.x + 16, b.y + 48);
+          g.closePath();
+          g.fill();
+          g.fillStyle = design.accent;
+          for (let i = -2; i <= 2; i += 1) {
+            g.beginPath();
+            g.moveTo(cx + i * 22, b.y + 14);
+            g.lineTo(cx + i * 22 + 5, b.y - 4);
+            g.lineTo(cx + i * 22 - 5, b.y - 4);
+            g.closePath();
+            g.fill();
+          }
+          g.fillRect(b.x + 44, b.y + 50, 40, 14);
+        } else {
+          g.fillStyle = design.color;
+          g.fillRect(b.x, b.y + 18, b.w, 28);
+          g.fillRect(b.x + 18, b.y, 92, 24);
+          g.fillStyle = design.accent;
+          g.fillRect(b.x + 12, b.y + 42, 16, 22);
+          g.fillRect(b.x + 100, b.y + 42, 16, 22);
+        }
+
+        g.fillStyle = "#000";
+        g.fillRect(cx - 19, b.y + 8, 14, 8);
+        g.fillRect(cx + 5, b.y + 8, 14, 8);
+        g.fillStyle = "#62ffa1";
+        g.fillRect(cx - 15, b.y + 10, 4, 4);
+        g.fillRect(cx + 13, b.y + 10, 4, 4);
+
+        if (tier >= 1) {
+          g.fillStyle = design.accent;
+          [-26, -14, 14, 26].forEach((offset) => {
+            g.beginPath();
+            g.moveTo(cx + offset, b.y - 4);
+            g.lineTo(cx + offset + 4, b.y + 10);
+            g.lineTo(cx + offset - 4, b.y + 10);
+            g.closePath();
+            g.fill();
+          });
+        }
+        if (tier >= 2) {
+          g.strokeStyle = design.accent;
+          g.lineWidth = 3;
+          g.strokeRect(b.x - 7, b.y + 14, b.w + 14, 40);
+          g.lineWidth = 1;
+          g.strokeStyle = "rgba(255,255,255,0.22)";
+          g.beginPath();
+          g.arc(cx, cy, 52, 0, Math.PI * 2);
+          g.stroke();
+        }
+        if (tier >= 3) {
+          g.fillStyle = "#ffffff";
+          g.beginPath();
+          g.moveTo(cx - 36, b.y - 20);
+          g.lineTo(cx - 22, b.y - 6);
+          g.lineTo(cx - 8, b.y - 20);
+          g.lineTo(cx + 8, b.y - 6);
+          g.lineTo(cx + 22, b.y - 20);
+          g.lineTo(cx + 36, b.y - 6);
+          g.lineTo(cx + 26, b.y + 2);
+          g.lineTo(cx - 26, b.y + 2);
+          g.closePath();
+          g.fill();
+          g.fillStyle = design.accent;
+          g.fillRect(b.x + 4, b.y + 34, 12, 28);
+          g.fillRect(b.x + b.w - 16, b.y + 34, 12, 28);
+        }
+
+        g.restore();
+      }
+
+      const grid = document.getElementById("grid");
+      const cards = MODELS.map((model) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const cv = document.createElement("canvas");
+        cv.width = 450;
+        cv.height = 130;
+        const label = document.createElement("div");
+        label.className = "name";
+        label.textContent = `${model.kind} - ${model.design.name}`;
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        stats.textContent = `${model.design.ability} | base hp ${model.design.hp} (+${model.design.hpScale}/wave) | speed ${model.design.speed} | tier ${model.tier}`;
+        card.appendChild(cv);
+        card.appendChild(label);
+        card.appendChild(stats);
+        grid.appendChild(card);
+        return { cv, g: cv.getContext("2d"), model };
+      });
+
+      function loop(ts) {
+        const t = ts / 1000;
+        cards.forEach((card) => {
+          const { model } = card;
+          card.g.fillStyle = "#000";
+          card.g.fillRect(0, 0, 450, 130);
+          const bob = Math.sin(t * 2 + card.cv.offsetTop) * 3;
+          const b = { x: 450 / 2 - 64, y: 40 + bob, w: 128, h: 64 };
+          drawDesignShape(card.g, b, model.design, model.tier);
+        });
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — CRAB SHIELD options</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 12px; max-width: 860px; line-height: 1.55; }
+      .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; align-items: center; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #98a3c8; border-radius: 999px; padding: 5px 11px; font: 11px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      canvas { border: 1px solid #33365a; border-radius: 6px; display: block; max-width: 100%; touch-action: none; }
+      #notes { color: #6f7aa5; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>CRAB SHIELD — 3 options</h1>
+    <div class="sub">
+      How the crab's 2-HP armor reads on screen. Toggle HP to see each option up and down.
+      A: steel pauldrons that slump and dull when broken. B: cyan hex bubble, gone at 1 HP.
+      C: plain crab, shell cracks appear once the cuirass is down.
+    </div>
+    <div class="row"><div id="chips" class="row" style="margin:0"></div></div>
+    <canvas id="stage" width="1000" height="560"></canvas>
+    <div id="notes"></div>
+    <script src="crab-shield.bundle.js"></script>
+  </body>
+</html>

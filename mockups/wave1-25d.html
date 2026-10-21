@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — Wave 1 in game, squid &amp; crab in the new 3D look</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 12px; max-width: 900px; line-height: 1.55; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #98a3c8; border-radius: 999px; padding: 5px 11px; font: 11px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      .chip[aria-pressed="true"] { background: #2a2f5c; color: #ffe066; border-color: #ffe066; }
+      .stack { position: relative; width: 900px; max-width: 100%; }
+      .stack canvas { position: absolute; inset: 0; width: 100%; height: auto; border: 1px solid #2f6b2f; border-radius: 4px; }
+      .stack canvas:first-child { position: relative; }
+      .note { color: #98a3c8; font-size: 12px; line-height: 1.6; margin-top: 12px; max-width: 900px; }
+      .note b { color: #e8ecff; }
+      .key { color: #7cff7c; }
+    </style>
+  </head>
+  <body>
+    <h1>WAVE 1 — the game frame, with the squid and the crab in the new look</h1>
+    <div class="sub">
+      Everything is the real wave 1: 3 rows x 11 (rows 1-2 squid with armor on the top row, row 3 crab), 4 bunkers, player,
+      ground line, HUD, march and descend — copied from the game's own numbers. Only the two mob types are swappable:
+      <span class="key">SQUID: 3D</span> / <span class="key">CRAB: 3D</span> put that mob on the transparent WebGL layer above the
+      2D canvas, in the same spot, same 32px size, marching with the grid. Turn a chip off and that mob is drawn by the game's own
+      <b>neon()</b> silhouette again, byte-for-byte the current look.
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="stack">
+      <canvas id="game2d" width="900" height="600"></canvas>
+      <canvas id="game3d" width="900" height="600"></canvas>
+    </div>
+    <div class="note">
+      The 3D mobs use the in-game colors (squid <b>#99d4ff</b>, crab <b>#ffd26b</b>) and the same shader as <b>squid-3d.html</b>:
+      toon ramp with saturated shadow, sky/back rim, and a <b>thin hue-tinted hull ink (~1px)</b> — that is the ink that fits at 32px.
+      <b>INK BLACK (EVEN)</b> is the even, screen-space ink from <b>squid-3d.html</b>: it is built from depth edges, and at this size
+      (a 32px mob with 6 legs, 2 eyes and a mantle — measured: ~80% of the mob's pixels are depth steps) it floods the whole sprite.
+      It is left off by default and is on the chip so you can see exactly what that means; use it on the big mobs in
+      <b>squid-3d.html</b>. Bunkers, player, armor dome, ground, HUD and the flat neon mobs stay canvas-2D, exactly as shipped.
+      <b>TURN (SHOW 3D)</b> rocks each mob so you can see the volume.
+    </div>
+    <script src="wave1-25d.bundle.js"></script>
+  </body>
+</html>

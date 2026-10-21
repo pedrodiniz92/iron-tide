@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — 3D assets · all mobs, ship variants, loot icons</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 14px; max-width: 860px; line-height: 1.55; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 14px; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #98a3c8; border-radius: 999px; padding: 5px 11px; font: 11px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      .chip[aria-pressed="true"] { background: #2a2f5c; color: #ffe066; border-color: #ffe066; }
+      .mobpick { background: #171b36; border: 1px solid #ffe066; color: #ffe066; border-radius: 8px; padding: 6px 10px; font: 12px system-ui, monospace; margin: 12px 0 0; }
+      .mobpick optgroup { background: #0b0c14; color: #98a3c8; }
+      .mobpick option { background: #171b36; color: #e8ecff; }
+      canvas { border: 1px solid #33365a; border-radius: 6px; display: block; max-width: 100%; touch-action: none; }
+      .row { display: flex; gap: 10px; margin-top: 8px; }
+      .cell { flex: 1; min-width: 0; }
+      .cell h2 { font-size: 11px; margin: 0 0 4px; color: #ffe066; letter-spacing: .08em; }
+      .note { color: #98a3c8; font-size: 11px; line-height: 1.55; margin-top: 6px; }
+      .note b { color: #e8ecff; }
+      .tip { color: #6f7aa5; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>3D ASSETS</h1>
+    <div class="sub">
+      Pick a model from the <b>dropdown</b>. Models with several designs are one option and show <b>one design per cell</b> so you can compare them.
+      <b>Drag inside the 4th cell</b> to orbit.
+    </div>
+    <div class="chips" id="chips"></div>
+    <canvas id="stage" width="1208" height="300"></canvas>
+    <div class="row" id="notes"></div>
+    <div class="tip">The <b>BASE</b> chip flips the model between its in-game color and the cel-mockup tint.</div>
+
+        <script src="3d-assets.bundle.js"></script>
+  </body>
+</html>

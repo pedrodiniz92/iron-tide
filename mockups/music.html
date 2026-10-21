@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Music mockup - Iron Tide tracks</title>
+    <style>
+      body { background: #05080d; color: #cfe8d4; font: 14px 'Courier New', monospace; margin: 24px; }
+      h1 { color: #66ff66; font-size: 20px; }
+      .tracks { display: flex; flex-direction: column; gap: 10px; max-width: 560px; margin-top: 16px; }
+      button.track {
+        text-align: left; padding: 10px 14px; cursor: pointer;
+        background: #101820; color: #cfe8d4; border: 1px solid #2c5f7a; font: 13px 'Courier New', monospace;
+      }
+      button.track.playing { border-color: #66ff66; color: #66ff66; background: #0c2413; }
+      .meta { color: #6a8fa5; margin-top: 4px; }
+      .row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+      #now { color: #ffe066; }
+    </style>
+  </head>
+  <body>
+    <h1>IRON TIDE MUSIC MOCKUP</h1>
+    <p>Click a track to hear it. Click again to stop. Keys 1-8 also work.</p>
+    <div class="tracks" id="tracks"></div>
+    <div class="row">
+      <button id="stop" type="button">STOP</button>
+      <label>Volume <input id="vol" type="range" min="0" max="100" value="60" /></label>
+      <span id="now">silent</span>
+    </div>
+    <script>
+      const TRACKS = [
+        {
+          name: "1. IRON TIDE THEME (current)", bpm: 144,
+          melody: [64,0,67,0,71,0,76,0,71,0,67,0,64,0,60,0,
+                   64,0,67,0,71,0,79,0,74,0,71,0,67,0,64,0,
+                   64,0,69,0,72,0,76,0,72,0,69,0,64,0,62,0,
+                   67,0,71,0,74,0,79,0,83,0,79,74,71,0,67,0,64,0],
+          bass: [28,40,28,28,31,43,31,31,26,38,26,26,28,40,28,28,
+                 31,43,31,31,28,40,28,28,26,38,26,26,24,36,24,24,
+                 28,40,28,28,31,43,31,31,26,38,26,26,28,40,28,28,
+                 31,43,31,31,28,40,28,28,26,38,26,26,31,28,26,24],
+          arp: [52,55,60,64,60,55,52,55,60,64,67,64,60,55,52,48,
+                45,48,52,55,52,48,45,48,52,55,60,55,52,48,45,43,
+                48,52,55,60,55,52,48,52,57,60,64,60,57,52,48,45,
+                50,55,59,62,59,55,50,55,59,62,67,62,59,55,50,47]
+        },
+        {
+          name: "2. CAVERN MARCH (slow, ominous)", bpm: 96,
+          melody: [69,0,0,0,72,0,0,0,71,0,72,0,69,0,68,0,
+                   69,0,0,0,72,0,0,0,74,0,72,0,71,0,69,0,
+                   68,0,0,0,71,0,0,0,72,0,71,0,68,0,64,0,
+                   69,0,68,0,66,0,68,0,69,0,0,0,64,0,0,0],
+          bass: [33,33,45,33,33,33,45,33,29,29,41,29,29,29,41,29,
+                 33,33,45,33,33,33,45,33,31,31,43,31,31,31,43,31,
+                 28,28,40,28,28,28,40,28,29,29,41,29,29,29,41,29,
+                 33,33,45,33,33,33,45,33,28,32,28,24,21,21,33,21],
+          arp: [57,0,60,0,64,0,60,0,53,0,57,0,61,0,57,0,
+                57,0,60,0,64,0,67,0,55,0,59,0,62,0,59,0,
+                52,0,56,0,60,0,56,0,53,0,57,0,61,0,60,0,
+                57,0,64,0,60,0,57,0,52,0,55,0,49,0,52,0]
+        },
+        {
+          name: "3. NEON DRIFT (fast, driving)", bpm: 170,
+          melody: [76,0,79,0,83,0,79,0,76,0,74,0,71,0,74,0,
+                   76,0,79,0,81,0,79,0,83,0,86,0,83,0,79,0,
+                   74,0,76,0,79,0,76,0,74,0,71,0,69,0,71,0,
+                   76,0,79,0,83,0,86,0,88,0,86,0,83,0,79,0],
+          bass: [40,52,40,52,40,52,40,52,36,48,36,48,36,48,36,48,
+                 41,53,41,53,41,53,41,53,38,50,38,50,38,50,38,50,
+                 40,52,40,52,40,52,40,52,36,48,36,48,36,48,36,48,
+                 43,55,43,55,43,55,43,55,38,50,43,55,38,50,36,48],
+          arp: [64,67,71,74,71,67,64,67,60,64,67,72,67,64,60,64,
+                65,69,72,77,72,69,65,69,62,66,69,74,69,66,62,66,
+                64,67,71,74,76,71,67,64,60,64,67,72,72,67,64,60,
+                67,71,74,79,74,71,67,71,76,79,83,79,76,71,67,64]
+        },
+        {
+          name: "4. SIEGE GROOVE (mid, tense)", bpm: 118,
+          melody: [69,0,70,0,69,0,0,72,70,0,69,0,67,0,66,0,
+                   69,0,70,0,74,0,72,0,70,0,69,0,0,67,0,66,
+                   64,0,66,0,67,0,69,0,70,0,69,0,67,0,64,0,
+                   62,0,64,0,66,0,67,0,69,0,66,0,64,0,0,0],
+          bass: [33,33,0,45,33,0,41,0,33,33,0,45,33,0,29,0,
+                 33,33,0,45,31,0,39,0,31,0,43,0,31,33,0,0,
+                 29,29,0,41,29,0,37,0,29,29,0,41,28,0,40,0,
+                 33,0,33,0,45,0,33,0,29,0,41,0,28,32,33,35],
+          arp: [57,0,61,0,64,0,61,0,57,0,61,0,53,0,57,0,
+                57,0,61,0,66,0,64,0,61,0,57,0,55,0,53,0,
+                53,0,57,0,60,0,64,0,57,0,53,0,52,0,49,0,
+                50,0,54,0,57,0,59,0,61,0,57,0,52,0,45,0]
+        },
+        {
+          name: "5. STARFIELD WALTZ (dreamy, flowing)", bpm: 128,
+          melody: [62,0,0,66,0,0,69,0,0,66,0,0,62,0,0,0,
+                   64,0,0,68,0,0,71,0,0,68,0,0,64,0,0,0,
+                   66,0,0,69,0,0,73,0,0,69,0,0,66,0,0,0,
+                   69,0,0,73,0,0,76,0,0,73,0,0,69,0,71,0],
+          bass: [38,0,0,0,50,0,0,0,38,0,0,0,50,0,0,0,
+                 36,0,0,0,48,0,0,0,36,0,0,0,48,0,0,0,
+                 34,0,0,0,46,0,0,0,34,0,0,0,46,0,0,0,
+                 31,0,0,0,43,0,0,0,38,0,0,0,43,0,38,0],
+          arp: [62,66,69,74,69,66,62,66,69,74,78,74,69,66,62,58,
+                60,64,67,72,67,64,60,64,67,72,76,72,67,64,60,56,
+                58,62,65,70,65,62,58,62,65,70,74,70,65,62,58,54,
+                55,59,62,67,62,59,55,59,62,67,71,67,62,59,55,51]
+        },
+        {
+          name: "6. CRUISER ATTACK (aggressive, chromatic)", bpm: 152,
+          melody: [69,0,69,70,69,0,66,0,64,0,66,0,69,0,72,0,
+                   70,0,69,70,72,0,69,0,66,0,64,0,62,0,66,0,
+                   69,0,72,0,75,0,72,0,69,0,66,0,64,0,62,0,
+                   57,0,61,0,64,0,66,0,69,0,64,0,57,0,0,0],
+          bass: [33,45,33,45,33,45,33,45,29,41,29,41,29,41,29,41,
+                 33,45,33,45,34,46,34,46,33,45,33,45,31,43,31,43,
+                 28,40,28,40,28,40,28,40,33,45,33,45,34,46,34,46,
+                 33,45,33,45,29,41,29,41,28,40,31,43,33,33,33,33],
+          arp: [69,70,71,72,73,72,71,70,65,66,67,68,69,68,67,66,
+                69,70,71,72,74,72,71,70,66,67,68,69,70,69,68,67,
+                64,65,66,67,68,67,66,65,69,70,71,72,73,72,71,72,
+                61,64,66,69,72,69,66,64,57,61,64,66,69,66,64,61]
+        },
+        {
+          name: "7. SILENT PATROL (sparse, atmospheric)", bpm: 84,
+          melody: [69,0,0,0,0,0,0,0,76,0,0,0,0,0,0,0,
+                   72,0,0,0,0,0,0,0,69,0,0,0,0,0,0,0,
+                   64,0,0,0,0,0,0,0,67,0,0,0,0,0,0,0,
+                   69,0,0,0,72,0,0,0,76,0,0,0,79,0,0,0],
+          bass: [33,0,33,0,0,33,0,0,33,0,33,0,0,29,0,0,
+                 31,0,31,0,0,31,0,0,31,0,28,0,0,28,0,0,
+                 29,0,29,0,0,29,0,0,29,0,26,0,0,26,0,0,
+                 28,0,28,0,0,31,0,0,33,0,33,0,35,0,33,0],
+          arp: [0,57,0,60,0,64,0,60,0,57,0,53,0,57,0,60,
+                0,55,0,59,0,62,0,59,0,55,0,52,0,55,0,59,
+                0,53,0,57,0,61,0,57,0,53,0,49,0,53,0,57,
+                0,52,0,55,0,59,0,62,0,55,0,52,0,48,0,52,0]
+        },
+        {
+          name: "8. VICTORY LAP (bright, celebratory)", bpm: 160,
+          melody: [76,0,79,0,83,0,83,81,79,0,76,0,79,0,83,0,
+                   81,0,79,0,76,0,74,0,71,0,74,0,76,0,79,0,
+                   83,0,86,0,88,0,86,0,83,0,79,0,76,0,79,0,
+                   88,0,86,0,83,0,79,0,76,0,79,0,83,0,88,0],
+          bass: [36,48,36,48,43,55,43,55,41,53,41,53,43,55,43,55,
+                 36,48,36,48,41,53,41,53,38,50,38,50,43,55,43,55,
+                 36,48,36,48,45,57,45,57,43,55,43,55,41,53,41,53,
+                 36,48,36,48,41,53,41,53,43,55,45,57,36,48,36,48],
+          arp: [60,64,67,72,67,64,60,64,71,74,79,74,71,68,64,68,
+                65,69,72,77,72,69,65,69,68,72,76,81,76,72,68,72,
+                60,64,67,72,76,72,67,64,65,69,72,77,72,69,65,62,
+                60,64,67,72,69,65,60,57,65,69,72,77,81,77,72,69]
+        }
+      ];
+
+      let ctx = null;
+      let master = null;
+      let timer = null;
+      let step = 0;
+      let nextTime = 0;
+      let current = -1;
+
+      function initAudio() {
+        if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain();
+        master.gain.value = Number(vol.value) / 100 * 0.5;
+        master.connect(ctx.destination);
+      }
+
+      function midiHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+      function tone(midi, when, duration, type, gain) {
+        const osc = ctx.createOscillator();
+        const amp = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(midiHz(midi), when);
+        amp.gain.setValueAtTime(0.0001, when);
+        amp.gain.linearRampToValueAtTime(gain, when + 0.008);
+        amp.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+        osc.connect(amp);
+        amp.connect(master);
+        osc.start(when);
+        osc.stop(when + duration + 0.02);
+      }
+
+      function noise(when, duration, gain, hz) {
+        const frames = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < frames; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+        const src = ctx.createBufferSource();
+        const filt = ctx.createBiquadFilter();
+        const amp = ctx.createGain();
+        src.buffer = buf;
+        filt.type = "highpass";
+        filt.frequency.value = hz;
+        amp.gain.setValueAtTime(gain, when);
+        amp.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+        src.connect(filt);
+        filt.connect(amp);
+        amp.connect(master);
+        src.start(when);
+        src.stop(when + duration + 0.02);
+      }
+
+      function kick(when) {
+        const osc = ctx.createOscillator();
+        const amp = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(150, when);
+        osc.frequency.exponentialRampToValueAtTime(42, when + 0.13);
+        amp.gain.setValueAtTime(0.16, when);
+        amp.gain.exponentialRampToValueAtTime(0.0001, when + 0.16);
+        osc.connect(amp);
+        amp.connect(master);
+        osc.start(when);
+        osc.stop(when + 0.18);
+      }
+
+      function scheduleStep(track, s, when) {
+        const lead = track.melody[s % track.melody.length];
+        const low = track.bass[s % track.bass.length];
+        const pulse = track.arp[s % track.arp.length];
+        if (lead) tone(lead, when, 0.1, "square", 0.078);
+        if (low) tone(low, when, 0.13, "sawtooth", 0.135);
+        if (pulse) tone(pulse, when, 0.055, "square", 0.044);
+        if (s % 2 === 0) noise(when, 0.025, 0.062, 10500);
+        if (s % 16 === 0 || s % 16 === 6) kick(when);
+        if (s % 16 === 4 || s % 16 === 12) noise(when, 0.13, 0.13, 2200);
+        if (s % 16 === 14) noise(when, 0.24, 0.09, 4800);
+      }
+
+      function stop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+        current = -1;
+        document.querySelectorAll("button.track").forEach((b) => b.classList.remove("playing"));
+        now.textContent = "silent";
+      }
+
+      function play(index) {
+        initAudio();
+        if (current === index) { stop(); return; }
+        stop();
+        const track = TRACKS[index];
+        const stepDur = 60 / track.bpm / 4;
+        step = 0;
+        nextTime = ctx.currentTime + 0.05;
+        current = index;
+        document.querySelectorAll("button.track")[index].classList.add("playing");
+        now.textContent = track.name;
+        timer = setInterval(() => {
+          while (nextTime < ctx.currentTime + 0.15) {
+            scheduleStep(track, step, nextTime);
+            step = (step + 1) % 64;
+            nextTime += stepDur;
+          }
+        }, 40);
+      }
+
+      const tracksEl = document.getElementById("tracks");
+      const now = document.getElementById("now");
+      const vol = document.getElementById("vol");
+
+      TRACKS.forEach((track, index) => {
+        const b = document.createElement("button");
+        b.className = "track";
+        b.innerHTML = `${track.name}<div class="meta">${track.bpm} BPM - click to play/stop</div>`;
+        b.addEventListener("click", () => play(index));
+        tracksEl.appendChild(b);
+      });
+
+      document.getElementById("stop").addEventListener("click", stop);
+      vol.addEventListener("input", () => { if (master) master.gain.value = Number(vol.value) / 100 * 0.5; });
+      document.addEventListener("keydown", (e) => {
+        const n = Number(e.key);
+        if (n >= 1 && n <= TRACKS.length) play(n - 1);
+      });
+    </script>
+  </body>
+</html>

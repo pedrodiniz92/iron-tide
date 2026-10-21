@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — BANSHEE &amp; GHOST design bench</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 12px; max-width: 860px; line-height: 1.55; }
+      .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; align-items: center; }
+      .row h2 { font-size: 11px; color: #ffe066; letter-spacing: .08em; margin: 0 8px 0 0; }
+      .chip { background: #171b36; border: 1px solid #33365a; color: #98a3c8; border-radius: 999px; padding: 5px 11px; font: 11px system-ui, monospace; cursor: pointer; letter-spacing: .06em; }
+      .chip[aria-pressed="true"] { background: #2a2f5c; color: #ffe066; border-color: #ffe066; }
+      canvas { border: 1px solid #33365a; border-radius: 6px; display: block; max-width: 100%; touch-action: none; }
+      #notes { color: #6f7aa5; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>BANSHEE &amp; GHOST — design bench</h1>
+    <div class="sub">
+      Three concepts, cycle with DESIGN. Sheet Ghost = the vanishing one (wave 5). Veiled Banshee / Wail Wisp = the screamer (wave 4).
+      Drag to orbit, wheel to zoom. URL params: <b>?design=ghost|veiled|wail</b>, <b>?view=FRONT|SIDE|TOP|3/4</b>, <b>?selftest</b>.
+    </div>
+    <div class="row"><h2>PARTS</h2><div id="chips" class="row" style="margin:0"></div></div>
+    <div class="row"><h2>VIEW</h2><div id="views" class="row" style="margin:0"></div></div>
+    <canvas id="stage" width="1000" height="560"></canvas>
+    <div id="notes"></div>
+    <script src="banshee-3d.bundle.js"></script>
+  </body>
+</html>
