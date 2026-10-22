@@ -839,6 +839,13 @@ function drawUpgradeChoices() {
     ctx.fillText(choice.desc, 104, y + 16);
   });
 
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffe066";
+  ctx.font = "bold 15px 'Courier New', monospace";
+  ctx.globalAlpha = 0.65 + Math.sin(Date.now() / 300) * 0.35;
+  ctx.fillText("ARROWS TO MOVE - PRESS ENTER TO CONFIRM", W / 2, 452);
+  ctx.globalAlpha = 1;
+
   ctx.restore();
 }
 

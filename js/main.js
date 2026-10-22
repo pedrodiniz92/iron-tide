@@ -521,7 +521,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (state === "choices" && (key === "enter" || key === " ")) {
+  if (state === "choices" && key === "enter") {
     chooseUpgrade(upgradeSel);
     return;
   }

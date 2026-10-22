@@ -156,7 +156,7 @@ const BOSS_DESIGNS = [
 ];
 
 function isMinibossWave(level) {
-  return false;
+  return level === 7 || level === 8;
 }
 
 function isFullBossWave(level) {
@@ -171,6 +171,7 @@ function pickWaveMusic(level) {
 }
 
 function currentBossDesign(level) {
+  if (level === 8) return BOSS_DESIGNS.find((design) => design.name === "WINGED VIPER") || BOSS_DESIGNS[0];
   const cycle = level % 3;
   if (cycle === 1) return MINIBOSS_DESIGNS[Math.floor((level - 1) / 3) * 2 % MINIBOSS_DESIGNS.length];
   if (cycle === 2) return MINIBOSS_DESIGNS[(Math.floor((level - 2) / 3) * 2 + 1) % MINIBOSS_DESIGNS.length];
