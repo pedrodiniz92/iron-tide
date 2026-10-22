@@ -65,7 +65,7 @@ function newWave() {
   spikeMines = [];
   shockwaves = [];
   scorePopups = [];
-  powerups = powerups.filter((powerup) => powerup.persist);
+  powerups = powerups.filter((powerup) => powerup.persist || Number.isFinite(powerup.ttl));
   combo = 0;
   comboMultiplier = 1;
   comboTimer = 0;
