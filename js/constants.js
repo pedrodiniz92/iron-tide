@@ -219,14 +219,34 @@ function loadName() {
 function saveName(n) {
   try { localStorage.setItem(NAME_KEY, n); } catch (e) { /* private mode */ }
 }
+const SCORES_API = "https://iron-tide-board.iron-tide-2-5.workers.dev";
 function loadScores() {
   try { return JSON.parse(localStorage.getItem(SCORES_KEY) || "[]"); } catch (e) { return []; }
+}
+function fetchBoard() {
+  return fetch(SCORES_API + "/scores?v=" + Date.now())
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data && Array.isArray(data.scores)) {
+        try { localStorage.setItem(SCORES_KEY, JSON.stringify(data.scores.slice(0, 100))); } catch (e) { /* ignore */ }
+        return data.scores;
+      }
+      return null;
+    })
+    .catch(() => null);
 }
 function saveScore(entry) {
   const list = loadScores();
   list.push(entry);
   list.sort((a, b) => b.score - a.score || a.time - b.time);
   try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* ignore */ }
+  try {
+    fetch(SCORES_API + "/scores", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(entry)
+    }).catch(() => {});
+  } catch (e) { /* offline */ }
   return list.findIndex((s) => s === entry) + 1;
 }
 function formatTime(seconds) {

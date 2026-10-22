@@ -1,0 +1,7 @@
+name = "iron-tide-board"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+
+[[kv_namespaces]]
+binding = "BOARD"
+id = "992a457f5a9645ec993db46bd8e245ce"

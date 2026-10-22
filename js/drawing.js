@@ -768,11 +768,20 @@ function showStartExtras() {
   if (!box || !board) return;
   box.style.display = "block";
   refreshNameWidgets();
+  renderStartBoard();
+  fetchBoard().then((remote) => { if (remote) renderStartBoard(); });
+}
+
+function renderStartBoard() {
+  const board = document.getElementById("boardTop");
+  if (!board) return;
   board.innerHTML = "";
   loadScores().slice(0, 10).forEach((entry) => {
     const li = document.createElement("li");
-    li.textContent = entry.name + " - " + entry.score + " - " + formatTime(entry.time);
+    li.textContent = entry.name + " - " + entry.score + " - " + formatTime(entry.time) +
+      (entry.win ? " - GAME BEATEN" : "");
     if (entry.name === loadName()) li.className = "you";
+    if (entry.win) li.classList.add("beaten");
     board.appendChild(li);
   });
   if (!board.children.length) {

@@ -90,7 +90,7 @@ function frame(now) {
 function winGame() {
   state = "victory";
   clearEnemyFire();
-  victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10) });
+  victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
   playLevelClear();
   updateStatus("THE IRON TIDE IS BROKEN.");
 }

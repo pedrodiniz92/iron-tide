@@ -27,7 +27,7 @@
     <h1>IRON TIDE — LEADERBOARD</h1>
     <div class="sub">Beat the TURTLE BULWARK on wave 9 to enter. Fewer seconds wins ties.</div>
     <table>
-      <thead><tr><th>#</th><th>Pilot</th><th>Score</th><th>Time</th><th>Date</th></tr></thead>
+      <thead><tr><th>#</th><th>Pilot</th><th>Score</th><th>Time</th><th>Date</th><th>Result</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
     <div id="empty"></div>
@@ -45,11 +45,12 @@
       }
       const me = (function () { try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; } })();
       const rows = document.getElementById("rows");
-      const list = loadScores();
+      function render(list) {
+      rows.innerHTML = "";
       list.forEach((entry, i) => {
         const tr = document.createElement("tr");
         if (entry.name === me) tr.className = "me";
-        [i + 1, entry.name, entry.score, formatTime(entry.time), entry.date].forEach((value, c) => {
+        [i + 1, entry.name, entry.score, formatTime(entry.time), entry.date, entry.win ? "GAME BEATEN" : ""].forEach((value, c) => {
           const td = document.createElement("td");
           td.textContent = value;
           if (c === 3) td.className = "t";
@@ -58,6 +59,17 @@
         rows.appendChild(tr);
       });
       if (!list.length) document.getElementById("empty").textContent = "No runs recorded yet.";
+      }
+      render(loadScores());
+      fetch("https://iron-tide-board.iron-tide-2-5.workers.dev/scores?v=" + Date.now())
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d && Array.isArray(d.scores)) {
+            try { localStorage.setItem(SCORES_KEY, JSON.stringify(d.scores.slice(0, 100))); } catch (e) {}
+            render(d.scores);
+          }
+        })
+        .catch(() => {});
     </script>
   </body>
 </html>
