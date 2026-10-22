@@ -66,6 +66,13 @@ function movePlayer(dt) {
   if (left) player.x -= player.speed * dt;
   if (right) player.x += player.speed * dt;
 
+  if (window.IS_TOUCH && window.touchAimX !== null && window.touchAimX !== undefined) {
+    const target = clamp(window.touchAimX - player.w / 2, 10, W - player.w - 10);
+    const d = target - player.x;
+    const step = player.speed * 2.2 * dt;
+    player.x = Math.abs(d) <= step ? target : player.x + Math.sign(d) * step;
+  }
+
   player.x = clamp(player.x, 10, W - player.w - 10);
 }
 

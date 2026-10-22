@@ -249,3 +249,44 @@ h1 .ver {
 h1:hover .ver {
   opacity: 1;
 }
+body.touch header p {
+  display: none;
+}
+#touchPad {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  touch-action: none;
+}
+#touchBtns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 10px auto 0;
+  max-width: 900px;
+}
+#touchBtns button {
+  flex: 1;
+  max-width: 140px;
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid #2c5f7a;
+  background: #101820;
+  color: #9ae6ff;
+  font: bold 15px 'Courier New', monospace;
+  letter-spacing: .1em;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#touchBtns button:active {
+  background: #1d3448;
+  color: #ffe066;
+}
+#tbFire { color: #ff8f8f; }
+#tbBomb { color: #ffe066; }
+body.touch .frame {
+  width: 100%;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
