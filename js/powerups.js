@@ -212,7 +212,7 @@ function updateBombShots(dt) {
 
     const hitInvader = invaders.find((invader) => invader.alive && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
-    const hitBoss = boss && overlaps(shot, boss);
+    const hitBoss = bosses.find((unit) => overlaps(shot, unit));
     const hitEnemyBullet = enemyBullets.find((bullet) => overlaps(shot, bullet));
     const hitShield = shields.find((shield) => overlaps(shot, shield));
 
@@ -256,22 +256,22 @@ function explodeBombShot(shot) {
     }
   });
 
-  if (boss) {
-    const dx = boss.x + boss.w / 2 - centerShotX;
-    const dy = boss.y + boss.h / 2 - centerShotY;
-    if (dx * dx + dy * dy <= shot.radius * shot.radius) {
-      if (boss.burrowing) {
-        boss.burrowing = false;
-        boss.coreOpen = false;
-        boss.burrowTele = 0;
-        boss.burrowTimer = Math.max(7.2, 9.6 - level * 0.06);
-        showGameMessage("BURROW BROKEN!", 1.0, "#ffe066");
-        damageBoss(Math.round(18 + level * 1.5 + boss.maxHp * 0.09));
-      } else {
-        damageBoss(Math.round(12 + level + boss.maxHp * 0.06));
-      }
+  bosses.forEach((unit) => {
+    const dx = unit.x + unit.w / 2 - centerShotX;
+    const dy = unit.y + unit.h / 2 - centerShotY;
+    if (dx * dx + dy * dy > shot.radius * shot.radius) return;
+
+    if (unit.burrowing) {
+      unit.burrowing = false;
+      unit.coreOpen = false;
+      unit.burrowTele = 0;
+      unit.burrowTimer = Math.max(7.2, 9.6 - level * 0.06);
+      showGameMessage("BURROW BROKEN!", 1.0, "#ffe066");
+      damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09));
+    } else {
+      damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06));
     }
-  }
+  });
 
   const clearRadius = shot.radius * 0.85;
   enemyBullets = enemyBullets.filter((bullet) => {

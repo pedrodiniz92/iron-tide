@@ -825,7 +825,7 @@ function drawUpgradeChoices() {
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffe066";
   ctx.font = "bold 24px 'Courier New', monospace";
-  ctx.fillText("CHOOSE A PERMANENT UPGRADE", W / 2, 152);
+  ctx.fillText(upgradePrompt, W / 2, 152);
   ctx.fillStyle = "#cfe8d4";
   ctx.font = "14px 'Courier New', monospace";
   ctx.fillText("Click a card, arrows + Enter, or press 1, 2, 3.", W / 2, 174);

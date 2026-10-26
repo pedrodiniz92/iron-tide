@@ -78,6 +78,7 @@ function startGame() {
   state = "choices";
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
+  upgradePrompt = "CHOOSE A STARTING UPGRADE";
   showGameMessage("CHOOSE A STARTING UPGRADE", 2.2, "#ffe066");
   updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
 }
@@ -368,6 +369,7 @@ function finishBossFight() {
   state = "choices";
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
+  upgradePrompt = "CHOOSE A PERMANENT UPGRADE";
   showGameMessage("CHOOSE A PERMANENT UPGRADE", 2.2, "#ffe066");
   updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
 }

@@ -136,7 +136,7 @@ function findLaserTarget(x, y) {
   invaders.forEach((invader) => {
     if (invader.alive) add("invader", invader);
   });
-  if (boss) add("boss", boss);
+  bosses.forEach((unit) => add("boss", unit));
   add("ufo", ufo);
   enemyBullets.forEach((bullet) => add("bullet", bullet));
   enemyBombs.forEach((bomb) => add("bomb", bomb));
@@ -198,7 +198,7 @@ function damageLaserTarget(target) {
     }
 
     if (target.kind === "boss") {
-      damageBoss(1);
+      damageBoss(ref, 1);
       return;
     }
 

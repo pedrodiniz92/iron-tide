@@ -31,18 +31,38 @@
         { name: "5. FLASH OUTLINE", note: "drop stays solid, white outline flashes", draw: flashOutline }
       ];
 
+      function drawGameBoxPath(g, cx, cy, targetW, color, glow, outline) {
+        const bb = { x: -12, y: -12, w: 24, h: 24 };
+        const scale = targetW / bb.w;
+        g.save();
+        g.translate(cx - (bb.x + bb.w / 2) * scale, cy - (bb.y + bb.h / 2) * scale);
+        g.scale(scale, scale);
+        g.shadowColor = color;
+        g.shadowBlur = glow;
+        g.beginPath();
+        g.moveTo(-12, -8);
+        g.arc(-8, -8, 4, Math.PI, Math.PI * 1.5);
+        g.arc(8, -8, 4, Math.PI * 1.5, 0);
+        g.arc(8, 8, 4, 0, Math.PI * 0.5);
+        g.arc(-8, 8, 4, Math.PI * 0.5, Math.PI);
+        g.closePath();
+        g.fillStyle = color;
+        g.fill();
+        if (outline) {
+          g.shadowBlur = 0;
+          g.strokeStyle = outline;
+          g.lineWidth = 3 / scale;
+          g.stroke();
+        }
+        g.restore();
+      }
+
       function drawDrop(g, x, y, alpha, scale, outline) {
-        const s = 26 * scale;
         g.save();
         g.globalAlpha = alpha;
-        g.shadowBlur = 16;
+        drawGameBoxPath(g, x, y, 26 * scale, COLOR, 7, outline);
         g.shadowColor = COLOR;
-        g.fillStyle = COLOR;
-        g.fillRect(x - s / 2, y - s / 2, s, s);
-        g.strokeStyle = outline || "#ffffff";
-        g.lineWidth = outline ? 3 : 2;
-        g.strokeRect(x - s / 2, y - s / 2, s, s);
-        g.shadowBlur = 0;
+        g.shadowBlur = 16;
         g.fillStyle = "#0d0d14";
         g.font = `bold ${Math.round(15 * scale)}px 'Courier New', monospace`;
         g.textAlign = "center";

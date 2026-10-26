@@ -73,6 +73,7 @@ let waveClearing = false;
 let nextWaveIsBoss = false;
 let gameMessages = [];
 let upgradeChoices = [];
+let upgradePrompt = "CHOOSE A PERMANENT UPGRADE";
 let upgradeLevels = { offense: 0, defense: 0, mobility: 0 };
 let dashTimer = 0;
 let dashCooldown = 0;

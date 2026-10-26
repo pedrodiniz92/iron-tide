@@ -194,19 +194,21 @@ function updateInvaders(dt) {
       hp: 2, maxHp: 2, color: invader.type.color, shooterId: invader.id
     });
   });
-  if (boss && boss.alive && boss.mini && armedZones.length &&
-      armedZones.some((zone) => Math.hypot(boss.x + boss.w / 2 - zone.x, boss.y + boss.h / 2 - zone.y) < zone.r + 40)) {
-    boss.frenzyShotT = (boss.frenzyShotT === undefined ? 0.2 : boss.frenzyShotT) - dt;
-    if (boss.frenzyShotT <= 0) {
-      boss.frenzyShotT = 1.1 + Math.random() * 0.8;
-      if (enemyBullets.length < frenzyCap) {
-        const bx = boss.x + boss.w / 2;
-        addBossBullet(bx - 2, boss.y + boss.h,
-          Math.max(-190, Math.min(190, (player.x + player.w / 2 - bx) * 1.5)),
-          560 * Math.min(1, 0.85 + (level - 1) * 0.05));
-      }
-    }
-  }
+  bosses.forEach((unit) => {
+    if (!unit.alive || !unit.mini || !armedZones.length) return;
+    if (!armedZones.some((zone) => Math.hypot(unit.x + unit.w / 2 - zone.x, unit.y + unit.h / 2 - zone.y) < zone.r + 40)) return;
+
+    unit.frenzyShotT = (unit.frenzyShotT === undefined ? 0.2 : unit.frenzyShotT) - dt;
+    if (unit.frenzyShotT > 0) return;
+
+    unit.frenzyShotT = 1.1 + Math.random() * 0.8;
+    if (enemyBullets.length >= frenzyCap) return;
+
+    const bx = unit.x + unit.w / 2;
+    addBossBullet(unit, bx - 2, unit.y + unit.h,
+      Math.max(-190, Math.min(190, (player.x + player.w / 2 - bx) * 1.5)),
+      560 * Math.min(1, 0.85 + (level - 1) * 0.05));
+  });
   screamTimer -= dt;
   if (screamTimer <= 0) {
     const wailing = alive.filter((invader) => invader.type.name === "banshee");
