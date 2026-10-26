@@ -36,6 +36,7 @@ let shockwaves = [];
 let shields = [];
 let ufo = null;
 let boss = null;
+let bosses = [];
 let bossSpawned = false;
 let bossDir = 1;
 let bossFireTimer = 1.2;
@@ -85,7 +86,9 @@ let dropRateBonus = 0;
 let permanentDoubleShots = false;
 let permanentFireRateBonus = 0;
 let permanentDamage = 0;
+let permanentLongPowerups = false;
 let maxShieldHits = 1;
+let itemShieldHits = 0;
 let shieldRestoreDelay = 0;
 let shieldRestoreTimer = 0;
 

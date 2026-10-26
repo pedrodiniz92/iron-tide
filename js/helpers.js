@@ -90,8 +90,13 @@ function noteShieldBreak() {
   showGameMessage(`SHIELD BROKEN - RESTORES IN ${shieldRestoreDelay}s`, 1.35, "#ff8844");
 }
 
+function syncShieldStack() {
+  itemShieldHits = Math.max(0, shieldHits - maxShieldHits);
+}
+
 function addShieldHit() {
-  shieldHits = maxShieldHits;
+  shieldHits += 1;
+  syncShieldStack();
   effects.shield = Math.max(effects.shield, 30);
   shieldRestoreTimer = 0;
 }
@@ -153,7 +158,7 @@ function updateFeedback(dt) {
   } else if (shieldRestoreTimer > 0) {
     shieldRestoreTimer = Math.max(0, shieldRestoreTimer - dt);
     if (shieldRestoreTimer <= 0 && maxShieldHits > 0) {
-      shieldHits = maxShieldHits;
+      shieldHits = maxShieldHits + itemShieldHits;
       effects.shield = 30;
       playShieldCharge();
       showGameMessage("SHIELD RESTORED", 1.15, "#62ffa1");

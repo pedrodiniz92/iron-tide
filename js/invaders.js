@@ -8,7 +8,7 @@ function newWave() {
   seq.push("crab");
   const squidRows = seq.length <= 2 ? 2 : 1;
   for (let i = 0; i < squidRows; i += 1) seq.push("squid");
-  const rows = level % 3 === 0 ? 0 : seq.length;
+  const rows = isFinalStage(level) || level % 3 === 0 ? 0 : seq.length;
 
   for (let row = 0; row < rows; row += 1) {
     const byDepth = seq[row];
@@ -73,6 +73,7 @@ function newWave() {
   screenShake = 0;
   waveTime = 0;
   boss = null;
+  bosses = [];
   bossSpawned = false;
   bossDir = 1;
   bossFireTimer = 1.2;

@@ -75,15 +75,15 @@ function drawHud() {
   if (hudLivesEl) hudLivesEl.textContent = `LIVES ${lives}`;
 
   const active = [];
-  if (effects.rapid > 0) active.push(`RAPID FIRE ${Math.ceil(effects.rapid)}s`);
-  if (effects.double > 0) active.push(`DOUBLE SHOT ${Math.ceil(effects.double)}s`);
-  if (effects.laser > 0) active.push(`LASER ${Math.ceil(effects.laser)}s`);
+  if (effects.rapid > 0) active.push(Number.isFinite(effects.rapid) ? `RAPID FIRE ${Math.ceil(effects.rapid)}s` : "RAPID FIRE UNTIL DEATH");
+  if (effects.double > 0) active.push(Number.isFinite(effects.double) ? `DOUBLE SHOT ${Math.ceil(effects.double)}s` : "DOUBLE SHOT UNTIL DEATH");
+  if (effects.laser > 0) active.push(Number.isFinite(effects.laser) ? `LASER ${Math.ceil(effects.laser)}s` : "LASER UNTIL DEATH");
   if (effects.shield > 0) {
     active.push(Number.isFinite(effects.shield)
       ? `SHIELD ${Math.ceil(effects.shield)}s x${shieldHits}`
       : `SHIELD x${shieldHits}`);
   }
-  if (effects.slow > 0) active.push(`TIME WARP ${Math.ceil(effects.slow)}s`);
+  if (effects.slow > 0) active.push(Number.isFinite(effects.slow) ? `TIME WARP ${Math.ceil(effects.slow)}s` : "TIME WARP UNTIL DEATH");
   if (active.length) ctx.fillText(`POWER ${active.join(" ")}`, 16, 44);
 
   const upgrades = [];
@@ -219,7 +219,7 @@ function drawPlayer() {
   }
 
   if (effects.shield > 0 && shieldHits > 0) {
-    const layers = Math.min(shieldHits, maxShieldHits);
+    const layers = shieldHits;
     ctx.lineWidth = 2;
     for (let i = 0; i < layers; i++) {
       const inset = 9 + i * 7;

@@ -39,9 +39,11 @@ function startGame() {
   dashGrace = 0;
   dashGhosts = [];
   shieldHits = 0;
+  itemShieldHits = 0;
   explosions = [];
   ufo = null;
   boss = null;
+  bosses = [];
   bossSpawned = false;
   bossDir = 1;
   bossFireTimer = 1.2;
@@ -62,6 +64,7 @@ function startGame() {
   permanentDoubleShots = false;
   permanentFireRateBonus = 0;
   permanentDamage = 0;
+  permanentLongPowerups = false;
   maxShieldHits = 1;
   shieldRestoreDelay = 0;
   shieldRestoreTimer = 0;
@@ -72,7 +75,11 @@ function startGame() {
   updateDashHint();
   newWave();
   setMusic(pickWaveMusic(level), true);
-  updateStatus("Good luck.");
+  state = "choices";
+  upgradeChoices = buildUpgradeChoices();
+  upgradeSel = 0;
+  showGameMessage("CHOOSE A STARTING UPGRADE", 2.2, "#ffe066");
+  updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
 }
 
 function frame(now) {
@@ -143,8 +150,9 @@ function checkCollisions() {
       return false;
     }
 
-    if (boss && overlaps(bullet, boss)) {
-      damageBoss(bullet.damage || 1);
+    const hitBoss = bosses.find((item) => overlaps(bullet, item));
+    if (hitBoss) {
+      damageBoss(hitBoss, bullet.damage || 1);
       addExplosion(bullet.x + bullet.w / 2, bullet.y, "#ff3366");
       playHit();
       return false;
@@ -239,6 +247,7 @@ function checkCollisions() {
 
       if (shieldHits > 0 && effects.shield > 0) {
         shieldHits -= 1;
+        syncShieldStack();
         if (shieldHits <= 0) effects.shield = 0;
         addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
         playShieldHit();
@@ -269,7 +278,7 @@ function checkCollisions() {
 }
 
 function updateMinibossSpawn() {
-  if (state !== "playing" || boss || bossSpawned || waveClearing || !isMinibossWave(level)) return;
+  if (state !== "playing" || bosses.length || bossSpawned || waveClearing || !isMinibossWave(level)) return;
 
   const alive = invaders.filter((invader) => invader.alive).length;
   const threshold = Math.max(1, Math.ceil(invaders.length * 0.1));
@@ -281,7 +290,7 @@ function updateMinibossSpawn() {
 
 function checkWaveClear() {
   if (waveClearing || state === "waveBreak" || state === "choices") return;
-  if (boss) return;
+  if (bosses.length) return;
   if (invaders.some((invader) => invader.alive)) return;
 
   waveClearing = true;
@@ -396,27 +405,31 @@ function applyUpgrade(choice) {
   upgradeLevels[choice.treeId] = choice.level;
 
   if (choice.treeId === "offense") {
-    permanentFireRateBonus = [0, 0.15, 0.3, 0.3, 0.3][choice.level] || 0.3;
+    permanentFireRateBonus = [0, 0.15, 0.3, 0.3][choice.level] || 0.3;
+    permanentDamage = choice.level >= 2 ? 1 : 0;
     permanentDoubleShots = choice.level >= 3;
-    permanentDamage = choice.level >= 4 ? 1 : 0;
     return;
   }
 
   if (choice.treeId === "defense") {
     if (choice.level >= 1) shieldRestoreDelay = 12;
-    if (choice.level >= 2) shieldRestoreDelay = 9;
-    if (choice.level >= 3) maxShieldHits = Math.max(maxShieldHits, 2);
-    if (choice.level >= 4) {
-      maxShieldHits = Math.max(maxShieldHits, 3);
-      shieldRestoreDelay = 6;
+    if (choice.level >= 2) {
+      maxShieldHits = Math.max(maxShieldHits, 2);
+      shieldRestoreDelay = 8;
     }
-    shieldHits = Math.max(shieldHits, maxShieldHits);
+    if (choice.level >= 3) {
+      maxShieldHits = Math.max(maxShieldHits, 3);
+      shieldRestoreDelay = 5;
+    }
+    shieldHits = Math.max(shieldHits, maxShieldHits + itemShieldHits);
+    syncShieldStack();
     effects.shield = Math.max(effects.shield, 18);
     shieldRestoreTimer = 0;
     return;
   }
 
   if (choice.treeId === "mobility") {
+    permanentLongPowerups = choice.level >= 2;
     dashCooldown = Math.min(dashCooldown, mobilityDashCooldown());
   }
   updateDashHint();
@@ -590,7 +603,7 @@ if (new URLSearchParams(location.search).has("selftest")) {
           state,
           invaders: invaders.filter((i) => i.alive).length,
           powerups: powerups.length,
-          boss: Boolean(boss),
+          boss: bosses.length > 0,
           ufo: Boolean(ufo),
           iron3d: Boolean(window.Iron3D),
           meshes: window.Iron3D ? Iron3D.count() : 0,

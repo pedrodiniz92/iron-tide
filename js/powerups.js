@@ -15,16 +15,20 @@ function updatePowerups(dt) {
 }
 
 function updateEffects(dt) {
-  Object.keys(effects).forEach((key) => {
-    effects[key] = Math.max(0, effects[key] - dt);
-  });
+  if (!permanentLongPowerups) {
+    Object.keys(effects).forEach((key) => {
+      effects[key] = Math.max(0, effects[key] - dt);
+    });
+  }
 
   if (effects.shield <= 0) {
     if (shieldHits > 0 && shieldRestoreTimer <= 0) {
       shieldHits = 0;
+      syncShieldStack();
       noteShieldBreak();
     } else if (shieldHits > 0) {
       shieldHits = 0;
+      syncShieldStack();
     }
   }
 }
@@ -99,6 +103,14 @@ function spawnUfoLootCrate(ufo) {
   return crate;
 }
 
+function applyTemporaryEffect(id, duration) {
+  if (permanentLongPowerups) {
+    effects[id] = Infinity;
+    return;
+  }
+  effects[id] = Math.min(14, effects[id] + duration);
+}
+
 function grantBomb(x, y) {
   const isFirstBomb = bombInventory === 0;
   bombInventory += 1;
@@ -125,8 +137,8 @@ function openLootCrate(powerup) {
     return;
   }
 
-  effects[loot.id] = Math.min(14, effects[loot.id] + loot.duration);
-  showFloatingMessage(`${name} +${loot.duration}s`, fx, fy, 1.2, loot.color);
+  applyTemporaryEffect(loot.id, loot.duration);
+  showFloatingMessage(permanentLongPowerups ? `${name} UNTIL DEATH` : `${name} +${loot.duration}s`, fx, fy, 1.2, loot.color);
 }
 
 function collectPowerup(powerup) {
@@ -156,8 +168,8 @@ function collectPowerup(powerup) {
     return;
   }
 
-  effects[powerup.type.id] = Math.min(14, effects[powerup.type.id] + powerup.type.duration);
-  showFloatingMessage(`${name} +${powerup.type.duration}s`, fx, fy, 1.0, powerup.type.color);
+  applyTemporaryEffect(powerup.type.id, powerup.type.duration);
+  showFloatingMessage(permanentLongPowerups ? `${name} UNTIL DEATH` : `${name} +${powerup.type.duration}s`, fx, fy, 1.0, powerup.type.color);
 }
 
 function useBomb() {

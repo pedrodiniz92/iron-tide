@@ -155,12 +155,19 @@ const BOSS_DESIGNS = [
   }
 ];
 
+const FINAL_STAGE_LEVEL = 10;
+const FINAL_BOSS_NAMES = ["SKULL CRUISER", "WINGED VIPER"];
+
 function isMinibossWave(level) {
   return level === 7 || level === 8;
 }
 
+function isFinalStage(level) {
+  return level === FINAL_STAGE_LEVEL;
+}
+
 function isFullBossWave(level) {
-  return level % 3 === 0;
+  return level % 3 === 0 || isFinalStage(level);
 }
 
 function pickWaveMusic(level) {
@@ -171,6 +178,7 @@ function pickWaveMusic(level) {
 }
 
 function currentBossDesign(level) {
+  if (isFinalStage(level)) return BOSS_DESIGNS.find((design) => design.name === FINAL_BOSS_NAMES[0]) || BOSS_DESIGNS[0];
   if (level === 8) return BOSS_DESIGNS.find((design) => design.name === "WINGED VIPER") || BOSS_DESIGNS[0];
   const cycle = level % 3;
   if (cycle === 1) return MINIBOSS_DESIGNS[Math.floor((level - 1) / 3) * 2 % MINIBOSS_DESIGNS.length];
@@ -183,10 +191,9 @@ const UPGRADE_TREES = [
     id: "offense",
     name: "OFFENSE",
     levels: [
-      { label: "RAPID I", desc: "Faster firing + W detonates your bomb" },
-      { label: "RAPID II", desc: "Faster permanent firing" },
-      { label: "DOUBLE CORE", desc: "Permanent double firing" },
-      { label: "OVERCHARGE", desc: "+1 damage, laser stays rare" }
+      { label: "RAPID I", desc: "Faster firing; unlocks W to detonate your bomb" },
+      { label: "RAPID II", desc: "Faster firing, +1 damage" },
+      { label: "DOUBLE CORE", desc: "Permanent double firing" }
     ]
   },
   {
@@ -194,19 +201,17 @@ const UPGRADE_TREES = [
     name: "SHIELD",
     levels: [
       { label: "RESTORE SHIELD", desc: "Broken shield returns after 12s" },
-      { label: "QUICK REPAIR", desc: "Shield restore drops to 9s" },
-      { label: "TWIN SHIELDS", desc: "Shield stack increases to 2" },
-      { label: "ARMORED CORE", desc: "Shield stack 3, restore 6s" }
+      { label: "QUICK REPAIR", desc: "Shield stack 2, restore 8s" },
+      { label: "TWIN SHIELDS", desc: "Shield stack 3, restore 5s" }
     ]
   },
   {
     id: "mobility",
-    name: "MOBILITY",
+    name: "UTILITY",
     levels: [
-      { label: "QUICK DASH", desc: "Shift+Arrow dashes far, 3.5s reload" },
-      { label: "LONG DASH", desc: "Dash covers more ground, 3s reload" },
-      { label: "SHARP DASH", desc: "Invulnerable while dashing, 2.5s reload" },
-      { label: "PHASE DASH", desc: "Dash reload drops to 1.75s" }
+      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload" },
+      { label: "LONG DASH", desc: "Dash 3s reload; powerups last until you die" },
+      { label: "SHARP DASH", desc: "Invulnerable while dashing, 370px, 2.5s reload" }
     ]
   }
 ];

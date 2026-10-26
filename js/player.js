@@ -27,7 +27,7 @@ function mobilityDashCooldown() {
 }
 
 function mobilityDashDistance() {
-  return 210 + (mobilityLevel() - 1) * 80;
+  return mobilityLevel() >= 3 ? 370 : 210;
 }
 
 function mobilityDashInvuln() {

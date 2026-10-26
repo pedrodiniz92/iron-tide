@@ -17,7 +17,7 @@ function applyTestLoadout() {
 }
 
 function spawnTestBoss() {
-  if (state !== "playing" || boss) return;
+  if (state !== "playing" || bosses.length) return;
   spawnBoss();
 }
 
