@@ -94,10 +94,10 @@ function syncShieldStack() {
   itemShieldHits = Math.max(0, shieldHits - maxShieldHits);
 }
 
-function addShieldHit() {
+function addShieldHit(duration = 30) {
   shieldHits += 1;
   syncShieldStack();
-  effects.shield = Math.max(effects.shield, 30);
+  effects.shield = Math.max(effects.shield, duration);
   shieldRestoreTimer = 0;
 }
 

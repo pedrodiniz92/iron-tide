@@ -50,7 +50,7 @@ function draw() {
     showOverlay("YOU BEAT IT", "");
     overlaySub.innerHTML = "The Iron Tide is broken.<br>SCORE " + score +
       " &middot; TIME " + formatTime(runTime) + " &middot; RANK #" + victoryRank +
-      "<br><br>Press <kbd>Enter</kbd> for the board";
+      "<br><br>Press <kbd>Enter</kbd> for the leaderboard";
   } else if (state === "gameover") {
     showOverlay("GAME OVER", `Score ${score} · Press Enter`);
   } else if (state === "paused") {

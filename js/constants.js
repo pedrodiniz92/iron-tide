@@ -105,11 +105,11 @@ const POWERUP_NAMES = {
 };
 
 const POWERUP_TYPES = [
-  { id: "rapid", label: "R", name: POWERUP_NAMES.rapid, color: "#ff6655", duration: 7 },
-  { id: "double", label: "D", name: POWERUP_NAMES.double, color: "#ffb04c", duration: 7 },
-  { id: "laser", label: "L", name: POWERUP_NAMES.laser, color: "#6fdcff", duration: 4 },
-  { id: "shield", label: "S", name: POWERUP_NAMES.shield, color: "#62ffa1", duration: 16 },
-  { id: "slow", label: "Z", name: POWERUP_NAMES.slow, color: "#bf9cff", duration: 5 },
+  { id: "rapid", label: "R", name: POWERUP_NAMES.rapid, color: "#ff6655", duration: 5 },
+  { id: "double", label: "D", name: POWERUP_NAMES.double, color: "#ffb04c", duration: 6 },
+  { id: "laser", label: "L", name: POWERUP_NAMES.laser, color: "#6fdcff", duration: 3 },
+  { id: "shield", label: "S", name: POWERUP_NAMES.shield, color: "#62ffa1", duration: 8 },
+  { id: "slow", label: "Z", name: POWERUP_NAMES.slow, color: "#bf9cff", duration: 3.5 },
   { id: "bomb", label: "B", name: POWERUP_NAMES.bomb, color: "#ffe66a", duration: 0 },
   { id: "loot", label: "C", name: POWERUP_NAMES.loot, color: "#ffd166", duration: 0 }
 ];
@@ -191,18 +191,18 @@ const UPGRADE_TREES = [
     id: "offense",
     name: "OFFENSE",
     levels: [
-      { label: "RAPID I", desc: "Faster firing; unlocks W to detonate your bomb" },
-      { label: "RAPID II", desc: "Faster firing, +1 damage" },
-      { label: "DOUBLE CORE", desc: "Permanent double firing" }
+      { label: "RAPID I", desc: "Faster firing" },
+      { label: "RAPID II", desc: "Faster firing; unlocks W to detonate your bomb" },
+      { label: "DOUBLE CORE", desc: "Permanent double firing, +1 damage" }
     ]
   },
   {
     id: "defense",
     name: "SHIELD",
     levels: [
-      { label: "RESTORE SHIELD", desc: "Broken shield returns after 12s" },
-      { label: "QUICK REPAIR", desc: "Shield stack 2, restore 8s" },
-      { label: "TWIN SHIELDS", desc: "Shield stack 3, restore 5s" }
+      { label: "RESTORE SHIELD", desc: "Broken shield returns after 15s" },
+      { label: "QUICK REPAIR", desc: "Shield stack 2, restore 10s" },
+      { label: "TWIN SHIELDS", desc: "Shield stack 2, restore 7s" }
     ]
   },
   {
@@ -210,7 +210,7 @@ const UPGRADE_TREES = [
     name: "UTILITY",
     levels: [
       { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload" },
-      { label: "LONG DASH", desc: "Dash 3s reload; powerups last until you die" },
+      { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer" },
       { label: "SHARP DASH", desc: "Invulnerable while dashing, 370px, 2.5s reload" }
     ]
   }
@@ -218,6 +218,16 @@ const UPGRADE_TREES = [
 
 const NAME_KEY = "it25_name";
 const SCORES_KEY = "it25_scores";
+function wipeLocalScoresOnce() {
+  try {
+    if (!localStorage.getItem("scoresResetV3")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV3", "1");
+    }
+  } catch (e) { /* private mode */ }
+}
+wipeLocalScoresOnce();
 function loadName() {
   try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; }
 }

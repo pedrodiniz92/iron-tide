@@ -14,12 +14,14 @@ function updatePowerups(dt) {
   if (touched) collectPowerup(touched);
 }
 
+function effectivePowerupDuration(duration) {
+  return duration * (permanentLongPowerups ? 2 : 1);
+}
+
 function updateEffects(dt) {
-  if (!permanentLongPowerups) {
-    Object.keys(effects).forEach((key) => {
-      effects[key] = Math.max(0, effects[key] - dt);
-    });
-  }
+  Object.keys(effects).forEach((key) => {
+    effects[key] = Math.max(0, effects[key] - dt);
+  });
 
   if (effects.shield <= 0) {
     if (shieldHits > 0 && shieldRestoreTimer <= 0) {
@@ -34,16 +36,16 @@ function updateEffects(dt) {
 }
 
 function maybeDropPowerup(invader) {
-  const chance = Math.min(0.22, 0.07 + level * 0.006 + dropRateBonus);
+  const chance = Math.min(0.16, 0.05 + level * 0.004 + dropRateBonus);
   if (Math.random() > chance) return;
 
   const roll = Math.random();
   let type = POWERUP_TYPES[0];
-  if (roll < 0.04) type = POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0];
-  else if (roll < 0.16) type = POWERUP_TYPES.find((powerup) => powerup.id === "shield") || POWERUP_TYPES[0];
-  else if (roll < 0.24) type = POWERUP_TYPES.find((powerup) => powerup.id === "laser") || POWERUP_TYPES[0];
-  else if (roll < 0.42) type = POWERUP_TYPES.find((powerup) => powerup.id === "double") || POWERUP_TYPES[0];
-  else if (roll < 0.7) type = POWERUP_TYPES.find((powerup) => powerup.id === "rapid") || POWERUP_TYPES[0];
+  if (roll < 0.02) type = POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0];
+  else if (roll < 0.12) type = POWERUP_TYPES.find((powerup) => powerup.id === "shield") || POWERUP_TYPES[0];
+  else if (roll < 0.18) type = POWERUP_TYPES.find((powerup) => powerup.id === "laser") || POWERUP_TYPES[0];
+  else if (roll < 0.34) type = POWERUP_TYPES.find((powerup) => powerup.id === "double") || POWERUP_TYPES[0];
+  else if (roll < 0.6) type = POWERUP_TYPES.find((powerup) => powerup.id === "rapid") || POWERUP_TYPES[0];
   else type = POWERUP_TYPES.find((powerup) => powerup.id === "slow") || POWERUP_TYPES[0];
 
   spawnPowerupAt(invader.x + invader.w / 2, invader.y + invader.h / 2, type,
@@ -69,10 +71,10 @@ function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 6, vx = null) {
 
 function pickLootType(quality = 1) {
   const table = quality >= 3
-    ? [["laser", 30], ["double", 25], ["shield", 25], ["bomb", 20]]
+    ? [["laser", 30], ["double", 25], ["shield", 25], ["bomb", 12]]
     : quality >= 2
-      ? [["laser", 24], ["shield", 24], ["double", 22], ["bomb", 18], ["rapid", 12]]
-      : [["rapid", 28], ["double", 26], ["slow", 22], ["shield", 14], ["laser", 8], ["bomb", 2]];
+      ? [["laser", 24], ["shield", 24], ["double", 22], ["bomb", 10], ["rapid", 12]]
+      : [["rapid", 28], ["double", 26], ["slow", 22], ["shield", 14], ["laser", 8], ["bomb", 1]];
 
   const roll = Math.random() * table.reduce((total, item) => total + item[1], 0);
   let sum = 0;
@@ -104,11 +106,8 @@ function spawnUfoLootCrate(ufo) {
 }
 
 function applyTemporaryEffect(id, duration) {
-  if (permanentLongPowerups) {
-    effects[id] = Infinity;
-    return;
-  }
-  effects[id] = Math.min(14, effects[id] + duration);
+  const effective = effectivePowerupDuration(duration);
+  effects[id] = Math.min(14, effects[id] + effective);
 }
 
 function grantBomb(x, y) {
@@ -131,14 +130,15 @@ function openLootCrate(powerup) {
   }
 
   if (loot.id === "shield") {
-    addShieldHit();
-    effects.shield = Infinity;
+    const shieldDuration = effectivePowerupDuration(loot.duration);
+    addShieldHit(shieldDuration);
     showFloatingMessage(`SHIELD x${shieldHits}`, fx, fy, 1.2, "#62ffa1");
     return;
   }
 
+  const lootDuration = effectivePowerupDuration(loot.duration);
   applyTemporaryEffect(loot.id, loot.duration);
-  showFloatingMessage(permanentLongPowerups ? `${name} UNTIL DEATH` : `${name} +${loot.duration}s`, fx, fy, 1.2, loot.color);
+  showFloatingMessage(`${name} +${lootDuration}s`, fx, fy, 1.2, loot.color);
 }
 
 function collectPowerup(powerup) {
@@ -162,14 +162,15 @@ function collectPowerup(powerup) {
   }
 
   if (powerup.type.id === "shield") {
-    addShieldHit();
-    effects.shield = Infinity;
+    const shieldDuration = effectivePowerupDuration(powerup.type.duration);
+    addShieldHit(shieldDuration);
     showFloatingMessage(`SHIELD READY x${shieldHits}`, fx, fy, 1.0, "#62ffa1");
     return;
   }
 
+  const powerupDuration = effectivePowerupDuration(powerup.type.duration);
   applyTemporaryEffect(powerup.type.id, powerup.type.duration);
-  showFloatingMessage(permanentLongPowerups ? `${name} UNTIL DEATH` : `${name} +${powerup.type.duration}s`, fx, fy, 1.0, powerup.type.color);
+  showFloatingMessage(`${name} +${powerupDuration}s`, fx, fy, 1.0, powerup.type.color);
 }
 
 function useBomb() {

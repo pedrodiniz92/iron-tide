@@ -705,7 +705,7 @@ function bossHitReward(boss) {
   const mini = boss.mini === true;
   addScore((mini ? 4 : 8) + level);
 
-  const chance = Math.min(0.045, 0.015 + level * 0.0015 + dropRateBonus * 0.4);
+  const chance = Math.min(0.035, 0.01 + level * 0.001 + dropRateBonus * 0.4);
   if (Math.random() > chance) return;
 
   const type = pickLootType(mini ? 2 : 3);

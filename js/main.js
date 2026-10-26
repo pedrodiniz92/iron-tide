@@ -49,7 +49,7 @@ function startGame() {
   bossFireTimer = 1.2;
   bossCount = 0;
   resetStagger();
-  ufoTimer = 14;
+  ufoTimer = 20;
   enemyFireTimer = 1.2;
   invulnerabilityTimer = 1.5;
   waveBreakTimer = 0;
@@ -408,20 +408,20 @@ function applyUpgrade(choice) {
 
   if (choice.treeId === "offense") {
     permanentFireRateBonus = [0, 0.15, 0.3, 0.3][choice.level] || 0.3;
-    permanentDamage = choice.level >= 2 ? 1 : 0;
+    permanentDamage = choice.level >= 3 ? 1 : 0;
     permanentDoubleShots = choice.level >= 3;
     return;
   }
 
   if (choice.treeId === "defense") {
-    if (choice.level >= 1) shieldRestoreDelay = 12;
+    if (choice.level >= 1) shieldRestoreDelay = 15;
     if (choice.level >= 2) {
-      maxShieldHits = Math.max(maxShieldHits, 2);
-      shieldRestoreDelay = 8;
+      maxShieldHits = Math.min(2, Math.max(maxShieldHits, 2));
+      shieldRestoreDelay = 10;
     }
     if (choice.level >= 3) {
-      maxShieldHits = Math.max(maxShieldHits, 3);
-      shieldRestoreDelay = 5;
+      maxShieldHits = Math.min(2, Math.max(maxShieldHits, 2));
+      shieldRestoreDelay = 7;
     }
     shieldHits = Math.max(shieldHits, maxShieldHits + itemShieldHits);
     syncShieldStack();
@@ -439,7 +439,7 @@ function applyUpgrade(choice) {
 
 function tryStart() {
   initAudio();
-  if (state === "victory") { state = "ready"; return; }
+  if (state === "victory") { window.location.href = "leaderboard.html"; return; }
   if (state !== "ready" && state !== "gameover") return;
   if (!effectiveName()) {
     window.__nameEditing = true;
@@ -491,7 +491,7 @@ document.addEventListener("keydown", (event) => {
 
   if (handleTestKeys(key, event)) return;
 
-  if (key === "w" && !event.repeat && state === "playing" && upgradeLevels.offense >= 1 && bombShots.length) {
+  if (key === "w" && !event.repeat && state === "playing" && upgradeLevels.offense >= 2 && bombShots.length) {
     explodeBombShot(bombShots.shift());
     return;
   }
@@ -511,7 +511,7 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (key === "enter" && state === "victory") {
-    state = "ready";
+    window.location.href = "leaderboard.html";
     return;
   }
 

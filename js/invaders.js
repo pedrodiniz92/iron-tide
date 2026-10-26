@@ -284,7 +284,7 @@ function updateUfo(dt) {
         hp: ufoHp,
         maxHp: ufoHp
       };
-      ufoTimer = 17 + Math.random() * 9;
+      ufoTimer = 22 + Math.random() * 12;
     }
     return;
   }

@@ -35,6 +35,12 @@
     <script>
       const NAME_KEY = "it25_name";
       const SCORES_KEY = "it25_scores";
+      try {
+        if (!localStorage.getItem("scoresResetV3")) {
+          localStorage.removeItem(SCORES_KEY);
+          localStorage.setItem("scoresResetV3", "1");
+        }
+      } catch (e) {}
       function loadScores() {
         try { return JSON.parse(localStorage.getItem(SCORES_KEY) || "[]"); } catch (e) { return []; }
       }
