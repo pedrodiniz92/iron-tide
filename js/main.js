@@ -80,7 +80,7 @@ function startGame() {
   upgradeSel = 0;
   upgradePrompt = "CHOOSE A STARTING UPGRADE";
   showGameMessage("CHOOSE A STARTING UPGRADE", 2.2, "#ffe066");
-  updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
+  updateStatus("Click a card, up/down + Enter, or press 1, 2, 3.");
 }
 
 function frame(now) {
@@ -371,7 +371,7 @@ function finishBossFight() {
   upgradeSel = 0;
   upgradePrompt = "CHOOSE A PERMANENT UPGRADE";
   showGameMessage("CHOOSE A PERMANENT UPGRADE", 2.2, "#ffe066");
-  updateStatus("Click a card, arrows + Enter, or press 1, 2, 3.");
+  updateStatus("Click a card, up/down + Enter, or press 1, 2, 3.");
 }
 
 function buildUpgradeChoices() {
@@ -526,12 +526,12 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (state === "choices" && (key === "arrowup" || key === "arrowleft")) {
+  if (state === "choices" && key === "arrowup") {
     upgradeSel = (upgradeSel + upgradeChoices.length - 1) % upgradeChoices.length;
     return;
   }
 
-  if (state === "choices" && (key === "arrowdown" || key === "arrowright")) {
+  if (state === "choices" && key === "arrowdown") {
     upgradeSel = (upgradeSel + 1) % upgradeChoices.length;
     return;
   }

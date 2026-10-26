@@ -816,6 +816,27 @@ function drawGameMessages() {
   });
 }
 
+function drawUpgradeArrow(x, y, dir, active) {
+  ctx.save();
+  ctx.beginPath();
+  if (dir < 0) {
+    ctx.moveTo(x - 7, y + 4);
+    ctx.lineTo(x, y - 5);
+    ctx.lineTo(x + 7, y + 4);
+  } else {
+    ctx.moveTo(x - 7, y - 4);
+    ctx.lineTo(x, y + 5);
+    ctx.lineTo(x + 7, y - 4);
+  }
+  ctx.closePath();
+  ctx.fillStyle = active ? "#ffe066" : "rgba(102, 255, 102, 0.35)";
+  ctx.fill();
+  ctx.strokeStyle = active ? "#fff6b0" : "#66ff66";
+  ctx.lineWidth = active ? 2 : 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawUpgradeChoices() {
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.72)";
@@ -828,7 +849,7 @@ function drawUpgradeChoices() {
   ctx.fillText(upgradePrompt, W / 2, 152);
   ctx.fillStyle = "#cfe8d4";
   ctx.font = "14px 'Courier New', monospace";
-  ctx.fillText("Click a card, arrows + Enter, or press 1, 2, 3.", W / 2, 174);
+  ctx.fillText("Click a card, up/down + Enter, or press 1, 2, 3.", W / 2, 174);
 
   upgradeChoices.forEach((choice, index) => {
     const y = 225 + index * 70;
@@ -848,11 +869,17 @@ function drawUpgradeChoices() {
     ctx.fillText(choice.desc, 104, y + 16);
   });
 
+  if (upgradeChoices.length) {
+    const selectedY = 225 + upgradeSel * 70;
+    drawUpgradeArrow(64, selectedY - 42, -1, true);
+    drawUpgradeArrow(64, selectedY + 40, 1, true);
+  }
+
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffe066";
   ctx.font = "bold 15px 'Courier New', monospace";
   ctx.globalAlpha = 0.65 + Math.sin(Date.now() / 300) * 0.35;
-  ctx.fillText("ARROWS TO MOVE - PRESS ENTER TO CONFIRM", W / 2, 452);
+  ctx.fillText("UP/DOWN TO MOVE - PRESS ENTER TO CONFIRM", W / 2, 452);
   ctx.globalAlpha = 1;
 
   ctx.restore();
