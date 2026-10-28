@@ -40,6 +40,10 @@
           localStorage.removeItem(SCORES_KEY);
           localStorage.setItem("scoresResetV3", "1");
         }
+        if (!localStorage.getItem("scoresResetV4")) {
+          localStorage.removeItem(SCORES_KEY);
+          localStorage.setItem("scoresResetV4", "1");
+        }
       } catch (e) {}
       function loadScores() {
         try { return JSON.parse(localStorage.getItem(SCORES_KEY) || "[]"); } catch (e) { return []; }
