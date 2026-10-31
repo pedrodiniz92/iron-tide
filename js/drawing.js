@@ -43,6 +43,7 @@ function draw() {
 
   if (state === "playing") {
     hideOverlay();
+    resetStartExtras();
   } else if (state === "ready") {
     showOverlay("IRON TIDE", "Press Enter, click to start");
     showStartExtras();
@@ -77,7 +78,7 @@ function drawHud() {
   const active = [];
   if (effects.rapid > 0) active.push(Number.isFinite(effects.rapid) ? `RAPID FIRE ${Math.ceil(effects.rapid)}s` : "RAPID FIRE UNTIL DEATH");
   if (effects.double > 0) active.push(Number.isFinite(effects.double) ? `DOUBLE SHOT ${Math.ceil(effects.double)}s` : "DOUBLE SHOT UNTIL DEATH");
-  if (effects.laser > 0) active.push(Number.isFinite(effects.laser) ? `LASER ${Math.ceil(effects.laser)}s` : "LASER UNTIL DEATH");
+  if (laserCharges > 0) active.push(`LASER x${laserCharges}`);
   if (effects.shield > 0) {
     active.push(Number.isFinite(effects.shield)
       ? `SHIELD ${Math.ceil(effects.shield)}s x${shieldHits}`
@@ -416,6 +417,8 @@ function drawDoubleShotIcon(cx, cy, color) {
   ctx.restore();
 }
 
+let lastPowerupMeshId = 0;
+
 function drawPowerups() {
   powerups.forEach((powerup) => {
     const cx = powerup.x + powerup.w / 2;
@@ -429,7 +432,8 @@ function drawPowerups() {
     ctx.shadowBlur = 16;
     ctx.shadowColor = color;
 
-    if (!push3D({ id: "pow" + (powerups.indexOf(powerup)), key: powerup.type.id, x: cx - 15, y: cy - 15,
+    if (powerup.meshId === undefined) powerup.meshId = ++lastPowerupMeshId;
+    if (!push3D({ id: "pow" + powerup.meshId, key: powerup.type.id, x: cx - 15, y: cy - 15,
       w: 30, h: 30, color, quality: powerup.lootQuality, flicker: expiring, phase: cx * 0.05 })) {
       neon("box", cx, cy, 26, color);
       const label = powerup.type.id === "loot"
@@ -639,7 +643,7 @@ function drawEnemyBombs() {
       ctx.fill();
     });
 
-    neon("bomb", cx, cy, bomb.w, "#ffe066");
+    neon("bomb", cx, cy, bomb.w, bomb.color || "#ffe066");
   });
 }
 
@@ -761,15 +765,22 @@ function drawScorePopups() {
   });
 }
 
+let startExtrasShown = false;
+
 function showStartExtras() {
   const box = document.getElementById("startExtras");
-  const nameEl = document.getElementById("nameInput");
   const board = document.getElementById("boardTop");
   if (!box || !board) return;
   box.style.display = "block";
+  if (startExtrasShown) return;
+  startExtrasShown = true;
   refreshNameWidgets();
   renderStartBoard();
   fetchBoard().then((remote) => { if (remote) renderStartBoard(); });
+}
+
+function resetStartExtras() {
+  startExtrasShown = false;
 }
 
 function renderStartBoard() {
@@ -780,7 +791,7 @@ function renderStartBoard() {
     const li = document.createElement("li");
     li.textContent = entry.name + " - " + entry.score + " - " + formatTime(entry.time) +
       (entry.win ? " - GAME BEATEN" : "");
-    if (entry.name === loadName()) li.className = "you";
+    if (entry.name.toUpperCase() === loadName().toUpperCase()) li.className = "you";
     if (entry.win) li.classList.add("beaten");
     board.appendChild(li);
   });
@@ -891,7 +902,7 @@ function refreshNameWidgets() {
   const who = document.getElementById("nameWho");
   const change = document.getElementById("changeName");
   if (!input || !label || !who || !change) return;
-  const saved = loadName() === "PILOT" ? "" : loadName();
+  const saved = loadName();
   const editing = window.__nameEditing === true || !saved;
   window.__nameEditing = editing;
   input.style.display = editing ? "inline-block" : "none";
@@ -904,7 +915,7 @@ function refreshNameWidgets() {
 function effectiveName() {
   const input = document.getElementById("nameInput");
   if (window.__nameEditing && input) return input.value.trim().slice(0, 12);
-  return loadName() === "PILOT" ? "" : loadName();
+  return loadName();
 }
 
 const changeNameBtn = document.getElementById("changeName");
@@ -914,7 +925,7 @@ if (changeNameBtn) {
     refreshNameWidgets();
     const input = document.getElementById("nameInput");
     if (input) {
-      input.value = loadName() === "PILOT" ? "" : loadName();
+      input.value = loadName();
       input.focus();
       input.select();
     }

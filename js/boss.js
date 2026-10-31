@@ -37,11 +37,26 @@ function updateEnemyBombs(dt) {
 
 function updateSpikeMines(dt) {
   spikeMines = spikeMines.filter((mine) => {
+    mine.arm = Math.max(0, (mine.arm || 0) - dt);
     mine.x += (mine.vx || 0) * dt;
-    mine.y += mine.vy * dt;
+    mine.y += mine.vy * dt * (mine.arm > 0 ? 0.25 : 1);
     mine.ttl -= dt;
 
     if (mine.y >= H - 42 || mine.ttl <= 0) return false;
+
+    if (mine.pulse && mine.arm <= 0) {
+      mine.pulseTimer = (mine.pulseTimer === undefined ? 0.45 : mine.pulseTimer) - dt;
+      if (mine.pulseTimer <= 0) {
+        mine.pulseTimer = 1.1;
+        const mx = mine.x + mine.w / 2;
+        const my = mine.y + mine.h / 2;
+        if (Math.hypot(player.x + player.w / 2 - mx, player.y + player.h / 2 - my) < (mine.pulseRadius || 116)) {
+          fireMineShot(mine);
+        }
+      }
+    }
+
+    if (mine.arm > 0) return true;
 
     const hitShield = shields.find((shield) => overlaps(mine, shield));
     if (hitShield) {
@@ -67,7 +82,10 @@ function hitPlayerWithSpikeMine() {
   if (shieldHits > 0 && effects.shield > 0) {
     shieldHits -= 1;
     syncShieldStack();
-    if (shieldHits <= 0) effects.shield = 0;
+    if (shieldHits <= 0) {
+      effects.shield = 0;
+      noteShieldBreak();
+    }
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
     showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED SPIKE x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
@@ -89,7 +107,7 @@ function hitPlayerWithSpikeMine() {
   }
 }
 
-function fireSpikeMine(boss) {
+function fireSpikeMine(boss, arm = 0) {
   const mineCount = boss.burrowing ? Math.max(2, boss.mineBurst || 2) : 1;
   const spread = mineCount === 1 ? 0 : 44;
   for (let i = 0; i < mineCount; i += 1) {
@@ -104,9 +122,87 @@ function fireSpikeMine(boss) {
       ttl: 6.2,
       hp: 1,
       maxHp: 1,
+      arm: arm,
+      pulse: boss.phase >= 2,
+      pulseTimer: 0.45,
+      pulseRadius: boss.minePulseRadius || 116,
       shieldDamage: boss.mineShieldDamage || 12
     });
   }
+}
+
+function fireMineShot(mine) {
+  const sx = mine.x + mine.w / 2;
+  const sy = mine.y + mine.h / 2;
+  const speed = 260;
+  enemyBullets.push({
+    x: sx - 2,
+    y: sy - 2,
+    w: 4,
+    h: 12,
+    speed,
+    vx: aimVx({ type: { name: "stinger" } }, sx, sy, speed, 150),
+    hp: 1,
+    maxHp: 1,
+    color: "#62ffa1",
+    fromBoss: true,
+    shooterId: -1
+  });
+  addExplosion(sx, sy, "#62ffa1");
+  playHit();
+}
+
+function fireScrapDrone(boss) {
+  const cx = boss.x + boss.w / 2;
+  const cy = boss.y + boss.h;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  enemyBullets.push({
+    x: cx - 8,
+    y: cy,
+    w: 16,
+    h: 12,
+    speed: 120 + level * 8,
+    vx: dir * (70 + Math.random() * 70),
+    hp: 1,
+    maxHp: 1,
+    color: boss.designData.accent,
+    fromBoss: true,
+    shooterId: -1,
+    drone: true,
+    wobble: Math.random() * Math.PI * 2,
+    wobbleAmp: 70 + Math.random() * 50
+  });
+}
+
+function fireScrapBurst(boss) {
+  const cx = boss.x + boss.w / 2;
+  const cy = boss.y + boss.h;
+  const speed = 210 + level * 12;
+  for (let i = 0; i < 3; i += 1) {
+    addBossBullet(boss, cx - 2 + (i - 1) * 18, cy, bossAimVx(boss, cx, cy, speed, 90) + (i - 1) * 18, speed);
+  }
+  boss.scrapShield = boss.scrapShieldDuration;
+  addExplosion(cx, cy, boss.designData.accent);
+  showGameMessage("SCRAP SHIELD", 0.55, boss.designData.accent);
+}
+
+function shedScrapFragment(boss) {
+  const cx = boss.x + boss.w / 2;
+  const cy = boss.y + boss.h / 2;
+  enemyBullets.push({
+    x: cx - 6,
+    y: cy - 6,
+    w: 12,
+    h: 12,
+    speed: 150 + level * 8,
+    vx: Math.random() * 140 - 70,
+    hp: 1,
+    maxHp: 1,
+    color: boss.designData.accent,
+    fromBoss: true,
+    shooterId: -1,
+    fragment: true
+  });
 }
 
 function explodeEnemyBomb(bomb, hitShield = null) {
@@ -136,7 +232,10 @@ function hitPlayerWithEnemyBomb(damage = 1) {
   if (shieldHits > 0 && effects.shield > 0) {
     shieldHits -= 1;
     syncShieldStack();
-    if (shieldHits <= 0) effects.shield = 0;
+    if (shieldHits <= 0) {
+      effects.shield = 0;
+      noteShieldBreak();
+    }
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
     showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED BOMB x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
@@ -203,6 +302,19 @@ function createBossFromDesign(design, mini, x, y) {
     burrowShellHits: design.burrowShellHits || 2,
     mineBurst: design.mineBurst || 1,
     mineInterval: design.mineInterval || 0.9,
+    droneTimer: design.droneInterval || 1.25,
+    droneInterval: design.droneInterval || 1.25,
+    burstTimer: design.burstInterval || 2.4,
+    burstInterval: design.burstInterval || 2.4,
+    scrapShieldDuration: design.scrapShieldDuration || 1.1,
+    scrapShield: 0,
+    rollTimer: design.rollInterval || 5.4,
+    rollInterval: design.rollInterval || 5.4,
+    rollDuration: 0,
+    rollLength: design.rollDuration || 1.6,
+    rolling: false,
+    mineArmDelay: design.mineArmDelay || 0.75,
+    minePulseRadius: design.minePulseRadius || 116,
     x,
     y,
     w: 128,
@@ -349,6 +461,48 @@ function updateBossUnit(boss, dt) {
     if (boss.mineTimer <= 0) {
       fireSpikeMine(boss);
       boss.mineTimer = Math.max(1.1, boss.mineInterval || 1.7);
+    }
+  }
+
+  if (boss.ability === "SWARM PRINTER") {
+    boss.scrapShield = Math.max(0, (boss.scrapShield || 0) - dt * bossSlow);
+    boss.droneTimer -= dt * bossSlow;
+    if (boss.droneTimer <= 0) {
+      fireScrapDrone(boss);
+      if (boss.phase >= 2) fireScrapDrone(boss);
+      boss.droneTimer = Math.max(0.55, boss.droneInterval - (boss.phase - 1) * 0.22);
+    }
+    boss.burstTimer -= dt * bossSlow;
+    if (boss.burstTimer <= 0) {
+      fireScrapBurst(boss);
+      boss.burstTimer = Math.max(1.25, boss.burstInterval - (boss.phase - 1) * 0.35);
+    }
+  }
+
+  if (boss.ability === "ZONE DENIAL") {
+    boss.mineTimer -= dt * bossSlow;
+    if (boss.mineTimer <= 0) {
+      fireSpikeMine(boss, boss.mineArmDelay || 0.75);
+      boss.mineTimer = Math.max(0.95, boss.mineInterval - (boss.phase - 1) * 0.18);
+    }
+    const baseSpeed = boss.designData.speed + level * 8;
+    if (boss.rolling) {
+      boss.rollDuration -= dt * bossSlow;
+      boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed * 2.15;
+      if (boss.rollDuration <= 0) {
+        boss.rolling = false;
+        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed;
+      }
+    } else {
+      boss.rollTimer -= dt * bossSlow;
+      if (boss.rollTimer <= 0) {
+        boss.rolling = true;
+        boss.rollDuration = boss.rollLength;
+        boss.rollTimer = Math.max(2.8, boss.rollInterval - (boss.phase - 1) * 0.7);
+        boss.vx = (boss.x + boss.w / 2 < W / 2 ? 1 : -1) * baseSpeed * 2.15;
+        addScreenShake(4);
+        showGameMessage("ARMORED ROLL", 0.55, boss.designData.accent);
+      }
     }
   }
 
@@ -557,23 +711,29 @@ function hitPlayerWithBossLaser() {
   }
 }
 
+function bossAimVx(boss, sx, sy, speed, limit) {
+  return aimVx({ type: { name: "stinger" } }, sx, sy, speed, limit);
+}
+
 function fireBossBullet(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h;
   const phase = boss.phase || 1;
   const design = boss.designData || BOSS_DESIGNS[0];
   const speed = 190 + level * 16 + phase * 18;
+  const aim = (limit) => bossAimVx(boss, cx, cy, speed, limit);
 
   if (design.ability === "RAPID STREAM") {
     const pattern = Math.floor(Math.random() * 4);
-    const playerAim = clamp((player.x + player.w / 2 - cx) * 1.05, -130, 130);
+    const playerAim = aim(130);
     if (pattern === 0) {
       addBossBullet(boss, cx - 2, cy, 0, speed * 1.22);
       addBossBullet(boss, cx - 2, cy, playerAim, speed * 1.05);
     } else if (pattern === 1) {
-      addBossBullet(boss, cx - 18, cy, -34, speed * 1.18);
+      const sideAim = aim(34);
+      addBossBullet(boss, cx - 18, cy, -Math.abs(sideAim), speed * 1.18);
       addBossBullet(boss, cx - 2, cy, 0, speed * 1.22);
-      addBossBullet(boss, cx + 14, cy, 34, speed * 1.18);
+      addBossBullet(boss, cx + 14, cy, Math.abs(sideAim), speed * 1.18);
     } else if (pattern === 2) {
       const sweep = (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 40);
       addBossBullet(boss, cx - 2, cy, sweep, speed * 1.1);
@@ -589,12 +749,14 @@ function fireBossBullet(boss) {
   if (design.ability === "TRIPLE BOMBS") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
+      const sideAim = Math.abs(aim(24));
       addBossBullet(boss, cx - 2, cy, 0, speed * 0.92);
-      addBossBullet(boss, cx - 42, cy, -24, speed * 0.84);
-      addBossBullet(boss, cx + 38, cy, 24, speed * 0.84);
+      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.84);
+      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.84);
     } else {
-      addBossBullet(boss, cx - 24, cy, -14, speed * 0.88);
-      addBossBullet(boss, cx + 20, cy, 14, speed * 0.88);
+      const sideAim = Math.abs(aim(14));
+      addBossBullet(boss, cx - 24, cy, -sideAim, speed * 0.88);
+      addBossBullet(boss, cx + 20, cy, sideAim, speed * 0.88);
       if (phase >= 3) addBossBullet(boss, cx - 2, cy, 0, speed * 0.92);
     }
     return;
@@ -603,29 +765,34 @@ function fireBossBullet(boss) {
   if (design.ability === "SHELL BURROW") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
-      addBossBullet(boss, cx - 42, cy, -22, speed * 0.82);
-      addBossBullet(boss, cx + 38, cy, 22, speed * 0.82);
+      const sideAim = Math.abs(aim(22));
+      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.82);
+      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.82);
     } else {
+      const sideAim = Math.abs(aim(18));
       addBossBullet(boss, cx - 2, cy, 0, speed * 0.86);
-      if (phase >= 2) addBossBullet(boss, cx - 42, cy, -18, speed * 0.76);
-      if (phase >= 3) addBossBullet(boss, cx + 38, cy, 18, speed * 0.76);
+      if (phase >= 2) addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.76);
+      if (phase >= 3) addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.76);
     }
     return;
   }
 
   const pattern = Math.floor(Math.random() * 3);
   if (pattern === 0) {
+    const wideAim = Math.abs(aim(55));
     addBossBullet(boss, cx - 2, cy, 0, speed);
-    addBossBullet(boss, cx - 2, cy, -55, speed);
-    addBossBullet(boss, cx - 2, cy, 55, speed);
+    addBossBullet(boss, cx - 2, cy, -wideAim, speed);
+    addBossBullet(boss, cx - 2, cy, wideAim, speed);
   } else if (pattern === 1) {
-    addBossBullet(boss, cx - 42, cy, -35, speed);
-    addBossBullet(boss, cx + 38, cy, 35, speed);
+    const sideAim = Math.abs(aim(35));
+    addBossBullet(boss, cx - 42, cy, -sideAim, speed);
+    addBossBullet(boss, cx + 38, cy, sideAim, speed);
     if (phase >= 2) {
       addBossBullet(boss, cx - 2, cy, 0, speed * 1.1);
     }
   } else if (phase >= 3) {
-    [-45, 0, 45].forEach((vx) => addBossBullet(boss, cx - 2, cy, vx, speed));
+    const fanAim = Math.abs(aim(45));
+    [-fanAim, 0, fanAim].forEach((vx) => addBossBullet(boss, cx - 2, cy, vx, speed));
   } else {
     addBossBullet(boss, cx - 2, cy, 0, speed * 1.2);
   }
@@ -633,8 +800,8 @@ function fireBossBullet(boss) {
 
 function fireBossBomb(boss) {
   const design = boss.designData || BOSS_DESIGNS[0];
-  const bombsToFire = boss.bombsPerLaunch || design.bombsPerLaunch || 1;
-  const available = Math.max(0, (boss.bombMax || 2) - enemyBombs.length);
+  const bombsToFire = boss.bombsPerLaunch ?? design.bombsPerLaunch ?? 1;
+  const available = Math.max(0, (boss.bombMax ?? 2) - enemyBombs.length);
   const count = Math.min(bombsToFire, available);
   if (count <= 0) return;
 
@@ -705,7 +872,7 @@ function bossHitReward(boss) {
   const mini = boss.mini === true;
   addScore((mini ? 4 : 8) + level);
 
-  const chance = Math.min(0.035, 0.01 + level * 0.001 + dropRateBonus * 0.4);
+  const chance = Math.min(0.08, (mini ? 0.022 : 0.016) + level * 0.0015 + dropRateBonus * 0.55);
   if (Math.random() > chance) return;
 
   const type = pickLootType(mini ? 2 : 3);
@@ -733,6 +900,16 @@ function damageBoss(boss, amount) {
     playShieldHit();
     if (boss.shellHp <= 0) boss.shellTimer = boss.shellRegen || 15;
     return;
+  }
+  if (boss.scrapShield > 0) {
+    amount = Math.max(0, amount - 1);
+    shedScrapFragment(boss);
+    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, design.accent);
+    playShieldHit();
+    if (amount <= 0) {
+      bossHitReward(boss);
+      return;
+    }
   }
   if (bossStagger > 0) {
     amount = Math.ceil(amount * 1.8);
@@ -768,6 +945,10 @@ function damageBoss(boss, amount) {
     resetStagger();
     clearEnemyFire();
     spawnPowerupAt(bossX, bossY, POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0], true, Infinity);
+    spawnPowerupAt(bossX - 34, bossY, pickLootType(mini ? 2 : 3), false, 9);
+    if (mini || Math.random() < 0.65) {
+      spawnPowerupAt(bossX + 34, bossY, pickLootType(mini ? 2 : 3), false, 9);
+    }
     showGameMessage(mini ? "MINIBOSS DOWN!" : "BOSS DOWN!", 1.35, design.color);
     if (bosses.length > 0) return;
     if (mini) {
@@ -796,6 +977,7 @@ function clearWeaponUpgrades() {
   effects.double = 0;
   effects.laser = 0;
   effects.slow = 0;
+  laserCharges = 0;
   laserBeams = [];
 }
 

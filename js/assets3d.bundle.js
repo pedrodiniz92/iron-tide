@@ -9769,19 +9769,15 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     } },
     sentry: { path(c) {
       c.beginPath();
-      c.moveTo(0, -20);
-      c.lineTo(6, -8);
-      c.lineTo(12, -12);
-      c.lineTo(8, -2);
-      c.lineTo(12, 10);
-      c.lineTo(5, 8);
-      c.lineTo(0, 20);
-      c.lineTo(-5, 8);
-      c.lineTo(-12, 10);
-      c.lineTo(-8, -2);
-      c.lineTo(-12, -12);
-      c.lineTo(-6, -8);
-      c.closePath();
+      c.moveTo(-26, 12); c.lineTo(-22, -2); c.lineTo(-14, -10); c.lineTo(14, -10);
+      c.lineTo(22, -2); c.lineTo(26, 12); c.lineTo(16, 12); c.lineTo(12, 4);
+      c.lineTo(-12, 4); c.lineTo(-16, 12); c.closePath();
+      c.moveTo(-22, -2); c.lineTo(-28, -10); c.lineTo(-18, -8);
+      c.moveTo(-8, -10); c.lineTo(-4, -20); c.lineTo(2, -10);
+      c.moveTo(10, -10); c.lineTo(18, -18); c.lineTo(20, -6);
+      c.moveTo(22, -2); c.lineTo(30, 2); c.lineTo(22, 6);
+      c.moveTo(-16, 12); c.lineTo(-18, 18); c.lineTo(-10, 12);
+      c.moveTo(10, 12); c.lineTo(16, 18); c.lineTo(18, 12);
     } },
     skull: { path(c) {
       c.beginPath();
@@ -9930,13 +9926,24 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   function buildSentry(cfg, hex) {
     const g = new jl();
     bodyFromShape("sentry", cfg, hex, g);
-    const spike = new mu(2.6, 9, 14);
-    [[-13, 0, 1], [13, 0, -1]].forEach(([x, y2, s]) => {
+    const spike = new mu(2.4, 10, 12);
+    [[-22, -2, 0.95], [-8, -10, 0.18], [10, -10, -0.28], [22, -2, -0.95], [-16, 12, 1.25], [12, 12, -1.25]].forEach(([x, y2, s]) => {
       const m = part(g, spike, "#e8fff0", cfg, x, y2, 2, 0.01);
-      m.rotation.z = s * Math.PI / 2;
+      m.rotation.z = s;
     });
-    part(g, new id(3.4, 18, 12), "#ffe066", cfg, 0, -2, 6, 8e-3);
-    part(g, new id(1.7, 14, 10), "#141020", cfg, 0, -2, 8.5, 6e-3);
+    const wheel = new mu(5.6, 5.6, 5.4, 18);
+    const wheels = [];
+    [-18, -4, 10, 18].forEach((x) => {
+      const m = part(g, wheel, "#3a3f52", cfg, x, 14, 0, 0.01);
+      m.rotation.x = Math.PI / 2;
+      wheels.push(m);
+    });
+    g.userData.legs = wheels;
+    part(g, new ks(24, 6, 10), "#3a3f52", cfg, 0, -2, 3, 0.01);
+    part(g, new ks(10, 3, 8), "#3a3f52", cfg, -14, 4, 3, 0.01);
+    part(g, new ks(10, 3, 8), "#3a3f52", cfg, 14, 4, 3, 0.01);
+    part(g, new id(3.4, 18, 12), "#ffe066", cfg, 0, -2, 7, 8e-3);
+    part(g, new id(1.7, 14, 10), "#141020", cfg, 0, -2, 9.2, 6e-3);
     return finishMob(g, 2.3);
   }
   function buildSkull(cfg, hex) {

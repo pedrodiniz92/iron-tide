@@ -57,9 +57,11 @@
       const rows = document.getElementById("rows");
       function render(list) {
       rows.innerHTML = "";
+      const empty = document.getElementById("empty");
+      empty.textContent = "";
       list.forEach((entry, i) => {
         const tr = document.createElement("tr");
-        if (entry.name === me) tr.className = "me";
+        if (entry.name.toUpperCase() === me.toUpperCase()) tr.className = "me";
         [i + 1, entry.name, entry.score, formatTime(entry.time), entry.date, entry.win ? "GAME BEATEN" : ""].forEach((value, c) => {
           const td = document.createElement("td");
           td.textContent = value;
@@ -68,7 +70,7 @@
         });
         rows.appendChild(tr);
       });
-      if (!list.length) document.getElementById("empty").textContent = "No runs recorded yet.";
+      if (!list.length) empty.textContent = "No runs recorded yet.";
       }
       render(loadScores());
       fetch("https://iron-tide-board.iron-tide-2-5.workers.dev/scores?v=" + Date.now())

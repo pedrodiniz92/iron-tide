@@ -20,6 +20,7 @@ function effectivePowerupDuration(duration) {
 
 function updateEffects(dt) {
   Object.keys(effects).forEach((key) => {
+    if (key === "laser") return;
     effects[key] = Math.max(0, effects[key] - dt);
   });
 
@@ -106,6 +107,10 @@ function spawnUfoLootCrate(ufo) {
 }
 
 function applyTemporaryEffect(id, duration) {
+  if (id === "laser") {
+    laserCharges += 1;
+    return;
+  }
   const effective = effectivePowerupDuration(duration);
   effects[id] = Math.min(14, effects[id] + effective);
 }
@@ -133,6 +138,12 @@ function openLootCrate(powerup) {
     const shieldDuration = effectivePowerupDuration(loot.duration);
     addShieldHit(shieldDuration);
     showFloatingMessage(`SHIELD x${shieldHits}`, fx, fy, 1.2, "#62ffa1");
+    return;
+  }
+
+  if (loot.id === "laser") {
+    applyTemporaryEffect(loot.id, loot.duration);
+    showFloatingMessage(`LASER x${laserCharges}`, fx, fy, 1.2, loot.color);
     return;
   }
 
@@ -165,6 +176,12 @@ function collectPowerup(powerup) {
     const shieldDuration = effectivePowerupDuration(powerup.type.duration);
     addShieldHit(shieldDuration);
     showFloatingMessage(`SHIELD READY x${shieldHits}`, fx, fy, 1.0, "#62ffa1");
+    return;
+  }
+
+  if (powerup.type.id === "laser") {
+    applyTemporaryEffect(powerup.type.id, powerup.type.duration);
+    showFloatingMessage(`LASER READY x${laserCharges}`, fx, fy, 1.0, powerup.type.color);
     return;
   }
 
@@ -204,14 +221,12 @@ function updateBombShots(dt) {
     });
     shot.trail = shot.trail.filter((point) => point.ttl > 0);
 
-    if (shot.y < 0 || shot.y > H + 60) return false;
-
-    if (shot.ttl <= 0) {
+    if (shot.y < 0 || shot.y > H + 60 || shot.ttl <= 0) {
       explodeBombShot(shot);
       return false;
     }
 
-    const hitInvader = invaders.find((invader) => invader.alive && overlaps(shot, invader));
+    const hitInvader = invaders.find((invader) => invader.alive && !invader.ghosted && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
     const hitBoss = bosses.find((unit) => overlaps(shot, unit));
     const hitEnemyBullet = enemyBullets.find((bullet) => overlaps(shot, bullet));
@@ -237,7 +252,7 @@ function explodeBombShot(shot) {
   playBombExplosion();
 
   invaders.forEach((invader) => {
-    if (!invader.alive) return;
+    if (!invader.alive || invader.ghosted) return;
     const dx = invader.x + invader.w / 2 - centerShotX;
     const dy = invader.y + invader.h / 2 - centerShotY;
     if (dx * dx + dy * dy <= shot.radius * shot.radius) {

@@ -32,13 +32,14 @@ function handleTestKeys(key, event) {
   const repeat = event.repeat;
 
   if (key === "`") {
+    if (!document.getElementById("testPanel")) return false;
     toggleTestPanel();
     return true;
   }
 
   if (key === "l" && !repeat && state === "playing" && testFeatureOn("laserKey")) {
-    effects.laser = Math.min(14, effects.laser + 4);
-    showFloatingMessage("LASER +4s", player.x + player.w / 2, player.y - 18, 1.0, "#6fdcff");
+    laserCharges += 1;
+    showFloatingMessage(`LASER x${laserCharges}`, player.x + player.w / 2, player.y - 18, 1.0, "#6fdcff");
     return true;
   }
 
@@ -53,9 +54,10 @@ function handleTestKeys(key, event) {
 }
 
 function toggleTestPanel() {
-  testPanelOpen = !testPanelOpen;
   const panel = document.getElementById("testPanel");
-  if (panel) panel.style.display = testPanelOpen ? "block" : "none";
+  if (!panel) return;
+  testPanelOpen = !testPanelOpen;
+  panel.style.display = testPanelOpen ? "block" : "none";
   if (testPanelOpen && state === "playing") state = "paused";
 }
 
@@ -185,4 +187,6 @@ function buildTestPanel() {
   document.body.appendChild(panel);
 }
 
-buildTestPanel();
+if (new URLSearchParams(location.search).has("test") || new URLSearchParams(location.search).has("selftest")) {
+  buildTestPanel();
+}

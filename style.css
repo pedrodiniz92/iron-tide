@@ -62,7 +62,8 @@ header p {
   background: #163016;
 }
 
-.audio-controls button.off {
+.audio-controls button.off,
+.audio-controls button[aria-pressed="false"] {
   border-color: #743b3b;
   color: #ffb1b1;
   background: #170909;
@@ -217,6 +218,7 @@ kbd {
 }
 .boardTop li { margin: 2px 0; }
 .boardTop li.you { color: #ffe066; }
+.boardTop li.beaten { color: #62ffa1; }
 
 .overlay .panel {
   pointer-events: auto;
@@ -285,6 +287,8 @@ body.touch header p {
 }
 #tbFire { color: #ff8f8f; }
 #tbBomb { color: #ffe066; }
+#tbLaser { color: #6fdcff; }
+#tbDetonate { color: #ff9f4c; }
 body.touch .frame {
   width: 100%;
   padding: 0 6px;

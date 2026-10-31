@@ -29,6 +29,7 @@ let screamTimer = 6;
 let frenzyZones = [];
 let upgradeSel = 0;
 let effects = { rapid: 0, double: 0, laser: 0, slow: 0, shield: 0 };
+let laserCharges = 0;
 let shieldHits = 0;
 let invaders = [];
 let explosions = [];

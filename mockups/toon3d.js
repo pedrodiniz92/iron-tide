@@ -395,9 +395,16 @@ const SHAPES = {
     c.beginPath(); c.moveTo(-22, 18); c.lineTo(-18, -6); c.lineTo(-6, -14); c.lineTo(14, -14);
     c.lineTo(22, -2); c.lineTo(22, 18); c.closePath(); } },
   sentry: { path(c) {
-    c.beginPath(); c.moveTo(0, -20); c.lineTo(6, -8); c.lineTo(12, -12); c.lineTo(8, -2);
-    c.lineTo(12, 10); c.lineTo(5, 8); c.lineTo(0, 20); c.lineTo(-5, 8); c.lineTo(-12, 10);
-    c.lineTo(-8, -2); c.lineTo(-12, -12); c.lineTo(-6, -8); c.closePath(); } },
+    c.beginPath();
+    c.moveTo(-26, 12); c.lineTo(-22, -2); c.lineTo(-14, -10); c.lineTo(14, -10);
+    c.lineTo(22, -2); c.lineTo(26, 12); c.lineTo(16, 12); c.lineTo(12, 4);
+    c.lineTo(-12, 4); c.lineTo(-16, 12); c.closePath();
+    c.moveTo(-22, -2); c.lineTo(-28, -10); c.lineTo(-18, -8);
+    c.moveTo(-8, -10); c.lineTo(-4, -20); c.lineTo(2, -10);
+    c.moveTo(10, -10); c.lineTo(18, -18); c.lineTo(20, -6);
+    c.moveTo(22, -2); c.lineTo(30, 2); c.lineTo(22, 6);
+    c.moveTo(-16, 12); c.lineTo(-18, 18); c.lineTo(-10, 12);
+    c.moveTo(10, 12); c.lineTo(16, 18); c.lineTo(18, 12); } },
   skull: { path(c) {
     c.beginPath(); c.moveTo(-20, -10); c.quadraticCurveTo(-22, -19, 0, -19);
     c.quadraticCurveTo(22, -19, 20, -10); c.quadraticCurveTo(14, 2, 10, 4);
@@ -514,13 +521,24 @@ function buildScrap(cfg, hex) {
 function buildSentry(cfg, hex) {
   const g = new THREE.Group();
   bodyFromShape("sentry", cfg, hex, g);
-  const spike = new THREE.ConeGeometry(2.6, 9, 14);
-  [[-13, 0, 1], [13, 0, -1]].forEach(([x, y, s]) => {
+  const spike = new THREE.ConeGeometry(2.4, 10, 12);
+  [[-22, -2, 0.95], [-8, -10, 0.18], [10, -10, -0.28], [22, -2, -0.95], [-16, 12, 1.25], [12, 12, -1.25]].forEach(([x, y, rot]) => {
     const m = part(g, spike, "#e8fff0", cfg, x, y, 2, 0.010);
-    m.rotation.z = s * Math.PI / 2;
+    m.rotation.z = rot;
   });
-  part(g, new THREE.SphereGeometry(3.4, 18, 12), "#ffe066", cfg, 0, -2, 6, 0.008);
-  part(g, new THREE.SphereGeometry(1.7, 14, 10), "#141020", cfg, 0, -2, 8.5, 0.006);
+  const wheel = new THREE.CylinderGeometry(5.6, 5.6, 5.4, 18);
+  const wheels = [];
+  [-18, -4, 10, 18].forEach((x) => {
+    const m = part(g, wheel, "#3a3f52", cfg, x, 14, 0, 0.010);
+    m.rotation.x = Math.PI / 2;
+    wheels.push(m);
+  });
+  g.userData.legs = wheels;
+  part(g, new THREE.BoxGeometry(24, 6, 10), "#3a3f52", cfg, 0, -2, 3, 0.010);
+  part(g, new THREE.BoxGeometry(10, 3, 8), "#3a3f52", cfg, -14, 4, 3, 0.010);
+  part(g, new THREE.BoxGeometry(10, 3, 8), "#3a3f52", cfg, 14, 4, 3, 0.010);
+  part(g, new THREE.SphereGeometry(3.4, 18, 12), "#ffe066", cfg, 0, -2, 7, 0.008);
+  part(g, new THREE.SphereGeometry(1.7, 14, 10), "#141020", cfg, 0, -2, 9.2, 0.006);
   return finishMob(g, 2.3);
 }
 

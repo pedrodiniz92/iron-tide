@@ -52,10 +52,16 @@ const SIL = {
     c.moveTo(-14,18); c.arc(-12,18,5,0,Math.PI*2);
     c.moveTo(-1,18); c.arc(1,18,5,0,Math.PI*2);
     c.moveTo(12,18); c.arc(14,18,5,0,Math.PI*2); } },
-  sentry: { bb:{x:-12,y:-20,w:24,h:40}, path(c){
-    c.beginPath(); c.moveTo(0,-20); c.lineTo(6,-8); c.lineTo(12,-12); c.lineTo(8,-2);
-    c.lineTo(12,10); c.lineTo(5,8); c.lineTo(0,20); c.lineTo(-5,8); c.lineTo(-12,10);
-    c.lineTo(-8,-2); c.lineTo(-12,-12); c.lineTo(-6,-8); c.closePath(); } },
+  sentry: { bb:{x:-26,y:-18,w:52,h:36}, path(c){
+    c.beginPath();
+    c.moveTo(-24,14); c.lineTo(-20,-4); c.lineTo(-10,-12); c.lineTo(10,-12);
+    c.lineTo(20,-4); c.lineTo(24,14); c.lineTo(12,14); c.lineTo(8,6);
+    c.lineTo(-8,6); c.lineTo(-12,14); c.closePath();
+    c.moveTo(-18,-12); c.lineTo(-14,-18); c.lineTo(-10,-12);
+    c.moveTo(0,-12); c.lineTo(0,-20); c.lineTo(6,-12);
+    c.moveTo(14,-12); c.lineTo(20,-18); c.lineTo(20,-10);
+    c.moveTo(-18,14); c.arc(-14,14,5,0,Math.PI*2);
+    c.moveTo(12,14); c.arc(16,14,5,0,Math.PI*2); } },
   skull: { bb:{x:-24,y:-18,w:48,h:38}, path(c){
     c.beginPath(); c.moveTo(-20,-10); c.quadraticCurveTo(-22,-19,0,-19);
     c.quadraticCurveTo(22,-19,20,-10); c.quadraticCurveTo(14,2,10,4);

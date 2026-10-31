@@ -3,7 +3,7 @@ function updateFire(dt) {
   if (keys.has(" ")) firePlayer();
 }
 
-function resetPlayer() {
+function resetPlayer(showMessage = true) {
   player = {
     x: W / 2 - 28,
     y: H - 70,
@@ -14,7 +14,7 @@ function resetPlayer() {
   invulnerabilityTimer = 1.5;
   clearEnemyFire();
   playerBullets = [];
-  showGameMessage("RESPAWN: INVULNERABLE", 1.2, "#78ff78");
+  if (showMessage) showGameMessage("RESPAWN: INVULNERABLE", 1.2, "#78ff78");
 }
 
 function mobilityLevel() {
@@ -79,16 +79,9 @@ function movePlayer(dt) {
 function firePlayer() {
   if (fireCooldown > 0) return;
   const rapid = effects.rapid > 0;
-  const laserReady = effects.laser > 0;
   const rapidMult = rapid ? 0.76 : 1;
   const offenseMult = 1 - Math.min(0.24, permanentFireRateBonus);
-  fireCooldown = (laserReady ? 0.58 : 0.44) * rapidMult * offenseMult;
-
-  if (laserReady) {
-    fireLaserBeam();
-    if (effects.laser > 0) effects.laser = 0;
-    return;
-  }
+  fireCooldown = 0.44 * rapidMult * offenseMult;
 
   const multishot = effects.double > 0 || permanentDoubleShots;
   const offsets = multishot ? [-14, 14] : [0];
@@ -105,6 +98,13 @@ function firePlayer() {
   });
 
   playShoot();
+}
+
+function useLaser() {
+  if (laserCharges <= 0) return;
+  laserCharges -= 1;
+  fireLaserBeam();
+  showGameMessage(`LASER FIRED x${laserCharges} LEFT`, 0.85, "#6fdcff");
 }
 
 function fireLaserBeam() {
@@ -134,7 +134,7 @@ function findLaserTarget(x, y) {
   };
 
   invaders.forEach((invader) => {
-    if (invader.alive) add("invader", invader);
+    if (invader.alive && !invader.ghosted) add("invader", invader);
   });
   bosses.forEach((unit) => add("boss", unit));
   add("ufo", ufo);

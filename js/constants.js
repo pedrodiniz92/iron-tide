@@ -87,11 +87,11 @@ const SPRITES = {
 
 const INVADER_TYPES = [
   { rows: [0, 1], name: "squid", score: 30, sprite: SPRITES.squid, color: COLORS.squid },
-  { rows: [2, 3], name: "crab", score: 20, sprite: SPRITES.crab, color: COLORS.crab },
+  { rows: [2, 3], name: "crab", score: 40, sprite: SPRITES.crab, color: COLORS.crab },
   { rows: [4], name: "octopus", score: 10, sprite: SPRITES.octopus, color: COLORS.octopus },
   { rows: [], name: "banshee", score: 25, sprite: SPRITES.banshee, color: "#ff6a3d" },
-  { rows: [], name: "ghost", score: 40, sprite: SPRITES.ghost, color: "#dfe9ff" },
-  { rows: [], name: "stinger", score: 20, sprite: SPRITES.stinger, color: "#ffb04c" }
+  { rows: [], name: "ghost", score: 60, sprite: SPRITES.ghost, color: "#dfe9ff" },
+  { rows: [], name: "stinger", score: 35, sprite: SPRITES.stinger, color: "#ffb04c" }
 ];
 
 const POWERUP_NAMES = {
@@ -107,7 +107,7 @@ const POWERUP_NAMES = {
 const POWERUP_TYPES = [
   { id: "rapid", label: "R", name: POWERUP_NAMES.rapid, color: "#ff6655", duration: 5 },
   { id: "double", label: "D", name: POWERUP_NAMES.double, color: "#ffb04c", duration: 6 },
-  { id: "laser", label: "L", name: POWERUP_NAMES.laser, color: "#6fdcff", duration: 3 },
+  { id: "laser", label: "L", name: POWERUP_NAMES.laser, color: "#6fdcff", duration: 4 },
   { id: "shield", label: "S", name: POWERUP_NAMES.shield, color: "#62ffa1", duration: 8 },
   { id: "slow", label: "Z", name: POWERUP_NAMES.slow, color: "#bf9cff", duration: 3.5 },
   { id: "bomb", label: "B", name: POWERUP_NAMES.bomb, color: "#ffe66a", duration: 0 },
@@ -118,15 +118,17 @@ const MINIBOSS_DESIGNS = [
   {
     name: "SCRAPLING",
     hp: 8, hpScale: 2, speed: 76, bombTimer: 999, color: "#99d4ff", accent: "#ffe066",
-    ability: "RAPID STREAM", bulletCap: 4, bombMax: 0, bombRadius: 34, laserFollow: 0,
-    laser: false, bombsPerLaunch: 0, bombShieldDamage: 0
+    ability: "SWARM PRINTER", bulletCap: 4, bombMax: 0, bombRadius: 34, laserFollow: 0,
+    laser: false, bombsPerLaunch: 0, bombShieldDamage: 0,
+    droneInterval: 1.25, burstInterval: 2.4, scrapShieldDuration: 1.1
   },
   {
     name: "SPINE SENTRY",
     hp: 11, hpScale: 3, speed: 64, bombTimer: 5.2, color: "#9fffc9", accent: "#62ffa1",
-    ability: "MINE SEED", bulletCap: 4, bombMax: 1, bombRadius: 42, laserFollow: 0,
+    ability: "ZONE DENIAL", bulletCap: 4, bombMax: 1, bombRadius: 42, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 14,
-    mineInterval: 1.7, mineShieldDamage: 14
+    mineInterval: 1.7, mineShieldDamage: 14, rollInterval: 5.4, rollDuration: 1.6,
+    mineArmDelay: 0.75, minePulseRadius: 116
   }
 ];
 
@@ -179,7 +181,7 @@ function pickWaveMusic(level) {
 
 function currentBossDesign(level) {
   if (isFinalStage(level)) return BOSS_DESIGNS.find((design) => design.name === FINAL_BOSS_NAMES[0]) || BOSS_DESIGNS[0];
-  if (level === 8) return BOSS_DESIGNS.find((design) => design.name === "WINGED VIPER") || BOSS_DESIGNS[0];
+  if (level === 8) return MINIBOSS_DESIGNS.find((design) => design.name === "SPINE SENTRY") || MINIBOSS_DESIGNS[1];
   const cycle = level % 3;
   if (cycle === 1) return MINIBOSS_DESIGNS[Math.floor((level - 1) / 3) * 2 % MINIBOSS_DESIGNS.length];
   if (cycle === 2) return MINIBOSS_DESIGNS[(Math.floor((level - 2) / 3) * 2 + 1) % MINIBOSS_DESIGNS.length];

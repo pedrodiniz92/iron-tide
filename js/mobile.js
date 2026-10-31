@@ -10,6 +10,7 @@
 
   function pressKey(key, shift) {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: key, shiftKey: !!shift, bubbles: true }));
+    if (key !== " ") releaseKey(key);
   }
   function releaseKey(key) {
     document.dispatchEvent(new KeyboardEvent("keyup", { key: key, bubbles: true }));
@@ -25,7 +26,9 @@
     '<button id="tbDash" type="button">DASH</button>' +
     '<button id="tbPause" type="button">II</button>' +
     '<button id="tbFire" type="button">FIRE</button>' +
-    '<button id="tbBomb" type="button">BOMB</button>';
+    '<button id="tbBomb" type="button">BOMB</button>' +
+    '<button id="tbLaser" type="button">LASER</button>' +
+    '<button id="tbDetonate" type="button">DETONATE</button>';
   frame.appendChild(btns);
 
   function aimFromEvent(e) {
@@ -79,10 +82,22 @@
     initAudio();
     pressKey("q");
   });
+  document.getElementById("tbLaser").addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    initAudio();
+    pressKey("e");
+  });
+  document.getElementById("tbDetonate").addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    initAudio();
+    pressKey("w");
+  });
   document.getElementById("tbDash").addEventListener("pointerdown", (e) => {
     e.preventDefault();
     initAudio();
-    const goLeft = window.touchAimX !== null && window.touchAimX < player.x + player.w / 2;
+    const rect = canvas.getBoundingClientRect();
+    const dashX = (e.clientX - rect.left) * (W / rect.width);
+    const goLeft = dashX < player.x + player.w / 2;
     pressKey(goLeft ? "ArrowLeft" : "ArrowRight", true);
     releaseKey(goLeft ? "ArrowLeft" : "ArrowRight");
   });

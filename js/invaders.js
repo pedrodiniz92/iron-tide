@@ -61,6 +61,7 @@ function newWave() {
   enemyBullets = [];
   bombShots = [];
   laserBeams = [];
+  laserCharges = 0;
   enemyBombs = [];
   spikeMines = [];
   shockwaves = [];
@@ -90,13 +91,58 @@ function updateEnemyBullets(dt) {
     bullet.x += (bullet.vx || 0) * slowFactor * dt;
   });
 
-  enemyBullets = enemyBullets.filter((bullet) => bullet.y < H + 20);
+  enemyBullets = enemyBullets.filter((bullet) => bullet.y < H + 20 && bullet.x > -20 && bullet.x < W + 20);
 
   enemyFireTimer -= dt;
   if (enemyFireTimer <= 0) {
     lastShotFast = fireEnemyBullet();
     enemyFireTimer = Math.max(0.62, 2.15 - level * 0.07 - Math.random() * 0.75) * (lastShotFast === "frenzy" ? 0.3 : lastShotFast === "threat" ? 0.67 : lastShotFast ? 0.7 : 1);
   }
+}
+
+function playerCenterX() {
+  return player.x + player.w / 2;
+}
+
+function playerVelocityX() {
+  if (dashTimer > 0) return (dashTo - dashFrom) / 0.14;
+  if (window.IS_TOUCH && window.touchAimX !== null && window.touchAimX !== undefined) {
+    const target = clamp(window.touchAimX - player.w / 2, 10, W - player.w - 10);
+    return clamp((target - player.x) * 2.2, -player.speed * 2.2, player.speed * 2.2);
+  }
+  const left = keys.has("arrowleft") || keys.has("a");
+  const right = keys.has("arrowright") || keys.has("d");
+  return (right ? 1 : 0) * player.speed - (left ? 1 : 0) * player.speed;
+}
+
+function predictPlayerX(sx, sy, speed) {
+  const dx = playerCenterX() - sx;
+  const dy = player.y - sy;
+  const t = Math.max(0.1, Math.hypot(dx, dy) / speed);
+  return clamp(playerCenterX() + playerVelocityX() * t, 10 + player.w / 2, W - 10 - player.w / 2);
+}
+
+function aimModeFor(invader) {
+  if (invader.type.name === "stinger" || invader.type.name === "ghost") {
+    const roll = Math.random();
+    if (roll < 0.34) return 0;
+    if (roll < 0.67) return 1;
+    return 2;
+  }
+  return 0;
+}
+
+function aimTargetX(invader, sx, sy, speed) {
+  const mode = aimModeFor(invader);
+  const current = playerCenterX();
+  const target = mode === 1 ? predictPlayerX(sx, sy, speed)
+    : mode === 2 ? (current + predictPlayerX(sx, sy, speed)) / 2
+    : current;
+  return clamp(target, sx - 260, sx + 260);
+}
+
+function aimVx(invader, sx, sy, speed, limit) {
+  return clamp((aimTargetX(invader, sx, sy, speed) - sx) * 1.5, -limit, limit);
 }
 
 function applyRowRoles() {
@@ -112,8 +158,7 @@ function fireEnemyBullet() {
   const alive = invaders.filter((invader) => invader.alive);
   if (!alive.length) return false;
 
-  const free = alive.filter((invader) => invader.type.name !== "ghost" &&
-    !enemyBullets.some((bullet) => bullet.shooterId === invader.id));
+  const free = alive.filter((invader) => !enemyBullets.some((bullet) => bullet.shooterId === invader.id));
   const frenzied = frenzyZones.length ? free.filter((invader) => frenzyZones.some(
     (zone) => Math.hypot(invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y) < zone.r
   )) : [];
@@ -123,16 +168,19 @@ function fireEnemyBullet() {
     : (front.length && Math.random() < 0.7 ? front : (free.length ? free : alive));
   const source = pool[Math.floor(Math.random() * pool.length)];
 
-  const aimed = (source.rowRole === "last" && level >= 2) || source.type.name === "stinger";
+  const aimed = (source.rowRole === "last" && level >= 2) ||
+    source.type.name === "stinger" || source.type.name === "ghost" || source.type.name === "crab";
   const sx = source.x + source.w / 2;
-  const vx = aimed ? Math.max(-190, Math.min(190, (player.x + player.w / 2 - sx) * 1.5)) : 0;
+  const sy = source.y + source.h;
+  const bulletSpeed = 560 * Math.min(1, 0.85 + (level - 1) * 0.05);
+  const vx = aimed ? aimVx(source, sx, sy, bulletSpeed, 190) : 0;
 
   enemyBullets.push({
     x: sx - 2,
-    y: source.y + source.h,
+    y: sy,
     w: 4,
     h: 14,
-    speed: 560 * Math.min(1, 0.85 + (level - 1) * 0.05),
+    speed: bulletSpeed,
     vx,
     hp: 2,
     maxHp: 2,
@@ -180,17 +228,20 @@ function updateInvaders(dt) {
   });
   const frenzyCap = armedZones.length ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
   alive.forEach((invader) => {
-    if (!invader.frenzyLive || invader.type.name === "ghost") return;
+    if (!invader.frenzyLive) return;
     invader.frenzyShotT = (invader.frenzyShotT === undefined ? 0.3 + Math.random() * 1.1 : invader.frenzyShotT) - dt;
     if (invader.frenzyShotT > 0) return;
     invader.frenzyShotT = 0.95 + Math.random() * 0.8;
     if (enemyBullets.length >= frenzyCap) return;
     const fx = invader.x + invader.w / 2;
-    const faim = (invader.rowRole === "last" && level >= 2) || invader.type.name === "stinger";
+    const fy = invader.y + invader.h;
+    const fspeed = 560 * Math.min(1, 0.85 + (level - 1) * 0.05);
+    const faim = (invader.rowRole === "last" && level >= 2) ||
+      invader.type.name === "stinger" || invader.type.name === "ghost" || invader.type.name === "crab";
     enemyBullets.push({
-      x: fx - 2, y: invader.y + invader.h, w: 4, h: 14,
-      speed: 560 * Math.min(1, 0.85 + (level - 1) * 0.05),
-      vx: faim ? Math.max(-380, Math.min(380, (player.x + player.w / 2 - fx) * 1.5)) : 0,
+      x: fx - 2, y: fy, w: 4, h: 14,
+      speed: fspeed,
+      vx: faim ? aimVx(invader, fx, fy, fspeed, 380) : 0,
       hp: 2, maxHp: 2, color: invader.type.color, shooterId: invader.id
     });
   });
@@ -220,7 +271,6 @@ function updateInvaders(dt) {
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 165);
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 120);
       alive.forEach((invader) => {
-        if (invader.type.name === "ghost") return;
         if (Math.hypot(invader.x + invader.w / 2 - b.x - b.w / 2, invader.y + invader.h / 2 - b.y - b.h / 2) < 210) {
           invader.frenzyShotT = 0.3 + Math.random() * 1.1;
         }

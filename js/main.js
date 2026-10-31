@@ -3,7 +3,7 @@ if (new URLSearchParams(location.search).has("selftest")) {
   document.title = "SELFTEST boot";
 }
 function init() {
-  resetPlayer();
+  resetPlayer(false);
   newWave();
   draw();
 }
@@ -34,6 +34,7 @@ function startGame() {
   screenShake = 0;
   waveTime = 0;
   effects = { rapid: 0, double: 0, laser: 0, slow: 0, shield: 0 };
+  laserCharges = 0;
   dashTimer = 0;
   dashCooldown = 0;
   dashGrace = 0;
@@ -71,7 +72,7 @@ function startGame() {
   runTime = 0;
   playerName = effectiveName() || "PILOT";
   saveName(playerName);
-  resetPlayer();
+  resetPlayer(false);
   updateDashHint();
   newWave();
   setMusic(pickWaveMusic(level), true);
@@ -475,14 +476,17 @@ canvas.addEventListener("mousedown", (event) => {
 const nameStartBtn = document.getElementById("nameStart");
 if (nameStartBtn) {
   nameStartBtn.addEventListener("click", () => {
-    if (state === "ready") tryStart();
+    if (state === "ready" || state === "gameover") tryStart();
   });
 }
 
 document.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+  const typing = event.target && event.target.tagName === "INPUT";
 
-  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(event.key.toLowerCase()) || event.key === " ") {
+  if (typing && key !== "enter") return;
+
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(key)) {
     event.preventDefault();
   }
 
@@ -502,7 +506,7 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (key === "enter" && (state === "ready" || state === "gameover")) {
-    if (key === "enter" && document.activeElement === document.getElementById("nameInput") && !effectiveName()) {
+    if (!effectiveName()) {
       updateStatus("TYPE YOUR NAME FIRST");
       return;
     }
@@ -512,12 +516,6 @@ document.addEventListener("keydown", (event) => {
 
   if (key === "enter" && state === "victory") {
     window.location.href = "leaderboard.html";
-    return;
-  }
-
-  if (key === "enter" && document.activeElement === document.getElementById("nameInput") &&
-      (state === "ready" || state === "gameover")) {
-    tryStart();
     return;
   }
 
@@ -569,6 +567,10 @@ document.addEventListener("keydown", (event) => {
   if (key === "q" && !event.repeat && state === "playing") {
     useBomb();
   }
+
+  if (key === "e" && !event.repeat && state === "playing") {
+    useLaser();
+  }
 });
 
 document.addEventListener("keyup", (event) => {
@@ -582,6 +584,7 @@ if (new URLSearchParams(location.search).has("selftest")) {
   setTimeout(() => {
     document.title = "SELFTEST started";
     startGame();
+    if (state === "choices") chooseUpgrade(0);
     const lvl = Number(new URLSearchParams(location.search).get("level") || 1);
     if (lvl > 1) {
       level = lvl;
