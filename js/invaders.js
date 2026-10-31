@@ -61,7 +61,6 @@ function newWave() {
   enemyBullets = [];
   bombShots = [];
   laserBeams = [];
-  laserCharges = 0;
   enemyBombs = [];
   spikeMines = [];
   shockwaves = [];

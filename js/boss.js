@@ -977,7 +977,6 @@ function clearWeaponUpgrades() {
   effects.double = 0;
   effects.laser = 0;
   effects.slow = 0;
-  laserCharges = 0;
   laserBeams = [];
 }
 

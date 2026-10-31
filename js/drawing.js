@@ -118,6 +118,7 @@ function drawHud() {
     ctx.fillRect(bx, 48, 92 * comboMeter, 4);
   }
   drawBombHud();
+  drawLaserHud();
 }
 
 function drawRoundRect(x, y, w, h, r) {
@@ -174,6 +175,47 @@ function drawBombHud() {
   ctx.font = "bold 15px 'Courier New', monospace";
   ctx.textAlign = "center";
   ctx.fillText("Q", x + 98, y + 16);
+
+  ctx.textAlign = "left";
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawLaserHud() {
+  const active = laserCharges > 0;
+  const color = active ? "#6fdcff" : "#666";
+  const x = W - 144;
+  const y = 68;
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y - 8);
+  ctx.lineTo(x + 10, y + 8);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x + 10, y, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  ctx.font = "bold 15px 'Courier New', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(`(x${laserCharges})`, x + 38, y + 14);
+
+  drawRoundRect(x + 84, y - 1, 28, 24, 4);
+  ctx.fillStyle = "#151515";
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.font = "bold 15px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("E", x + 98, y + 16);
 
   ctx.textAlign = "left";
   ctx.lineWidth = 1;
