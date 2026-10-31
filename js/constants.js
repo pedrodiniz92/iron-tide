@@ -232,6 +232,11 @@ function wipeLocalScoresOnce() {
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.setItem("scoresResetV4", "1");
     }
+    if (!localStorage.getItem("scoresResetV5")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV5", "1");
+    }
   } catch (e) { /* private mode */ }
 }
 wipeLocalScoresOnce();
