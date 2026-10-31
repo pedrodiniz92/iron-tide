@@ -409,7 +409,7 @@ function applyUpgrade(choice) {
 
   if (choice.treeId === "offense") {
     permanentFireRateBonus = [0, 0.15, 0.3, 0.3][choice.level] || 0.3;
-    permanentDamage = choice.level >= 3 ? 1 : 0;
+    permanentDamage = 0;
     permanentDoubleShots = choice.level >= 3;
     return;
   }

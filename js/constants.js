@@ -195,7 +195,7 @@ const UPGRADE_TREES = [
     levels: [
       { label: "RAPID I", desc: "Faster firing" },
       { label: "RAPID II", desc: "Faster firing; unlocks W to detonate your bomb" },
-      { label: "DOUBLE CORE", desc: "Permanent double firing, +1 damage" }
+      { label: "DOUBLE CORE", desc: "Permanent double firing" }
     ]
   },
   {
@@ -213,7 +213,7 @@ const UPGRADE_TREES = [
     levels: [
       { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload" },
       { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer" },
-      { label: "SHARP DASH", desc: "Invulnerable while dashing, 370px, 2.5s reload" }
+      { label: "SHARP DASH", desc: "Invulnerable while dashing, 210px, 2.5s reload" }
     ]
   }
 ];
