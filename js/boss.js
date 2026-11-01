@@ -48,11 +48,21 @@ function updateEnemyBombs(dt) {
 function updateSpikeMines(dt) {
   spikeMines = spikeMines.filter((mine) => {
     mine.arm = Math.max(0, (mine.arm || 0) - dt);
+    if (mine.arm <= 0) {
+      const dx = (player.x + player.w / 2) - (mine.x + mine.w / 2);
+      const target = clamp(dx * 0.9, -90, 90);
+      const step = 140 * dt;
+      mine.vx = (mine.vx || 0) + clamp(target - (mine.vx || 0), -step, step);
+      mine.fuse = (mine.fuse === undefined ? 2.2 : mine.fuse) - dt;
+    }
     mine.x += (mine.vx || 0) * dt;
     mine.y += mine.vy * dt * (mine.arm > 0 ? 0.25 : 1);
     mine.ttl -= dt;
 
-    if (mine.y >= H - 42 || mine.ttl <= 0) return false;
+    if (mine.y >= H - 42 || mine.ttl <= 0 || (mine.fuse !== undefined && mine.fuse <= 0)) {
+      explodeSpikeMine(mine);
+      return false;
+    }
 
     if (mine.pulse && mine.arm <= 0) {
       mine.pulseTimer = (mine.pulseTimer === undefined ? 0.45 : mine.pulseTimer) - dt;
@@ -93,6 +103,26 @@ function updateSpikeMines(dt) {
   }
 }
 
+function explodeSpikeMine(mine) {
+  const mx = mine.x + mine.w / 2;
+  const my = mine.y + mine.h / 2;
+  const r = mine.blastRadius || 64;
+  addExplosion(mx, my, "#ff6b6b");
+  addShockwave(mx, my, r);
+  addScreenShake(5);
+  playBombExplosion();
+  const pdx = player.x + player.w / 2 - mx;
+  const pdy = player.y + player.h / 2 - my;
+  if (pdx * pdx + pdy * pdy <= r * r) hitPlayerWithSpikeMine();
+  shields.forEach((shield) => {
+    const sdx = shield.x + shield.w / 2 - mx;
+    const sdy = shield.y + shield.h / 2 - my;
+    if (sdx * sdx + sdy * sdy <= (r + 40) * (r + 40)) {
+      damageShieldArea(shield, mx, my, mine.shieldDamage || 12);
+    }
+  });
+}
+
 function hitPlayerWithSpikeMine() {
   if (isPlayerInvulnerable()) return;
 
@@ -123,28 +153,25 @@ function hitPlayerWithSpikeMine() {
   }
 }
 
-function fireSpikeMine(boss, arm = 0) {
-  const mineCount = boss.charging ? Math.max(2, boss.mineBurst || 2) : 1;
-  const spread = mineCount === 1 ? 0 : 44;
-  for (let i = 0; i < mineCount; i += 1) {
-    const offset = mineCount === 1 ? 0 : (i - (mineCount - 1) / 2) * spread;
-    spikeMines.push({
-      x: boss.x + boss.w / 2 - 8 + offset,
-      y: boss.y + boss.h,
-      w: 16,
-      h: 16,
-      vx: offset * 0.45,
-      vy: boss.charging ? 128 : 112,
-      ttl: 6.2,
-      hp: 1,
-      maxHp: 1,
-      arm: arm,
-      pulse: boss.phase >= 2,
-      pulseTimer: 0.45,
-      pulseRadius: boss.minePulseRadius || 116,
-      shieldDamage: boss.mineShieldDamage || 12
-    });
-  }
+function fireSpikeMine(boss, arm = 1.2) {
+  spikeMines.push({
+    x: boss.x + boss.w / 2 - 8,
+    y: boss.y + boss.h,
+    w: 16,
+    h: 16,
+    vx: 0,
+    vy: 112,
+    ttl: 6.2,
+    fuse: 2.2,
+    blastRadius: 64,
+    hp: 1,
+    maxHp: 1,
+    arm: arm,
+    pulse: boss.phase >= 2,
+    pulseTimer: 0.45,
+    pulseRadius: boss.minePulseRadius || 116,
+    shieldDamage: boss.mineShieldDamage || 12
+  });
 }
 
 function fireMineShot(mine) {
@@ -309,14 +336,10 @@ function createBossFromDesign(design, mini, x, y) {
     shellMaxHp: design.shellMaxHp || 0,
     shellRegen: design.shellRegen || 15,
     shellTimer: 0,
-    charging: false,
-    chargeTele: 0,
-    chargeTimer: design.chargeInterval || 5.4,
-    chargeDuration: 0,
-    chargeLength: 1.15,
+    slamState: "idle",
+    slamTimer: design.slamInterval || 5.4,
     mineTimer: design.mineInterval || 0.9,
     mineShieldDamage: design.mineShieldDamage || 12,
-    mineBurst: design.mineBurst || 1,
     mineInterval: design.mineInterval || 0.9,
     droneTimer: design.droneInterval || 1.25,
     droneInterval: design.droneInterval || 1.25,
@@ -397,15 +420,15 @@ function updateBoss(dt) {
 }
 
 function updateBossUnit(boss, dt) {
-  if (bossStagger > 0) {
+  const staggered = bossStagger > 0;
+  if (staggered) {
     boss.laser.state = "idle";
     boss.laser.timer = Math.max(0.8, boss.laser.timer + dt * 1.4);
     boss.laser.endX = boss.laser.aimX;
     boss.laser.endY = boss.laser.aimY;
-    return;
   }
 
-  const bossSlow = getSlowFactor("boss");
+  const bossSlow = (staggered ? 0.22 : 1) * getSlowFactor("boss");
   boss.x += boss.vx * dt * bossSlow;
   boss.y += boss.vy * dt * bossSlow;
 
@@ -432,38 +455,46 @@ function updateBossUnit(boss, dt) {
   boss.y = clamp(boss.y, 58, yMax);
   boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
 
-  if (boss.ability === "SHELL CHARGE") {
-    const baseSpeed = boss.designData.speed + level * 8;
-    if (boss.charging) {
-      boss.chargeDuration -= dt * bossSlow;
-      boss.mineTimer -= dt * bossSlow;
-      if (boss.mineTimer <= 0) {
-        fireSpikeMine(boss);
-        boss.mineTimer = Math.max(0.5, 0.8 - level * 0.01);
-      }
-      if (boss.chargeDuration <= 0) {
-        boss.charging = false;
-        boss.chargeTimer = Math.max(3.4, (boss.designData.chargeInterval || 5.4) - (boss.phase - 1) * 0.6);
-        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed;
-        addScreenShake(5);
-        addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 90);
-        showGameMessage("SHELL SLAM", 0.7, "#62ffa1");
-      }
-    } else if (boss.chargeTele > 0) {
-      boss.chargeTele -= dt * bossSlow;
+  if (staggered) return;
+
+  if (boss.ability === "SEISMIC SLAM") {
+    if (boss.slamState === "windup") {
+      boss.slamTimer -= dt * bossSlow;
       screenShake = Math.max(screenShake, 3);
-      if (boss.chargeTele <= 0) {
-        boss.charging = true;
-        boss.chargeDuration = boss.chargeLength;
-        boss.mineTimer = 0.2;
-        boss.vx = (boss.x + boss.w / 2 < player.x + player.w / 2 ? 1 : -1) * baseSpeed * 3.1;
-        addScreenShake(6);
-        showGameMessage("SHELL CHARGE", 0.7, "#62ffa1");
+      if (boss.slamTimer <= 0) {
+        boss.slamState = "idle";
+        boss.slamTimer = Math.max(3.4, (boss.designData.slamInterval || 5.4) - (boss.phase - 1) * 0.6);
+        addScreenShake(9);
+        addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 140);
+        playBombExplosion();
+        showGameMessage("SEISMIC SLAM", 0.8, "#62ffa1");
+        const px = playerCenterX();
+        [-1, 0, 1].forEach((i) => {
+          spikeMines.push({
+            x: clamp(px + i * 74 - 8, 20, W - 36),
+            y: Math.max(80, player.y - 110 - Math.abs(i) * 26),
+            w: 16,
+            h: 16,
+            vx: i * 30,
+            vy: 95,
+            ttl: 6.2,
+            fuse: 2.2,
+            blastRadius: 64,
+            hp: 1,
+            maxHp: 1,
+            arm: 1.2,
+            pulse: boss.phase >= 2,
+            pulseTimer: 0.45,
+            pulseRadius: boss.minePulseRadius || 116,
+            shieldDamage: boss.mineShieldDamage || 12
+          });
+        });
       }
     } else {
-      boss.chargeTimer -= dt * bossSlow;
-      if (boss.chargeTimer <= 0) {
-        boss.chargeTele = 0.55;
+      boss.slamTimer -= dt * bossSlow;
+      if (boss.slamTimer <= 0) {
+        boss.slamState = "windup";
+        boss.slamTimer = 0.7;
         addScreenShake(4);
         showGameMessage("TURTLE WINDS UP", 0.55, "#62ffa1");
       }
@@ -828,7 +859,7 @@ function fireBossBullet(boss) {
     return;
   }
 
-  if (design.ability === "SHELL CHARGE") {
+  if (design.ability === "SEISMIC SLAM") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
       const sideAim = Math.abs(aim(22));
@@ -901,7 +932,7 @@ function fireBossBomb(boss) {
   const originX = boss.x + boss.w / 2;
   const originY = boss.y + boss.h;
   const direct = boss.bombDirect === true;
-  const fanSpread = direct ? 116 : design.ability === "SHELL CHARGE" ? 22 : 58;
+  const fanSpread = direct ? 116 : design.ability === "SEISMIC SLAM" ? 22 : 58;
 
   for (let i = 0; i < count; i += 1) {
     const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (fanSpread / count);
@@ -1305,30 +1336,17 @@ function drawBossUnit(boss, index) {
     ctx.strokeRect(boss.x - 7, boss.y - 7, boss.w + 14, boss.h + 14);
     ctx.fillStyle = "#ffe066";
     ctx.fillText("STAGGER", boss.x + boss.w / 2 - 28, boss.y - 12);
+    const barW = Math.max(44, boss.w);
+    const barX = boss.x + boss.w / 2 - barW / 2;
+    const barY = boss.y - 24;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.fillRect(barX, barY, barW, 4);
+    ctx.fillStyle = "#ffe066";
+    ctx.fillRect(barX, barY, barW * Math.max(0, bossStagger / STAGGER_DURATION), 4);
     ctx.lineWidth = 1;
   }
 
-  if (boss.charging) {
-    const chargeCx = boss.x + boss.w / 2;
-    ctx.save();
-    ctx.strokeStyle = "rgba(130, 255, 190, 0.5)";
-    ctx.lineWidth = 3;
-    const dir = boss.vx >= 0 ? -1 : 1;
-    for (let i = 1; i <= 3; i += 1) {
-      const sx = chargeCx + dir * (boss.w / 2 + i * 16);
-      ctx.beginPath();
-      ctx.moveTo(sx, boss.y + 10);
-      ctx.lineTo(sx, boss.y + boss.h - 10);
-      ctx.stroke();
-    }
-    ctx.fillStyle = "#62ffa1";
-    ctx.font = "12px 'Courier New', monospace";
-    ctx.fillText("CHARGE", chargeCx - 24, boss.y - 28);
-    ctx.lineWidth = 1;
-    ctx.restore();
-  }
-
-  if (boss.chargeTele > 0) {
+  if (boss.slamState === "windup") {
     ctx.strokeStyle = "rgba(130, 255, 190, 0.55)";
     ctx.lineWidth = 3;
     ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, boss.w + 20, 12);

@@ -286,12 +286,10 @@ function explodeBombShot(shot) {
       showGameMessage("DIVE BROKEN!", 1.0, "#7dff66");
     }
 
-    if (unit.charging || unit.chargeTele > 0) {
-      unit.charging = false;
-      unit.chargeTele = 0;
-      unit.chargeTimer = Math.max(3.4, (unit.designData.chargeInterval || 5.4) - (unit.phase - 1) * 0.6);
-      unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
-      showGameMessage("CHARGE BROKEN!", 1.0, "#ffe066");
+    if (unit.slamState === "windup") {
+      unit.slamState = "idle";
+      unit.slamTimer = Math.max(3.4, (unit.designData.slamInterval || 5.4) - (unit.phase - 1) * 0.6);
+      showGameMessage("SLAM BROKEN!", 1.0, "#ffe066");
       damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09));
     } else {
       damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06));

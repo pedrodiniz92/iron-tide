@@ -24,7 +24,7 @@ const DESIGN = {
   turtle: {
     name: "TURTLE BULWARK", color: "#2fc96f", accent: "#ffe066", model: "turtle",
     speed: 62, bulletCap: 5, bombTimer: 3.25, bombMax: 1, bombRadius: 72,
-    bombShieldDamage: 30, chargeInterval: 5.4, mineInterval: 0.72,
+    bombShieldDamage: 30, slamInterval: 5.4, mineInterval: 0.72,
     mineShieldDamage: 18, shellHp: 2, shellRegen: 15
   }
 };
@@ -121,7 +121,7 @@ function addBomb(sx, sy, opts) {
 }
 
 function addMine(sx, sy, vx) {
-  world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6 });
+  world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 2.2, blast: 64 });
 }
 
 function addWave(x, y, r) { world.waves.push({ x, y, r, max: r, ttl: 0.7 }); }
@@ -179,10 +179,21 @@ function updateWorld(dt) {
   });
 
   world.mines = world.mines.filter((m) => {
-    m.y += m.vy * dt;
+    m.arm = Math.max(0, (m.arm || 0) - dt);
+    if (m.arm <= 0) {
+      const dx = shipCenter().x - (m.x + 8);
+      const target = Math.max(-90, Math.min(90, dx * 0.9));
+      m.vx += Math.max(-140 * dt, Math.min(140 * dt, target - m.vx));
+      m.fuse -= dt;
+    }
+    m.y += m.vy * dt * (m.arm > 0 ? 0.25 : 1);
     m.x += m.vx * dt;
     m.ttl -= dt;
-    return m.y < H - 30 && m.ttl > 0;
+    if (m.y >= H - 30 || m.ttl <= 0 || m.fuse <= 0) {
+      addWave(m.x + 8, m.y + 8, m.blast || 64);
+      return false;
+    }
+    return true;
   });
 
   world.waves = world.waves.filter((wv) => {
@@ -287,11 +298,15 @@ function renderFx() {
   }
 
   for (const m of world.mines) {
+    const armed = (m.arm || 0) <= 0;
+    const lit = armed && m.fuse < 0.7;
     fxctx.save();
+    fxctx.globalAlpha = (m.arm || 0) > 0 ? 0.5 + 0.3 * Math.sin(world.t * 10)
+      : lit ? 0.6 + 0.4 * Math.sin(world.t * 40) : 1;
     fxctx.translate(m.x, m.y);
     fxctx.rotate(Math.PI / 4);
-    fxctx.fillStyle = "#2fc96f";
-    fxctx.shadowColor = "#2fc96f";
+    fxctx.fillStyle = lit ? "#ff6b6b" : "#2fc96f";
+    fxctx.shadowColor = fxctx.fillStyle;
     fxctx.shadowBlur = 8;
     fxctx.fillRect(-7, -7, 14, 14);
     fxctx.restore();
@@ -468,27 +483,20 @@ const ABILITIES = {
         if (this.t <= 0) { addBullet(cx, cy, bossAim(cx, cy, 280, 140), 280, d.accent); this.t = 0.8; } } }
   ],
   turtle: [
-    { key: "Q", name: "SHELL CHARGE", desc: "0.55s WINDS UP, then a 3.1x dash across the arena dropping spike mines, ending in a slam shockwave.",
+    { key: "Q", name: "SEISMIC SLAM", desc: "0.7s WINDS UP, then a slam: shockwave + a fan of 3 fused spike mines erupts around your ship. Bomb breaks the windup.",
       dur: 9, start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; },
       step(d, dt) {
         const b = world.boss;
-        const base = d.speed + LEVEL * 8;
         if (this.state === "idle") { this.t -= dt;
-          if (this.t <= 0) { this.state = "tele"; this.t = 0.55;
-            world.tele.push({ kind: "charge", ttl: 0.55 });
+          if (this.t <= 0) { this.state = "tele"; this.t = 0.7;
+            world.tele.push({ kind: "charge", ttl: 0.7 });
             say("TURTLE WINDS UP"); } }
         else if (this.state === "tele") { this.t -= dt;
-          if (this.t <= 0) { this.state = "dash"; this.t = 1.15; this.mine = 0.2;
-            b.vx = (b.x + b.w / 2 < world.ship.x ? 1 : -1) * base * 3.1;
-            say("SHELL CHARGE"); } }
-        else if (this.state === "dash") { this.t -= dt; this.mine -= dt;
-          if (this.mine <= 0) { this.mine = 0.8;
-            addMine(b.x + b.w / 2, b.y + b.h, 0); addMine(b.x + b.w / 2 - 22, b.y + b.h, -20);
-            addMine(b.x + b.w / 2 + 22, b.y + b.h, 20); }
-          if (this.t <= 0) { this.state = "idle"; this.t = 2.2;
-            b.vx = Math.sign(b.vx) * base;
-            addWave(b.x + b.w / 2, b.y + b.h, 90);
-            say("SHELL SLAM"); } }
+          if (this.t <= 0) { this.state = "idle"; this.t = 3.2;
+            addWave(b.x + b.w / 2, b.y + b.h, 140);
+            say("SEISMIC SLAM");
+            const px = shipCenter().x;
+            [-1, 0, 1].forEach((i) => addMine(px + i * 74 - 8, Math.max(80, world.ship.y - 110 - Math.abs(i) * 26), i * 30)); } }
       } },
     { key: "W", name: "SHELL ARMOR", desc: "2 shell hits absorb damage; shell regenerates after 15s (ring shows progress).",
       dur: 8, start(d) { resetWorld(d); world.shell = 2; this.t = 0; },
@@ -508,7 +516,7 @@ const ABILITIES = {
         if (world.shell <= 0 && !this.regen) { this.regen = true; this.rt = 3; }
         if (this.regen) { this.rt -= dt;
           if (this.rt <= 0) { world.shell = 2; this.regen = false; say("TURTLE SHELL RESTORED"); } } } },
-    { key: "E", name: "SPIKE MINES", desc: "Spike mines drop on a 0.72s cadence (18 shield damage each).",
+    { key: "E", name: "SPIKE MINES", desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 2.2s with a 64px blast.",
       dur: 7, start(d) { resetWorld(d); this.t = 0.2; },
       step(d, dt) { this.t -= dt; if (this.t <= 0) {
         const cx = world.boss.x + world.boss.w / 2;

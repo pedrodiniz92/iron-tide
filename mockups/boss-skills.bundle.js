@@ -10898,7 +10898,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       bombMax: 1,
       bombRadius: 72,
       bombShieldDamage: 30,
-      chargeInterval: 5.4,
+      slamInterval: 5.4,
       mineInterval: 0.72,
       mineShieldDamage: 18,
       shellHp: 2,
@@ -11000,7 +11000,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     });
   }
   function addMine(sx, sy, vx) {
-    world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6 });
+    world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 2.2, blast: 64 });
   }
   function addWave(x, y2, r) {
     world.waves.push({ x, y: y2, r, max: r, ttl: 0.7 });
@@ -11070,10 +11070,21 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       return true;
     });
     world.mines = world.mines.filter((m) => {
-      m.y += m.vy * dt2;
+      m.arm = Math.max(0, (m.arm || 0) - dt2);
+      if (m.arm <= 0) {
+        const dx = shipCenter().x - (m.x + 8);
+        const target = Math.max(-90, Math.min(90, dx * 0.9));
+        m.vx += Math.max(-140 * dt2, Math.min(140 * dt2, target - m.vx));
+        m.fuse -= dt2;
+      }
+      m.y += m.vy * dt2 * (m.arm > 0 ? 0.25 : 1);
       m.x += m.vx * dt2;
       m.ttl -= dt2;
-      return m.y < H2 - 30 && m.ttl > 0;
+      if (m.y >= H2 - 30 || m.ttl <= 0 || m.fuse <= 0) {
+        addWave(m.x + 8, m.y + 8, m.blast || 64);
+        return false;
+      }
+      return true;
     });
     world.waves = world.waves.filter((wv) => {
       wv.ttl -= dt2;
@@ -11184,11 +11195,14 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       }
     }
     for (const m of world.mines) {
+      const armed = (m.arm || 0) <= 0;
+      const lit = armed && m.fuse < 0.7;
       fxctx.save();
+      fxctx.globalAlpha = (m.arm || 0) > 0 ? 0.5 + 0.3 * Math.sin(world.t * 10) : lit ? 0.6 + 0.4 * Math.sin(world.t * 40) : 1;
       fxctx.translate(m.x, m.y);
       fxctx.rotate(Math.PI / 4);
-      fxctx.fillStyle = "#2fc96f";
-      fxctx.shadowColor = "#2fc96f";
+      fxctx.fillStyle = lit ? "#ff6b6b" : "#2fc96f";
+      fxctx.shadowColor = fxctx.fillStyle;
       fxctx.shadowBlur = 8;
       fxctx.fillRect(-7, -7, 14, 14);
       fxctx.restore();
@@ -11489,8 +11503,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     turtle: [
       {
         key: "Q",
-        name: "SHELL CHARGE",
-        desc: "0.55s WINDS UP, then a 3.1x dash across the arena dropping spike mines, ending in a slam shockwave.",
+        name: "SEISMIC SLAM",
+        desc: "0.7s WINDS UP, then a slam: shockwave + a fan of 3 fused spike mines erupts around your ship. Bomb breaks the windup.",
         dur: 9,
         start(d2) {
           resetWorld(d2);
@@ -11499,39 +11513,23 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         },
         step(d2, dt2) {
           const b = world.boss;
-          const base = d2.speed + LEVEL * 8;
           if (this.state === "idle") {
             this.t -= dt2;
             if (this.t <= 0) {
               this.state = "tele";
-              this.t = 0.55;
-              world.tele.push({ kind: "charge", ttl: 0.55 });
+              this.t = 0.7;
+              world.tele.push({ kind: "charge", ttl: 0.7 });
               say("TURTLE WINDS UP");
             }
           } else if (this.state === "tele") {
             this.t -= dt2;
             if (this.t <= 0) {
-              this.state = "dash";
-              this.t = 1.15;
-              this.mine = 0.2;
-              b.vx = (b.x + b.w / 2 < world.ship.x ? 1 : -1) * base * 3.1;
-              say("SHELL CHARGE");
-            }
-          } else if (this.state === "dash") {
-            this.t -= dt2;
-            this.mine -= dt2;
-            if (this.mine <= 0) {
-              this.mine = 0.8;
-              addMine(b.x + b.w / 2, b.y + b.h, 0);
-              addMine(b.x + b.w / 2 - 22, b.y + b.h, -20);
-              addMine(b.x + b.w / 2 + 22, b.y + b.h, 20);
-            }
-            if (this.t <= 0) {
               this.state = "idle";
-              this.t = 2.2;
-              b.vx = Math.sign(b.vx) * base;
-              addWave(b.x + b.w / 2, b.y + b.h, 90);
-              say("SHELL SLAM");
+              this.t = 3.2;
+              addWave(b.x + b.w / 2, b.y + b.h, 140);
+              say("SEISMIC SLAM");
+              const px = shipCenter().x;
+              [-1, 0, 1].forEach((i) => addMine(px + i * 74 - 8, Math.max(80, world.ship.y - 110 - Math.abs(i) * 26), i * 30));
             }
           }
         }
@@ -11579,7 +11577,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       {
         key: "E",
         name: "SPIKE MINES",
-        desc: "Spike mines drop on a 0.72s cadence (18 shield damage each).",
+        desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 2.2s with a 64px blast.",
         dur: 7,
         start(d2) {
           resetWorld(d2);

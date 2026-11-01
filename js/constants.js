@@ -150,11 +150,10 @@ const BOSS_DESIGNS = [
   {
     name: "TURTLE BULWARK",
     hp: 26, hpScale: 6, speed: 62, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
-    ability: "SHELL CHARGE", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
+    ability: "SEISMIC SLAM", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 30,
     shellHp: 1, shellMaxHp: 2, shellRegen: 15,
-    chargeInterval: 5.4, mineInterval: 0.72, mineShieldDamage: 18,
-    mineBurst: 3
+    slamInterval: 5.4, mineInterval: 0.72, mineShieldDamage: 18
   }
 ];
 
@@ -407,7 +406,7 @@ const MUSIC_TRACKS = [
 ];
 const STAGGER_WINDOW = 3.0;
 const STAGGER_COOLDOWN = 10;
-const STAGGER_DURATION = 1.8;
+const STAGGER_DURATION = 3.0;
 const hudScoreEl = document.getElementById("score");
 const hudHiEl = document.getElementById("hi");
 const hudWaveEl = document.getElementById("wave");

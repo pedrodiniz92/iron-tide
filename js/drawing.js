@@ -697,8 +697,12 @@ function drawSpikeMines() {
   spikeMines.forEach((mine) => {
     const cx = mine.x + mine.w / 2;
     const cy = mine.y + mine.h / 2;
+    const armed = (mine.arm || 0) <= 0;
+    const lit = armed && mine.fuse !== undefined && mine.fuse < 0.7;
     ctx.save();
-    neon("mine", cx, cy, 24, "#2fc96f");
+    if (mine.arm > 0) ctx.globalAlpha = 0.55 + 0.35 * Math.sin(waveTime * 10);
+    else if (lit) ctx.globalAlpha = 0.6 + 0.4 * Math.sin(waveTime * 40);
+    neon("mine", cx, cy, lit ? 26 : 24, lit ? "#ff6b6b" : "#2fc96f");
     ctx.restore();
   });
 }
