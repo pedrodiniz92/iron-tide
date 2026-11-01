@@ -701,7 +701,7 @@ function updateBossLaser(boss, dt) {
         laser.pierceTick = 0;
         const burns = cellsOnBeam(origin.x, origin.y, laser.endX, laser.endY, laser.width);
         burns.forEach((h) => {
-          h.cell.hp -= 2;
+          h.cell.hp -= 1;
           h.cell.flash = 0.5;
           addExplosion(h.x, h.y, "#ff3366");
         });
