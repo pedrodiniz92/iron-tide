@@ -62,6 +62,80 @@ function toggleTestPanel() {
   if (!testPanelOpen && state === "paused") state = "playing";
 }
 
+function jumpToWave(target) {
+  const prompt = document.getElementById("testUpgradePrompt");
+  if (prompt) prompt.style.display = "none";
+  level = target;
+  testJumpLevel = level;
+  newWave();
+  nextWaveIsBoss = isFullBossWave(level);
+  if (nextWaveIsBoss) {
+    spawnBoss();
+    nextWaveIsBoss = false;
+  }
+  updateStatus("Jumped to wave " + level);
+}
+
+function showUpgradePrompt(target, earned) {
+  const box = document.getElementById("testUpgradePrompt");
+  box.innerHTML = "";
+  const title = document.createElement("div");
+  title.textContent = `WAVE ${target}: you'd have ${earned} upgrade${earned > 1 ? "s" : ""} from killed bosses. Pick them:`;
+  title.style.cssText = "color:#ffe066;margin-bottom:6px;";
+  box.appendChild(title);
+
+  const rows = [];
+  for (let i = 0; i < earned; i += 1) {
+    const row = document.createElement("div");
+    row.style.cssText = "margin:4px 0;";
+    const treeSel = document.createElement("select");
+    treeSel.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
+    UPGRADE_TREES.forEach((tree) => {
+      const opt = document.createElement("option");
+      opt.value = tree.id;
+      opt.textContent = tree.name;
+      treeSel.appendChild(opt);
+    });
+    const lvlSel = document.createElement("select");
+    lvlSel.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
+    for (let l = 1; l <= 3; l += 1) {
+      const opt = document.createElement("option");
+      opt.value = String(l);
+      opt.textContent = "lvl " + l;
+      lvlSel.appendChild(opt);
+    }
+    row.appendChild(treeSel);
+    row.appendChild(lvlSel);
+    box.appendChild(row);
+    rows.push({ treeSel, lvlSel });
+  }
+
+  const startBtn = document.createElement("button");
+  startBtn.textContent = `START WAVE ${target}`;
+  startBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#ffe066;border:1px solid #ffe066;cursor:pointer;";
+  startBtn.addEventListener("click", () => {
+    const taken = {};
+    rows.forEach(({ treeSel, lvlSel }) => {
+      const tree = UPGRADE_TREES.find((t) => t.id === treeSel.value);
+      const want = Number(lvlSel.value);
+      const level = Math.min(want, (taken[tree.id] || 0) + 1, tree.levels.length);
+      taken[tree.id] = Math.max(taken[tree.id] || 0, level);
+      applyUpgrade({ treeId: tree.id, level, text: `${tree.name} ${level}: ${tree.levels[level - 1].label}` });
+    });
+    if (testPanelOpen) toggleTestPanel();
+    jumpToWave(target);
+  });
+  box.appendChild(startBtn);
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "CANCEL";
+  cancelBtn.style.cssText = "display:block;margin-top:4px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
+  cancelBtn.addEventListener("click", () => { box.style.display = "none"; });
+  box.appendChild(cancelBtn);
+
+  box.style.display = "block";
+}
+
 function buildTestPanel() {
   const button = document.createElement("button");
   button.id = "testModeButton";
@@ -130,20 +204,20 @@ function buildTestPanel() {
   waveBtn.textContent = "JUMP TO WAVE";
   waveBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   waveBtn.addEventListener("click", () => {
-    level = Number(waveSelect.value) || 1;
-    testJumpLevel = level;
-    newWave();
-    nextWaveIsBoss = isFullBossWave(level);
-    if (nextWaveIsBoss) {
-      spawnBoss();
-      nextWaveIsBoss = false;
-    }
-    updateStatus("Jumped to wave " + level);
+    const target = Number(waveSelect.value) || 1;
+    const earned = Math.floor((target - 1) / 3);
+    if (earned > 0) showUpgradePrompt(target, earned);
+    else jumpToWave(target);
   });
   waveRow.appendChild(waveLabel);
   waveRow.appendChild(waveSelect);
   waveRow.appendChild(waveBtn);
   panel.appendChild(waveRow);
+
+  const promptBox = document.createElement("div");
+  promptBox.id = "testUpgradePrompt";
+  promptBox.style.cssText = "display:none;margin-top:8px;padding:8px;border:1px solid #ffe066;background:rgba(24,18,4,0.9);";
+  waveRow.appendChild(promptBox);
 
   const permaRow = document.createElement("div");
   permaRow.style.cssText = "margin-top:10px;";
@@ -188,6 +262,4 @@ function buildTestPanel() {
   document.body.appendChild(panel);
 }
 
-if (new URLSearchParams(location.search).has("test") || new URLSearchParams(location.search).has("selftest")) {
-  buildTestPanel();
-}
+buildTestPanel();

@@ -1163,6 +1163,8 @@ function resetStagger() {
   staggerDamage = 0;
   staggerWindow = 0;
   staggerGrace = 0;
+  staggerDecayDiv = 5;
+  staggerThresholdEff = 0;
   staggerCooldown = 0;
   bossStagger = 0;
 }
@@ -1184,8 +1186,8 @@ function updateStagger(dt) {
   if (staggerGrace > 0) {
     staggerGrace = Math.max(0, staggerGrace - dt);
   } else if (staggerDamage > 0 && bossStagger <= 0 && staggerCooldown <= 0) {
-    const threshold = Math.max(4, 4 + level * 2) * 1.2;
-    staggerDamage = Math.max(0, staggerDamage - dt * (threshold / 6));
+    const threshold = staggerThresholdEff || Math.max(4, 4 + level * 2) * 1.2;
+    staggerDamage = Math.max(0, staggerDamage - dt * (threshold / staggerDecayDiv));
   }
 
   if (staggerCooldown > 0) {
@@ -1197,10 +1199,12 @@ function addStaggerDamage(boss, amount) {
   if (!boss || bossStagger > 0 || staggerCooldown > 0) return;
 
   staggerDamage += amount;
-  staggerGrace = 1.5;
+  const venom = boss.ability === "VENOM DIVE";
+  staggerGrace = venom ? 2.0 : 0.4;
+  staggerDecayDiv = venom ? 8 : 5;
+  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1);
 
-  const threshold = Math.max(4, 4 + level * 2) * 1.2;
-  if (staggerDamage >= threshold) {
+  if (staggerDamage >= staggerThresholdEff) {
     triggerBossStagger(boss);
   }
 }
@@ -1542,7 +1546,7 @@ function drawBossBar(boss, index) {
     ctx.font = "9px 'Press Start 2P'";
     ctx.fillText("STAGGERED", x + 4, 86);
   } else if (staggerDamage > 0 && staggerCooldown <= 0) {
-    const threshold = Math.max(4, 4 + level * 2) * 1.2;
+    const threshold = Math.max(4, 4 + level * 2) * 1.2 * (boss.ability === "VENOM DIVE" ? 0.75 : 1);
     ctx.fillStyle = "#ff9a3c";
     ctx.fillRect(x, 70, width * Math.min(1, staggerDamage / threshold), 5);
   }
