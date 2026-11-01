@@ -75,8 +75,6 @@ function newWave() {
   boss = null;
   bosses = [];
   bossSpawned = false;
-  bossDir = 1;
-  bossFireTimer = 1.2;
   resetStagger();
   enemyFireTimer = 1.2;
   invulnerabilityTimer = Math.max(invulnerabilityTimer, 0.85);

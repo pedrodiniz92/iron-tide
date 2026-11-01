@@ -63,6 +63,7 @@
   fireBtn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     initAudio();
+    stopFire();
     pressKey(" ");
     fireTimer = window.setInterval(() => pressKey(" "), 120);
   });

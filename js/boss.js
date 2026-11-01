@@ -11,7 +11,10 @@ function updateEnemyBombs(dt) {
     });
     bomb.trail = bomb.trail.filter((point) => point.ttl > 0);
 
-    if (bomb.y >= H - 42) return false;
+    if (bomb.y >= H - 42) {
+      explodeEnemyBomb(bomb);
+      return false;
+    }
     if (bomb.x < -20 || bomb.x > W + 20) return false;
 
     if (bomb.ttl <= 0) {
@@ -33,6 +36,13 @@ function updateEnemyBombs(dt) {
 
     return true;
   });
+
+  if (clearEnemyFirePending) {
+    clearEnemyFirePending = false;
+    enemyBullets = [];
+    enemyBombs = [];
+    spikeMines = [];
+  }
 }
 
 function updateSpikeMines(dt) {
@@ -74,6 +84,13 @@ function updateSpikeMines(dt) {
 
     return true;
   });
+
+  if (clearEnemyFirePending) {
+    clearEnemyFirePending = false;
+    enemyBullets = [];
+    enemyBombs = [];
+    spikeMines = [];
+  }
 }
 
 function hitPlayerWithSpikeMine() {
@@ -82,12 +99,10 @@ function hitPlayerWithSpikeMine() {
   if (shieldHits > 0 && effects.shield > 0) {
     shieldHits -= 1;
     syncShieldStack();
-    if (shieldHits <= 0) {
-      effects.shield = 0;
-      noteShieldBreak();
-    }
+    if (shieldHits <= 0) effects.shield = 0;
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
+    if (shieldHits < maxShieldHits) noteShieldBreak();
     showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED SPIKE x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
     return;
   }
@@ -99,6 +114,7 @@ function hitPlayerWithSpikeMine() {
   clearWeaponUpgrades();
   clearEnemyFire();
   playerBullets = [];
+  clearPlayerBulletsPending = true;
 
   if (lives <= 0) {
     gameOver();
@@ -108,7 +124,7 @@ function hitPlayerWithSpikeMine() {
 }
 
 function fireSpikeMine(boss, arm = 0) {
-  const mineCount = boss.burrowing ? Math.max(2, boss.mineBurst || 2) : 1;
+  const mineCount = boss.charging ? Math.max(2, boss.mineBurst || 2) : 1;
   const spread = mineCount === 1 ? 0 : 44;
   for (let i = 0; i < mineCount; i += 1) {
     const offset = mineCount === 1 ? 0 : (i - (mineCount - 1) / 2) * spread;
@@ -118,7 +134,7 @@ function fireSpikeMine(boss, arm = 0) {
       w: 16,
       h: 16,
       vx: offset * 0.45,
-      vy: boss.burrowing ? 128 : 112,
+      vy: boss.charging ? 128 : 112,
       ttl: 6.2,
       hp: 1,
       maxHp: 1,
@@ -232,12 +248,10 @@ function hitPlayerWithEnemyBomb(damage = 1) {
   if (shieldHits > 0 && effects.shield > 0) {
     shieldHits -= 1;
     syncShieldStack();
-    if (shieldHits <= 0) {
-      effects.shield = 0;
-      noteShieldBreak();
-    }
+    if (shieldHits <= 0) effects.shield = 0;
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
+    if (shieldHits < maxShieldHits) noteShieldBreak();
     showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED BOMB x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
     return;
   }
@@ -249,6 +263,7 @@ function hitPlayerWithEnemyBomb(damage = 1) {
   clearWeaponUpgrades();
   clearEnemyFire();
   playerBullets = [];
+  clearPlayerBulletsPending = true;
 
   if (lives <= 0) {
     gameOver();
@@ -284,22 +299,23 @@ function createBossFromDesign(design, mini, x, y) {
     bombDirect: design.bombDirect === true,
     bombPlayerDamage: design.bombPlayerDamage || 1,
     bombBarrierDamage: design.bombBarrierDamage || design.bombShieldDamage || 24,
+    diveState: "idle",
+    diveTimer: design.diveInterval || 4.6,
+    diveTele: 0,
+    diveTargetX: W / 2,
+    diveDropTimer: 0,
+    diveCount: 0,
     shellHp: design.shellHp || 0,
     shellMaxHp: design.shellMaxHp || 0,
     shellRegen: design.shellRegen || 15,
     shellTimer: 0,
-    burrowing: false,
-    burrowTele: 0,
-    shellJustRestored: false,
-    coreOpen: false,
-    coreTimer: 0,
-    burrowTimer: design.burrowInterval || 9,
-    burrowDuration: 0,
-    burrowLength: design.burrowDuration || 3.2,
-    shellRegenBoost: design.shellRegenBoost || 2.4,
+    charging: false,
+    chargeTele: 0,
+    chargeTimer: design.chargeInterval || 5.4,
+    chargeDuration: 0,
+    chargeLength: 1.15,
     mineTimer: design.mineInterval || 0.9,
     mineShieldDamage: design.mineShieldDamage || 12,
-    burrowShellHits: design.burrowShellHits || 2,
     mineBurst: design.mineBurst || 1,
     mineInterval: design.mineInterval || 0.9,
     droneTimer: design.droneInterval || 1.25,
@@ -353,7 +369,6 @@ function spawnBoss() {
     createBossFromDesign(left, false, W / 2 - 150, 54);
     createBossFromDesign(right, false, W / 2 + 22, 54);
     boss = bosses[0];
-    bossCount += 1;
     addExplosion(W / 2, 90, "#ff3366");
     addExplosion(W / 2, 90, "#ffe066");
     addScreenShake(14);
@@ -368,7 +383,6 @@ function spawnBoss() {
   const mini = isMinibossWave(level);
   const unit = createBossFromDesign(design, mini, W / 2 - 64, 54);
   boss = unit;
-  if (!mini) bossCount += 1;
   addExplosion(W / 2, 90, "#ff3366");
   addExplosion(W / 2, 90, "#ffe066");
   addScreenShake(10);
@@ -383,10 +397,17 @@ function updateBoss(dt) {
 }
 
 function updateBossUnit(boss, dt) {
+  if (bossStagger > 0) {
+    boss.laser.state = "idle";
+    boss.laser.timer = Math.max(0.8, boss.laser.timer + dt * 1.4);
+    boss.laser.endX = boss.laser.aimX;
+    boss.laser.endY = boss.laser.aimY;
+    return;
+  }
+
   const bossSlow = getSlowFactor("boss");
-  const moveScale = boss.burrowing ? 0 : 1;
-  boss.x += boss.vx * dt * moveScale * bossSlow;
-  boss.y += boss.vy * dt * moveScale * bossSlow;
+  boss.x += boss.vx * dt * bossSlow;
+  boss.y += boss.vy * dt * bossSlow;
 
   if (boss.x <= 18) {
     boss.x = 18;
@@ -397,8 +418,9 @@ function updateBossUnit(boss, dt) {
     boss.vx = -Math.abs(boss.vx);
   }
 
+  const diving = boss.diveState === "dive" || boss.diveState === "climb";
   boss.moveTimer -= dt * bossSlow;
-  if (boss.moveTimer <= 0) {
+  if (boss.moveTimer <= 0 && !diving) {
     boss.moveTimer = 1.1 + Math.random() * 1.2;
     const inLowerHalf = boss.y + boss.h / 2 > H / 2;
     const upChance = inLowerHalf ? 0.72 : 0.44;
@@ -406,52 +428,87 @@ function updateBossUnit(boss, dt) {
     boss.vy = Math.random() < upChance ? -moveSpeed : moveSpeed;
   }
 
-  boss.y = clamp(boss.y, 58, Math.min(H - boss.h - 24, player.y - boss.h - 150));
+  const yMax = diving ? H - boss.h - 24 : Math.min(H - boss.h - 24, player.y - boss.h - 150);
+  boss.y = clamp(boss.y, 58, yMax);
   boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
 
-  if (boss.ability === "SHELL BURROW") {
-    if (boss.burrowing) {
-      boss.burrowDuration -= dt * bossSlow;
-      boss.coreTimer -= dt * bossSlow;
-      if (boss.coreTimer <= 0) {
-        boss.coreOpen = !boss.coreOpen;
-        boss.coreTimer = boss.coreOpen ? 0.6 : 0.8;
-        addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.coreOpen ? "#ffe066" : "#62ffa1");
-      }
+  if (boss.ability === "SHELL CHARGE") {
+    const baseSpeed = boss.designData.speed + level * 8;
+    if (boss.charging) {
+      boss.chargeDuration -= dt * bossSlow;
       boss.mineTimer -= dt * bossSlow;
       if (boss.mineTimer <= 0) {
         fireSpikeMine(boss);
-        boss.mineTimer = Math.max(0.55, 0.95 - level * 0.015);
+        boss.mineTimer = Math.max(0.5, 0.8 - level * 0.01);
       }
-      if (boss.burrowDuration <= 0) {
-        boss.burrowing = false;
-        boss.coreOpen = false;
-        boss.burrowTimer = Math.max(7.2, 9.6 - level * 0.06);
-        boss.shellMaxHp = Math.max(boss.shellMaxHp, boss.burrowShellHits || 2);
-        boss.shellHp = Math.max(boss.shellHp, boss.burrowShellHits || 2);
-        boss.shellTimer = 0;
-        addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
+      if (boss.chargeDuration <= 0) {
+        boss.charging = false;
+        boss.chargeTimer = Math.max(3.4, (boss.designData.chargeInterval || 5.4) - (boss.phase - 1) * 0.6);
+        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed;
+        addScreenShake(5);
+        addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 90);
+        showGameMessage("SHELL SLAM", 0.7, "#62ffa1");
       }
-    } else if (boss.burrowTele > 0) {
-      boss.burrowTele -= dt * bossSlow;
-      screenShake = Math.max(screenShake, 4);
-      if (boss.burrowTele <= 0) {
-        boss.burrowing = true;
-        boss.burrowDuration = boss.burrowLength;
-        boss.coreOpen = false;
-        boss.coreTimer = 0.8;
-        boss.mineTimer = 0.25;
-        boss.shellHp = Math.max(boss.shellHp, boss.burrowShellHits || 2);
+    } else if (boss.chargeTele > 0) {
+      boss.chargeTele -= dt * bossSlow;
+      screenShake = Math.max(screenShake, 3);
+      if (boss.chargeTele <= 0) {
+        boss.charging = true;
+        boss.chargeDuration = boss.chargeLength;
+        boss.mineTimer = 0.2;
+        boss.vx = (boss.x + boss.w / 2 < player.x + player.w / 2 ? 1 : -1) * baseSpeed * 3.1;
         addScreenShake(6);
-        showGameMessage("SHELL BURROW", 0.85, "#62ffa1");
+        showGameMessage("SHELL CHARGE", 0.7, "#62ffa1");
       }
     } else {
-      boss.burrowTimer -= dt * bossSlow;
-      if (boss.burrowTimer <= 0 && boss.shellJustRestored) {
-        boss.shellJustRestored = false;
-        boss.burrowTele = 0.6;
+      boss.chargeTimer -= dt * bossSlow;
+      if (boss.chargeTimer <= 0) {
+        boss.chargeTele = 0.55;
         addScreenShake(4);
-        showGameMessage("GROUND RUMBLES", 0.6, "#62ffa1");
+        showGameMessage("TURTLE WINDS UP", 0.55, "#62ffa1");
+      }
+    }
+  }
+
+  if (boss.ability === "VENOM DIVE") {
+    const diveSpeed = boss.designData.speed + level * 8;
+    if (boss.diveState === "idle") {
+      boss.diveTimer -= dt * bossSlow;
+      if (boss.diveTimer <= 0) {
+        boss.diveState = "telegraph";
+        boss.diveTele = 0.6;
+        boss.diveTargetX = clamp(playerCenterX(), 60, W - 60);
+        addScreenShake(3);
+        showGameMessage("VENOM DIVE", 0.6, "#7dff66");
+      }
+    } else if (boss.diveState === "telegraph") {
+      boss.diveTele -= dt * bossSlow;
+      if (boss.diveTele <= 0) {
+        boss.diveState = "dive";
+        boss.diveDropTimer = 0.1;
+        boss.diveCount = 0;
+        boss.vx = (boss.diveTargetX >= boss.x + boss.w / 2 ? 1 : -1) * diveSpeed * 1.6;
+        boss.vy = 300 + level * 10;
+      }
+    } else if (boss.diveState === "dive") {
+      boss.diveDropTimer -= dt * bossSlow;
+      if (boss.diveDropTimer <= 0) {
+        boss.diveDropTimer = 0.22;
+        fireVenomBomb(boss);
+        boss.diveCount += 1;
+      }
+      if (boss.y + boss.h >= player.y - 130 || boss.diveCount >= 3) {
+        boss.diveState = "climb";
+        boss.vy = -(300 + level * 10);
+        addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 70);
+      }
+    } else if (boss.diveState === "climb") {
+      if (boss.y <= 58) {
+        boss.y = 58;
+        boss.diveState = "idle";
+        boss.vy = 12 + level;
+        boss.vx = diveSpeed * (Math.random() < 0.5 ? -1 : 1);
+        boss.diveTimer = Math.max(2.6, (boss.designData.diveInterval || 4.6) - (boss.phase - 1) * 0.8);
       }
     }
   }
@@ -507,11 +564,9 @@ function updateBossUnit(boss, dt) {
   }
 
   if (boss.shellMaxHp > 0 && boss.shellHp <= 0 && boss.shellTimer > 0) {
-    const regenSpeed = boss.burrowing ? 0 : bossSlow;
-    boss.shellTimer = Math.max(0, boss.shellTimer - dt * regenSpeed);
+    boss.shellTimer = Math.max(0, boss.shellTimer - dt * bossSlow);
     if (boss.shellTimer <= 0) {
       boss.shellHp = boss.shellMaxHp;
-      boss.shellJustRestored = true;
       addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
       showGameMessage("TURTLE SHELL RESTORED", 1.05, "#62ffa1");
     }
@@ -522,14 +577,6 @@ function updateBossUnit(boss, dt) {
     boss.laser.timer = Math.max(0.8, boss.laser.timer + dt);
     boss.laser.endX = boss.laser.aimX;
     boss.laser.endY = boss.laser.aimY;
-  }
-
-  if (bossStagger > 0) {
-    boss.laser.state = "idle";
-    boss.laser.timer = Math.max(0.8, boss.laser.timer + dt * 1.4);
-    boss.laser.endX = boss.laser.aimX;
-    boss.laser.endY = boss.laser.aimY;
-    return;
   }
 
   boss.timer -= dt * bossSlow;
@@ -610,11 +657,21 @@ function updateBossLaser(boss, dt) {
       return pointToSegmentDistance(bx, by, origin.x, origin.y, laser.endX, laser.endY) > laser.width + 8;
     });
 
-    const playerHitX = Math.abs(playerCenterX - laser.endX) < laser.width;
-    const playerHitY = Math.abs(playerCenterY - laser.endY) < laser.height;
-    if (!hit && !laser.hasHitPlayer && playerHitX && playerHitY) {
-      laser.hasHitPlayer = true;
-      hitPlayerWithBossLaser();
+    if (!hit && !laser.hasHitPlayer) {
+      let playerOnBeam = false;
+      for (let s = 0; s <= 40; s += 1) {
+        const t = s / 40;
+        const px = origin.x + (laser.endX - origin.x) * t;
+        const py = origin.y + (laser.endY - origin.y) * t;
+        if (px > player.x - 4 && px < player.x + player.w + 4 && py > player.y - 4 && py < player.y + player.h + 4) {
+          playerOnBeam = true;
+          break;
+        }
+      }
+      if (playerOnBeam) {
+        hitPlayerWithBossLaser();
+        laser.hasHitPlayer = !isPlayerInvulnerable();
+      }
     }
 
     if (laser.timer <= 0) {
@@ -691,7 +748,7 @@ function hitPlayerWithBossLaser() {
     if (shieldHits <= 0) effects.shield = 0;
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
-    if (shieldHits <= 0) noteShieldBreak();
+    if (shieldHits < maxShieldHits) noteShieldBreak();
     showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED LASER x${shieldHits}` : "SHIELD GONE", 1.05, "#62ffa1");
     return;
   }
@@ -703,6 +760,7 @@ function hitPlayerWithBossLaser() {
   clearWeaponUpgrades();
   clearEnemyFire();
   playerBullets = [];
+  clearPlayerBulletsPending = true;
 
   if (lives <= 0) {
     gameOver();
@@ -712,7 +770,15 @@ function hitPlayerWithBossLaser() {
 }
 
 function bossAimVx(boss, sx, sy, speed, limit) {
-  return aimVx({ type: { name: "stinger" } }, sx, sy, speed, limit);
+  const phase = boss.phase || 1;
+  const leadChance = Math.min(0.8, 0.3 + phase * 0.18);
+  const current = playerCenterX();
+  const predicted = predictPlayerX(sx, sy, speed);
+  const roll = Math.random();
+  const target = roll < leadChance ? predicted
+    : roll < leadChance + 0.3 ? (current + predicted) / 2
+    : current;
+  return clamp((clamp(target, sx - 260, sx + 260) - sx) * 1.5, -limit, limit);
 }
 
 function fireBossBullet(boss) {
@@ -746,23 +812,23 @@ function fireBossBullet(boss) {
     return;
   }
 
-  if (design.ability === "TRIPLE BOMBS") {
+  if (design.ability === "VENOM DIVE") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
-      const sideAim = Math.abs(aim(24));
-      addBossBullet(boss, cx - 2, cy, 0, speed * 0.92);
-      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.84);
-      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.84);
+      const sideAim = Math.abs(aim(60));
+      addBossBullet(boss, cx - 2, cy, aim(40), speed * 0.95);
+      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.85);
+      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.85);
     } else {
-      const sideAim = Math.abs(aim(14));
-      addBossBullet(boss, cx - 24, cy, -sideAim, speed * 0.88);
-      addBossBullet(boss, cx + 20, cy, sideAim, speed * 0.88);
-      if (phase >= 3) addBossBullet(boss, cx - 2, cy, 0, speed * 0.92);
+      const lead = aim(70);
+      addBossBullet(boss, cx - 24, cy, lead * 0.6, speed * 0.9);
+      addBossBullet(boss, cx + 20, cy, lead, speed * 0.9);
+      if (phase >= 3) addBossBullet(boss, cx - 2, cy, lead * 1.2, speed);
     }
     return;
   }
 
-  if (design.ability === "SHELL BURROW") {
+  if (design.ability === "SHELL CHARGE") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
       const sideAim = Math.abs(aim(22));
@@ -798,6 +864,33 @@ function fireBossBullet(boss) {
   }
 }
 
+function fireVenomBomb(boss) {
+  const cx = boss.x + boss.w / 2;
+  const cy = boss.y + boss.h;
+  const shield = shields.length ? shields[Math.floor(Math.random() * shields.length)] : null;
+  const targetX = shield ? shield.x + shield.w / 2 : playerCenterX();
+  const dx = targetX - cx;
+  enemyBombs.push({
+    x: cx - 7,
+    y: cy,
+    w: 14,
+    h: 14,
+    vx: clamp(dx * 0.5 + boss.vx * 0.35, -160, 160),
+    vy: 60,
+    ttl: 4.2,
+    hp: 2,
+    maxHp: 2,
+    radius: 18,
+    direct: true,
+    playerDamage: Math.max(1, boss.bombPlayerDamage || 1),
+    shieldDamage: boss.bombBarrierDamage || 16,
+    color: boss.designData.accent,
+    fromBoss: true,
+    trail: []
+  });
+  playBombLaunch();
+}
+
 function fireBossBomb(boss) {
   const design = boss.designData || BOSS_DESIGNS[0];
   const bombsToFire = boss.bombsPerLaunch ?? design.bombsPerLaunch ?? 1;
@@ -808,7 +901,7 @@ function fireBossBomb(boss) {
   const originX = boss.x + boss.w / 2;
   const originY = boss.y + boss.h;
   const direct = boss.bombDirect === true;
-  const fanSpread = direct ? 116 : design.ability === "SHELL BURROW" ? 22 : 58;
+  const fanSpread = direct ? 116 : design.ability === "SHELL CHARGE" ? 22 : 58;
 
   for (let i = 0; i < count; i += 1) {
     const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (fanSpread / count);
@@ -883,15 +976,6 @@ function damageBoss(boss, amount) {
   if (!boss) return;
   comboAddHit();
   const design = boss.designData || BOSS_DESIGNS[0];
-  if (boss.burrowing) {
-    if (!boss.coreOpen) {
-      bossHitReward(boss);
-      addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
-      playShieldHit();
-      return;
-    }
-    amount = amount * 2;
-  }
   if (boss.shellHp > 0) {
     boss.shellHp = Math.max(0, boss.shellHp - 1);
     bossHitReward(boss);
@@ -1002,7 +1086,7 @@ function addStaggerDamage(boss, amount) {
   staggerDamage += amount;
   staggerWindow = STAGGER_WINDOW;
 
-  const threshold = Math.max(12, 10 + level * 3);
+  const threshold = Math.max(8, 8 + level * 2);
   if (staggerDamage >= threshold) {
     triggerBossStagger();
   }
@@ -1224,52 +1308,52 @@ function drawBossUnit(boss, index) {
     ctx.lineWidth = 1;
   }
 
-  if (boss.burrowing) {
-    const burrowCx = boss.x + boss.w / 2;
-    const burrowCy = boss.y + boss.h / 2;
-    const burrowProgress = clamp(boss.burrowDuration / Math.max(0.1, boss.burrowLength), 0, 1);
+  if (boss.charging) {
+    const chargeCx = boss.x + boss.w / 2;
     ctx.save();
-    ctx.fillStyle = "rgba(47, 201, 111, 0.13)";
-    ctx.beginPath();
-    ctx.ellipse(burrowCx, burrowCy + 6, boss.w / 2 + 26, boss.h / 2 + 22, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(130, 255, 190, 0.58)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(burrowCx, burrowCy, boss.w / 2 + 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * burrowProgress);
-    ctx.stroke();
+    ctx.strokeStyle = "rgba(130, 255, 190, 0.5)";
+    ctx.lineWidth = 3;
+    const dir = boss.vx >= 0 ? -1 : 1;
+    for (let i = 1; i <= 3; i += 1) {
+      const sx = chargeCx + dir * (boss.w / 2 + i * 16);
+      ctx.beginPath();
+      ctx.moveTo(sx, boss.y + 10);
+      ctx.lineTo(sx, boss.y + boss.h - 10);
+      ctx.stroke();
+    }
     ctx.fillStyle = "#62ffa1";
     ctx.font = "12px 'Courier New', monospace";
-    ctx.fillText(`BURROW ${Math.ceil(boss.burrowDuration)}s`, burrowCx - 32, boss.y - 28);
-    if (boss.coreOpen) {
-      const corePulse = 10 + Math.sin(Date.now() / 90) * 3;
-      ctx.fillStyle = "#ffe066";
-      ctx.beginPath();
-      ctx.arc(burrowCx, burrowCy, corePulse, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(burrowCx, burrowCy, corePulse * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#ffe066";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(burrowCx, burrowCy, 30 + corePulse * 0.6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.lineWidth = 1;
-    }
+    ctx.fillText("CHARGE", chargeCx - 24, boss.y - 28);
     ctx.lineWidth = 1;
     ctx.restore();
   }
 
-  if (boss.burrowTele > 0) {
+  if (boss.chargeTele > 0) {
     ctx.strokeStyle = "rgba(130, 255, 190, 0.55)";
     ctx.lineWidth = 3;
     ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, boss.w + 20, 12);
     ctx.fillStyle = "#62ffa1";
     ctx.font = "12px 'Courier New', monospace";
-    ctx.fillText("RUMBLE", boss.x + boss.w / 2 - 24, boss.y + boss.h + 26);
+    ctx.fillText("WINDING UP", boss.x + boss.w / 2 - 40, boss.y + boss.h + 26);
     ctx.lineWidth = 1;
+  }
+
+  if (boss.ability === "VENOM DIVE" && boss.diveState === "telegraph") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(125, 255, 102, 0.7)";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h);
+    ctx.lineTo(boss.diveTargetX, H - 60);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeRect(boss.diveTargetX - 26, H - 86, 52, 26);
+    ctx.fillStyle = "#7dff66";
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText("DIVE", boss.diveTargetX - 14, H - 92);
+    ctx.lineWidth = 1;
+    ctx.restore();
   }
 
   const laser = boss.laser;

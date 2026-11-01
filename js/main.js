@@ -46,13 +46,10 @@ function startGame() {
   boss = null;
   bosses = [];
   bossSpawned = false;
-  bossDir = 1;
-  bossFireTimer = 1.2;
-  bossCount = 0;
   resetStagger();
   ufoTimer = 20;
   enemyFireTimer = 1.2;
-  invulnerabilityTimer = 1.5;
+  invulnerabilityTimer = 3.0;
   waveBreakTimer = 0;
   waveClearing = false;
   nextWaveIsBoss = false;
@@ -69,7 +66,12 @@ function startGame() {
   maxShieldHits = 1;
   shieldRestoreDelay = 0;
   shieldRestoreTimer = 0;
+  clearEnemyFirePending = false;
+  clearPlayerBulletsPending = false;
   runTime = 0;
+  victoryRank = 0;
+  keys.clear();
+  window.touchAimX = null;
   playerName = effectiveName() || "PILOT";
   saveName(playerName);
   resetPlayer(false);
@@ -77,6 +79,8 @@ function startGame() {
   newWave();
   setMusic(pickWaveMusic(level), true);
   state = "choices";
+  gameMessages = [];
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
   upgradePrompt = "CHOOSE A STARTING UPGRADE";
@@ -99,6 +103,7 @@ function frame(now) {
 function winGame() {
   state = "victory";
   clearEnemyFire();
+  gameMessages = [];
   victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
   playLevelClear();
   updateStatus("THE IRON TIDE IS BROKEN.");
@@ -253,7 +258,7 @@ function checkCollisions() {
         if (shieldHits <= 0) effects.shield = 0;
         addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
         playShieldHit();
-        if (shieldHits <= 0) noteShieldBreak();
+        if (shieldHits < maxShieldHits) noteShieldBreak();
         showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED HIT x${shieldHits}` : "SHIELD GONE", 1.05, "#62ffa1");
         return false;
       }
@@ -266,6 +271,7 @@ function checkCollisions() {
       clearWeaponUpgrades();
       clearEnemyFire();
       playerBullets = [];
+      clearPlayerBulletsPending = true;
 
       if (lives <= 0) {
         gameOver();
@@ -277,6 +283,17 @@ function checkCollisions() {
 
     return true;
   });
+
+  if (clearEnemyFirePending) {
+    clearEnemyFirePending = false;
+    enemyBullets = [];
+    enemyBombs = [];
+    spikeMines = [];
+  }
+  if (clearPlayerBulletsPending) {
+    clearPlayerBulletsPending = false;
+    playerBullets = [];
+  }
 }
 
 function updateMinibossSpawn() {
@@ -285,7 +302,7 @@ function updateMinibossSpawn() {
   const alive = invaders.filter((invader) => invader.alive).length;
   const threshold = Math.max(1, Math.ceil(invaders.length * 0.1));
 
-  if (alive === 0 || alive > threshold) return;
+  if (alive > threshold) return;
 
   spawnBoss();
 }
@@ -293,6 +310,7 @@ function updateMinibossSpawn() {
 function checkWaveClear() {
   if (waveClearing || state === "waveBreak" || state === "choices") return;
   if (bosses.length) return;
+  if (isMinibossWave(level) && !bossSpawned) return;
   if (invaders.some((invader) => invader.alive)) return;
 
   waveClearing = true;
@@ -301,6 +319,7 @@ function checkWaveClear() {
   playLevelClear();
   clearEnemyFire();
   playerBullets = [];
+  clearPlayerBulletsPending = true;
   bombShots = [];
   nextWaveIsBoss = isFullBossWave(level);
   state = "waveBreak";
@@ -347,8 +366,10 @@ function addScore(points, x, y) {
 }
 
 function gameOver() {
+  if (state === "gameover" || state === "victory") return;
   state = "gameover";
   screenShake = 0;
+  gameMessages = [];
   saveHighScore(highScore);
   if (score > 0) {
     victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: false });
@@ -368,6 +389,8 @@ function finishBossFight() {
   playLevelClear();
   setMusic(7);
   state = "choices";
+  gameMessages = [];
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
   upgradePrompt = "CHOOSE A PERMANENT UPGRADE";
@@ -482,7 +505,7 @@ if (nameStartBtn) {
 
 document.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  const typing = event.target && event.target.tagName === "INPUT";
+  const typing = event.target && event.target.tagName === "INPUT" && (state === "ready" || state === "gameover");
 
   if (typing && key !== "enter") return;
 
@@ -505,7 +528,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (key === "enter" && (state === "ready" || state === "gameover")) {
+  if ((key === "enter" || key === " ") && (state === "ready" || state === "gameover")) {
     if (!effectiveName()) {
       updateStatus("TYPE YOUR NAME FIRST");
       return;

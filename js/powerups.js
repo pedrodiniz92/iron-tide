@@ -4,10 +4,14 @@ function updatePowerups(dt) {
     powerup.y += powerup.vy * dt;
     if (powerup.x < 22 || powerup.x > W - 48) powerup.vx *= -1;
     if (Number.isFinite(powerup.ttl)) powerup.ttl = Math.max(0, powerup.ttl - dt);
+    if (powerup.y > H - 46 && powerup.persist) {
+      powerup.y = H - 46;
+      powerup.vy = 0;
+    }
   });
 
   powerups = powerups.filter((powerup) => {
-    return powerup.y < H - 46 && (!Number.isFinite(powerup.ttl) || powerup.ttl > 0);
+    return (powerup.persist || powerup.y < H - 46) && (!Number.isFinite(powerup.ttl) || powerup.ttl > 0);
   });
 
   const touched = powerups.find((powerup) => overlaps(powerup, player));
@@ -112,7 +116,7 @@ function applyTemporaryEffect(id, duration) {
     return;
   }
   const effective = effectivePowerupDuration(duration);
-  effects[id] = Math.min(14, effects[id] + effective);
+  effects[id] = Math.min(effectivePowerupDuration(14), effects[id] + effective);
 }
 
 function grantBomb(x, y) {
@@ -229,10 +233,9 @@ function updateBombShots(dt) {
     const hitInvader = invaders.find((invader) => invader.alive && !invader.ghosted && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
     const hitBoss = bosses.find((unit) => overlaps(shot, unit));
-    const hitEnemyBullet = enemyBullets.find((bullet) => overlaps(shot, bullet));
     const hitShield = shields.find((shield) => overlaps(shot, shield));
 
-    if (hitInvader || hitUfo || hitBoss || hitEnemyBullet || hitShield) {
+    if (hitInvader || hitUfo || hitBoss || hitShield) {
       explodeBombShot(shot);
       return false;
     }
@@ -256,7 +259,6 @@ function explodeBombShot(shot) {
     const dx = invader.x + invader.w / 2 - centerShotX;
     const dy = invader.y + invader.h / 2 - centerShotY;
     if (dx * dx + dy * dy <= shot.radius * shot.radius) {
-      invader.shieldHp = 0;
       invader.hp = Math.max(0, (invader.hp || 1) - 2);
       if (invader.hp === 1 && (invader.maxHp || 1) >= 2) invader.threatened = 5;
       if (invader.hp > 0) {
@@ -277,12 +279,19 @@ function explodeBombShot(shot) {
     const dy = unit.y + unit.h / 2 - centerShotY;
     if (dx * dx + dy * dy > shot.radius * shot.radius) return;
 
-    if (unit.burrowing) {
-      unit.burrowing = false;
-      unit.coreOpen = false;
-      unit.burrowTele = 0;
-      unit.burrowTimer = Math.max(7.2, 9.6 - level * 0.06);
-      showGameMessage("BURROW BROKEN!", 1.0, "#ffe066");
+    if (unit.diveState && unit.diveState !== "idle") {
+      unit.diveState = "idle";
+      unit.vy = 12 + level;
+      unit.diveTimer = Math.max(2.0, (unit.designData.diveInterval || 4.6) - (unit.phase - 1) * 0.8);
+      showGameMessage("DIVE BROKEN!", 1.0, "#7dff66");
+    }
+
+    if (unit.charging || unit.chargeTele > 0) {
+      unit.charging = false;
+      unit.chargeTele = 0;
+      unit.chargeTimer = Math.max(3.4, (unit.designData.chargeInterval || 5.4) - (unit.phase - 1) * 0.6);
+      unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
+      showGameMessage("CHARGE BROKEN!", 1.0, "#ffe066");
       damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09));
     } else {
       damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06));
@@ -313,16 +322,27 @@ function explodeBombShot(shot) {
     return true;
   });
 
+  spikeMines = spikeMines.filter((mine) => {
+    const dx = mine.x + mine.w / 2 - centerShotX;
+    const dy = mine.y + mine.h / 2 - centerShotY;
+    if (dx * dx + dy * dy > clearRadius * clearRadius) return true;
+    addExplosion(mine.x + mine.w / 2, mine.y + mine.h / 2, "#ff6b6b");
+    return false;
+  });
+
   if (ufo) {
     const dx = ufo.x + ufo.w / 2 - centerShotX;
     const dy = ufo.y + ufo.h / 2 - centerShotY;
     if (dx * dx + dy * dy <= shot.radius * shot.radius) {
-      comboAddKill();
-      addScore(100, ufo.x + ufo.w / 2, ufo.y + ufo.h / 2);
+      ufo.hp = Math.max(0, (ufo.hp || 3) - 2);
       addExplosion(ufo.x + ufo.w / 2, ufo.y + ufo.h / 2, COLORS.ufo);
-      const crate = spawnUfoLootCrate(ufo);
-      ufo = null;
-      playUfoKill();
+      if (ufo.hp <= 0) {
+        comboAddKill();
+        addScore(100, ufo.x + ufo.w / 2, ufo.y + ufo.h / 2);
+        const crate = spawnUfoLootCrate(ufo);
+        ufo = null;
+        playUfoKill();
+      }
     }
   }
 

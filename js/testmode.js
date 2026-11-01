@@ -59,6 +59,7 @@ function toggleTestPanel() {
   testPanelOpen = !testPanelOpen;
   panel.style.display = testPanelOpen ? "block" : "none";
   if (testPanelOpen && state === "playing") state = "paused";
+  if (!testPanelOpen && state === "paused") state = "playing";
 }
 
 function buildTestPanel() {

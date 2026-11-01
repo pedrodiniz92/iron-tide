@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — Boss and Miniboss Looks</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 22px 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; }
+      .sub { color: #98a3c8; margin-bottom: 16px; max-width: 900px; line-height: 1.55; }
+      .unit { margin: 18px 0 28px; border: 1px solid #33365a; border-radius: 8px; padding: 12px; background: rgba(12, 16, 30, 0.72); }
+      .unit h2 { margin: 0 0 10px; font-size: 14px; color: #ffe066; letter-spacing: .08em; }
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .cell { min-width: 0; }
+      .cell h3 { margin: 0 0 6px; font-size: 11px; color: #9ae6ff; letter-spacing: .08em; }
+      canvas { width: 100%; height: 260px; display: block; border: 1px solid #33365a; border-radius: 6px; background: #080b14; }
+      .note { color: #98a3c8; font-size: 12px; line-height: 1.5; margin-top: 8px; }
+      .note b { color: #e8ecff; }
+      @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <h1>BOSS AND MINIBOSS LOOKS</h1>
+    <div class="sub">
+      For each boss and miniboss, the left model is the <b>current in-game look</b>.
+      The right model is a <b>suggested new look</b> for comparison.
+    </div>
+    <div id="units"></div>
+    <script src="boss-look-compare.bundle.js"></script>
+  </body>
+</html>

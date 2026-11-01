@@ -677,9 +677,13 @@ function drawEnemyBombs() {
     const cx = bomb.x + bomb.w / 2;
     const cy = bomb.y + bomb.h / 2;
 
+    const tail = bomb.color || "#ff9900";
+    const tr = parseInt(tail.slice(1, 3), 16);
+    const tg = parseInt(tail.slice(3, 5), 16);
+    const tb = parseInt(tail.slice(5, 7), 16);
     (bomb.trail || []).forEach((point) => {
       const alpha = Math.max(0, point.ttl / 0.28);
-      ctx.fillStyle = `rgba(255, 153, 0, ${alpha * 0.55})`;
+      ctx.fillStyle = `rgba(${tr}, ${tg}, ${tb}, ${alpha * 0.55})`;
       ctx.beginPath();
       ctx.arc(point.x, point.y, 4 + alpha * 5, 0, Math.PI * 2);
       ctx.fill();

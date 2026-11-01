@@ -11,7 +11,13 @@ function resetPlayer(showMessage = true) {
     h: 22,
     speed: 290
   };
-  invulnerabilityTimer = 1.5;
+  invulnerabilityTimer = 3.0;
+  dashTimer = 0;
+  dashGrace = 0;
+  shieldHits = Math.min(shieldHits, maxShieldHits);
+  syncShieldStack();
+  bombShots = [];
+  dashGhosts = [];
   clearEnemyFire();
   playerBullets = [];
   if (showMessage) showGameMessage("RESPAWN: INVULNERABLE", 1.2, "#78ff78");
@@ -181,7 +187,6 @@ function damageLaserTarget(target) {
   const cy = ref.y + ref.h / 2;
 
     if (target.kind === "invader") {
-      ref.shieldHp = 0;
       ref.hp = Math.max(0, (ref.hp || 1) - 1);
       addExplosion(cx, cy, ref.hp > 0 ? "#ffffff" : ref.type.color);
       playHit();

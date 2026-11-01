@@ -82,10 +82,12 @@ function clearEnemyFire() {
   enemyBullets = [];
   enemyBombs = [];
   spikeMines = [];
+  clearEnemyFirePending = true;
 }
 
 function noteShieldBreak() {
   if (shieldRestoreDelay <= 0 || shieldRestoreTimer > 0) return;
+  if (shieldHits >= maxShieldHits) return;
   shieldRestoreTimer = shieldRestoreDelay;
   showGameMessage(`SHIELD BROKEN - RESTORES IN ${shieldRestoreDelay}s`, 1.35, "#ff8844");
 }
@@ -153,13 +155,13 @@ function updateFeedback(dt) {
   invulnerabilityTimer = Math.max(0, invulnerabilityTimer - dt);
   updateGameMessages(dt);
 
-  if (shieldHits > 0) {
+  if (shieldHits >= maxShieldHits) {
     shieldRestoreTimer = 0;
   } else if (shieldRestoreTimer > 0) {
     shieldRestoreTimer = Math.max(0, shieldRestoreTimer - dt);
     if (shieldRestoreTimer <= 0 && maxShieldHits > 0) {
       shieldHits = maxShieldHits + itemShieldHits;
-      effects.shield = 30;
+      effects.shield = Math.max(effects.shield, 30);
       playShieldCharge();
       showGameMessage("SHIELD RESTORED", 1.15, "#62ffa1");
     }
@@ -191,7 +193,7 @@ function applyWavePatternMotion() {
   const amplitude = pattern === "swoop" ? 18 + level * 2 : 8 + level;
   invaders.filter((invader) => invader.alive).forEach((invader) => {
     const phase = waveTime * 1.35 + invader.x * 0.025 + invader.row * 0.75;
-    invader.y = Math.min(invader.baseY + Math.sin(phase) * amplitude, H - 72);
+    invader.y = Math.min(invader.baseY + Math.sin(phase) * amplitude, player.y - 4 - invader.h);
   });
 }
 

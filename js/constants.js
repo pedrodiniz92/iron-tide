@@ -142,18 +142,19 @@ const BOSS_DESIGNS = [
   {
     name: "WINGED VIPER",
     hp: 18, hpScale: 4, speed: 122, bombTimer: 3.35, color: "#2fc96f", accent: "#7dff66",
-    ability: "TRIPLE BOMBS", bulletCap: 8, bombMax: 3, bombRadius: 34, laserFollow: 0,
-    laser: false, bombsPerLaunch: 3, bombShieldDamage: 16,
-    bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 16
+    ability: "VENOM DIVE", bulletCap: 8, bombMax: 3, bombRadius: 34, laserFollow: 0,
+    laser: false, bombsPerLaunch: 2, bombShieldDamage: 16,
+    bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 16,
+    diveInterval: 4.6
   },
   {
     name: "TURTLE BULWARK",
     hp: 26, hpScale: 6, speed: 62, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
-    ability: "SHELL BURROW", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
+    ability: "SHELL CHARGE", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 30,
     shellHp: 1, shellMaxHp: 2, shellRegen: 15,
-    burrowInterval: 7.2, burrowDuration: 3.8, shellRegenBoost: 2.4, mineInterval: 0.72, mineShieldDamage: 18,
-    burrowShellHits: 2, mineBurst: 3
+    chargeInterval: 5.4, mineInterval: 0.72, mineShieldDamage: 18,
+    mineBurst: 3
   }
 ];
 
@@ -404,7 +405,7 @@ const MUSIC_TRACKS = [
           60,64,67,72,76,72,67,64,65,69,72,77,72,69,65,62,
           60,64,67,72,69,65,60,57,65,69,72,77,81,77,72,69] }
 ];
-const STAGGER_WINDOW = 2.4;
+const STAGGER_WINDOW = 3.0;
 const STAGGER_COOLDOWN = 10;
 const STAGGER_DURATION = 1.8;
 const hudScoreEl = document.getElementById("score");

@@ -39,8 +39,6 @@ let ufo = null;
 let boss = null;
 let bosses = [];
 let bossSpawned = false;
-let bossDir = 1;
-let bossFireTimer = 1.2;
 
 let invaderDirection = 1;
 let enemyFireTimer = 1.2;
@@ -56,7 +54,6 @@ let staggerDamage = 0;
 let staggerWindow = 0;
 let staggerCooldown = 0;
 let bossStagger = 0;
-let bossCount = 0;
 let lastTime = performance.now();
 let keys = new Set();
 let sfxGain = null;
@@ -93,4 +90,6 @@ let maxShieldHits = 1;
 let itemShieldHits = 0;
 let shieldRestoreDelay = 0;
 let shieldRestoreTimer = 0;
+let clearEnemyFirePending = false;
+let clearPlayerBulletsPending = false;
 

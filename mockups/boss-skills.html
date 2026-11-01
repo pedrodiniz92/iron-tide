@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups — Boss Skills Explainer</title>
+    <style>
+      body { margin: 0; background: #0b0c14; color: #e8ecff; font: 13px system-ui, monospace; padding: 12px; }
+      h1 { font-size: 19px; margin: 0 0 2px; color: #ffe066; letter-spacing: .06em; }
+      .sub { color: #98a3c8; margin-bottom: 14px; max-width: 980px; line-height: 1.5; }
+      .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+      .tab { padding: 8px 16px; border: 1px solid #33365a; border-radius: 8px 8px 0 0; cursor: pointer;
+        background: rgba(12, 16, 30, 0.6); color: #98a3c8; letter-spacing: .06em; }
+      .tab.on { background: #141a2e; color: #ffe066; border-color: #ffe066; }
+      .layout { display: grid; grid-template-columns: 900px 300px; gap: 10px; }
+      .stage { position: relative; border: 1px solid #33365a; border-radius: 8px; overflow: hidden;
+        background: radial-gradient(ellipse at 50% 30%, #10182c 0%, #080b14 70%); width: 900px; height: 560px; }
+      .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .cap { position: absolute; left: 12px; bottom: 10px; color: #9ae6ff; font-size: 12px;
+        letter-spacing: .08em; text-shadow: 0 1px 3px #000; pointer-events: none; }
+      .badge { position: absolute; right: 12px; top: 10px; color: #ffe066; font-size: 11px;
+        letter-spacing: .1em; pointer-events: none; }
+      .panel { display: flex; flex-direction: column; gap: 10px; }
+      .card { border: 1px solid #33365a; border-radius: 8px; padding: 10px 12px; cursor: pointer;
+        background: rgba(12, 16, 30, 0.72); }
+      .card.on { border-color: #ffe066; background: #141a2e; }
+      .card h3 { margin: 0 0 4px; font-size: 12px; color: #9ae6ff; letter-spacing: .08em; }
+      .card.on h3 { color: #ffe066; }
+      .card p { margin: 0; color: #98a3c8; font-size: 12px; line-height: 1.45; }
+      .card .key { float: right; color: #ffe066; border: 1px solid #33365a; border-radius: 4px;
+        padding: 0 6px; font-size: 11px; }
+      .note { color: #98a3c8; font-size: 12px; line-height: 1.5; margin-top: 10px; }
+      .note b { color: #e8ecff; }
+    </style>
+  </head>
+  <body>
+    <h1>BOSS SKILLS — LIVE EXPLAINER</h1>
+    <div class="sub">
+      Each card plays the skill exactly as the current game code runs it (same speeds, spreads, telegraphs).
+      The ship dodges on its own. Click a card, or let it auto-advance.
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="layout">
+      <div class="stage">
+        <canvas id="stage3d"></canvas>
+        <canvas id="fx"></canvas>
+        <div class="cap" id="caption"></div>
+        <div class="badge" id="badge"></div>
+      </div>
+      <div class="panel" id="cards"></div>
+    </div>
+    <div class="note">
+      Values mirror <b>js/constants.js</b> (BOSS_DESIGNS) and <b>js/boss.js</b> (updateBossUnit, fireBossBullet,
+      fireBossBomb, fireSpikeMine, fireVenomBomb, bossAimVx) at demo level 6, phase 2.
+    </div>
+    <script src="boss-skills.bundle.js"></script>
+  </body>
+</html>
