@@ -38,6 +38,8 @@ let shields = [];
 let ufo = null;
 let boss = null;
 let bosses = [];
+let minions = [];
+let bellEffect = null;
 let bossSpawned = false;
 
 let invaderDirection = 1;
@@ -91,6 +93,7 @@ let permanentDamage = 0;
 let permanentLongPowerups = false;
 let maxShieldHits = 1;
 let itemShieldHits = 0;
+let shieldWeakTtl = 0;
 let shieldRestoreDelay = 0;
 let shieldRestoreTimer = 0;
 let clearEnemyFirePending = false;

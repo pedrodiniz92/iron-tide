@@ -75,6 +75,8 @@ function newWave() {
   waveTime = 0;
   boss = null;
   bosses = [];
+  minions = [];
+  bellEffect = null;
   bossSpawned = false;
   resetStagger();
   enemyFireTimer = 1.2;
@@ -85,11 +87,53 @@ function newWave() {
 function updateEnemyBullets(dt) {
   const slowFactor = getSlowFactor("enemy");
   enemyBullets.forEach((bullet) => {
+    if (bullet.frozen) return;
+
+    if (bullet.homingT > 0) {
+      bullet.homingT -= dt;
+      const speed = bullet.speed || 110;
+      const ang = Math.atan2(bullet.vx || 0, speed);
+      const want = Math.atan2(player.x + player.w / 2 - (bullet.x + bullet.w / 2),
+        player.y + player.h / 2 - (bullet.y + bullet.h / 2));
+      let d = want - ang;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      const step = (bullet.homingRate || 0.7) * dt;
+      const na = ang + clamp(d, -step, step);
+      bullet.vx = speed * Math.sin(na);
+    }
+
+    if (bullet.seek > 0) {
+      bullet.seek -= dt;
+      const sp = Math.hypot(bullet.vx || 0, bullet.speed) || 340;
+      const ta = Math.atan2(player.y + player.h / 2 - (bullet.y + bullet.h / 2), player.x + player.w / 2 - (bullet.x + bullet.w / 2));
+      const ca = Math.atan2(bullet.speed, bullet.vx || 0);
+      let d = ta - ca;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      let na = ca + clamp(d, -2.6 * dt, 2.6 * dt);
+      if (bullet.seekA0 !== undefined) {
+        let off = na - bullet.seekA0;
+        while (off > Math.PI) off -= Math.PI * 2;
+        while (off < -Math.PI) off += Math.PI * 2;
+        na = bullet.seekA0 + clamp(off, -1.05, 1.05);
+      }
+      bullet.vx = Math.cos(na) * sp;
+      bullet.speed = Math.sin(na) * sp;
+    }
+
     bullet.y += bullet.speed * slowFactor * dt;
     bullet.x += (bullet.vx || 0) * slowFactor * dt;
+    if (bullet.ttl !== undefined) bullet.ttl -= dt;
   });
 
-  enemyBullets = enemyBullets.filter((bullet) => bullet.y < H + 20 && bullet.x > -20 && bullet.x < W + 20);
+  enemyBullets = enemyBullets.filter((bullet) => {
+    if (bullet.ttl !== undefined && bullet.ttl <= 0) {
+      addExplosion(bullet.x + bullet.w / 2, bullet.y + bullet.h / 2, bullet.color || "#ffd76a");
+      return false;
+    }
+    return bullet.y < H + 20 && bullet.y > -40 && bullet.x > -20 && bullet.x < W + 20;
+  });
 
   enemyFireTimer -= dt;
   if (enemyFireTimer <= 0) {

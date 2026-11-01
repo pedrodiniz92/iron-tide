@@ -568,6 +568,89 @@ export function buildTurtleB(cfg, hex) {
   return finishMob(g, 2.5);
 }
 
+// ---- ABYSSAL SQUID: final boss (mantle + fins + big bone eyes + 8 fanned arms) ----
+export function buildSquidAbyssal(cfg, hex) {
+  const g = new THREE.Group();
+  const ink = hex || "#2b1740";
+  const deep = "#4a2568";
+  const flesh = "#6d5a8c";
+  const bone = "#e8e2d0";
+  const glow = new THREE.MeshBasicMaterial({ color: "#c9a7ff" });
+  part(g, new THREE.SphereGeometry(0.9, 26, 18), ink, cfg, 0, 0.9, 0, 0.020, 0.85, 1.5, 0.85);
+  part(g, new THREE.ConeGeometry(0.55, 1.3, 10), ink, cfg, 0, 2.1, 0, 0.016);
+  part(g, new THREE.SphereGeometry(0.62, 26, 18), deep, cfg, 0, -0.1, 0.1, 0.016, 1.1, 0.8, 1);
+  for (const s of [-1, 1]) {
+    part(g, new THREE.SphereGeometry(0.26, 20, 14), bone, cfg, s * 0.42, 0.05, 0.45, 0.010, 1, 1.15, 0.8);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), glow);
+    pupil.position.set(s * 0.42, 0.05, 0.62);
+    g.add(pupil);
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const a = (i / 7 - 0.5) * 2.4;
+    const arm = new THREE.Group();
+    arm.position.set(Math.sin(a) * 0.5, -0.55, Math.cos(a) * 0.35);
+    arm.rotation.z = -a * 0.5;
+    const len = 1.6 + (i % 3) * 0.4;
+    part(arm, new THREE.CylinderGeometry(0.16, 0.05, len, 6), flesh, cfg, 0, -len / 2, 0, 0.008);
+    g.add(arm);
+  }
+  g.userData.legs = [];
+  g.userData.claws = [];
+  g.userData.spin = [];
+  return finishMob(g, 2.35);
+}
+
+// ---- ZEALOT: zealot minion (ink hood, magenta eye, gold ring) ----
+export function buildZealotV2(cfg, hex) {
+  const g = new THREE.Group();
+  const ink = hex || "#2b1740";
+  part(g, new THREE.SphereGeometry(0.3, 22, 16), ink, cfg, 0, 0, 0, 0.014);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10),
+    new THREE.MeshBasicMaterial({ color: "#c026d3" }));
+  eye.position.set(0, 0, 0.25);
+  g.add(eye);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 6, 20),
+    new THREE.MeshBasicMaterial({ color: "#ffd76a" }));
+  ring.rotation.x = Math.PI / 2.4;
+  g.add(ring);
+  g.userData.legs = [];
+  g.userData.claws = [];
+  g.userData.spin = [];
+  return finishMob(g, 2.35);
+}
+
+// ---- IDOL: squid idol minion (ink mantle, bone eyes, gold pupils, 6 arms, gold orb) ----
+export function buildIdolSquid(cfg, hex) {
+  const g = new THREE.Group();
+  const ink = hex || "#2b1740";
+  const bone = "#e8e2d0";
+  const flesh = "#6d5a8c";
+  const gold = new THREE.MeshBasicMaterial({ color: "#ffd76a" });
+  part(g, new THREE.SphereGeometry(0.45, 24, 16), ink, cfg, 0, 0.25, 0, 0.016, 1, 0.95, 1);
+  part(g, new THREE.ConeGeometry(0.3, 0.75, 8), ink, cfg, 0, 0.9, 0, 0.012);
+  for (const s of [-1, 1]) {
+    part(g, new THREE.SphereGeometry(0.15, 14, 10), bone, cfg, s * 0.17, 0.32, 0.34, 0.008, 1, 1.15, 0.8);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), gold);
+    pupil.position.set(s * 0.17, 0.32, 0.44);
+    g.add(pupil);
+  }
+  for (let i = 0; i < 6; i += 1) {
+    const a = (i / 5 - 0.5) * 2.2;
+    const arm = new THREE.Group();
+    arm.position.set(Math.sin(a) * 0.3, -0.08, Math.cos(a) * 0.2);
+    arm.rotation.z = -a * 0.4;
+    part(arm, new THREE.CylinderGeometry(0.07, 0.025, 0.8, 6), flesh, cfg, 0, -0.4, 0, 0.006);
+    g.add(arm);
+  }
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), gold);
+  orb.position.set(0, 1.35, 0);
+  g.add(orb);
+  g.userData.legs = [];
+  g.userData.claws = [];
+  g.userData.spin = [];
+  return finishMob(g, 2.35);
+}
+
 // ---- LOOT DROPS: the game's own power-up icons as 3D parts (no letters) ----
 const QUALITY = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
 const GLYPH = "#141420";
@@ -744,6 +827,7 @@ export const MOB_V2 = {
   player: buildPlayerC, player_b: buildPlayerTri,
   crab_b: buildCrabB, crab_c: buildCrabC,
   scrap: buildScrapB, skull: buildSkullB, turtle: buildTurtleB,
+  squid: buildSquidAbyssal, zealot: buildZealotV2, idol: buildIdolSquid,
   drop_bomb: DROPS_V2.drop_bomb, drop_shield: DROPS_V2.drop_shield, drop_laser: DROPS_V2.drop_laser,
   drop_rapid: DROPS_V2.drop_rapid, drop_double: DROPS_V2.drop_double, drop_slow: DROPS_V2.drop_slow,
   drop_loot: DROPS_V2.drop_loot

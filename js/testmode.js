@@ -7,15 +7,6 @@ let testBossName = null;
 const qBoss = new URLSearchParams(location.search).get("boss");
 if (qBoss) testBossName = qBoss;
 
-function applyTestLoadout() {
-  bombInventory = 2;
-  upgradeLevels.mobility = 1;
-  upgradeLevels.defense = 1;
-  maxShieldHits = Math.max(maxShieldHits, 1);
-  addShieldHit();
-  updateStatus("Test loadout: 2 bombs, DASH 1, SHIELD 1");
-}
-
 function spawnTestBoss() {
   if (state !== "playing" || bosses.length) return;
   spawnBoss();
@@ -85,41 +76,45 @@ function showUpgradePrompt(target, earned) {
   box.appendChild(title);
 
   const rows = [];
-  for (let i = 0; i < earned; i += 1) {
+  const trees = UPGRADE_TREES.slice(0, earned);
+  const totalPoints = () => rows.reduce((sum, row) => sum + Number(row.lvlSel.value), 0);
+  trees.forEach((tree) => {
     const row = document.createElement("div");
     row.style.cssText = "margin:4px 0;";
-    const treeSel = document.createElement("select");
-    treeSel.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
-    UPGRADE_TREES.forEach((tree) => {
-      const opt = document.createElement("option");
-      opt.value = tree.id;
-      opt.textContent = tree.name;
-      treeSel.appendChild(opt);
-    });
+    const name = document.createElement("span");
+    name.textContent = tree.name + " ";
+    name.style.cssText = "display:inline-block;width:80px;color:#9ae6ff;";
     const lvlSel = document.createElement("select");
     lvlSel.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
-    for (let l = 1; l <= 3; l += 1) {
+    const none = document.createElement("option");
+    none.value = "0";
+    none.textContent = "none";
+    lvlSel.appendChild(none);
+    for (let l = 1; l <= tree.levels.length; l += 1) {
       const opt = document.createElement("option");
       opt.value = String(l);
-      opt.textContent = "lvl " + l;
+      opt.textContent = "lvl " + l + " " + tree.levels[l - 1].label;
       lvlSel.appendChild(opt);
     }
-    row.appendChild(treeSel);
+    lvlSel.value = "1";
+    lvlSel.addEventListener("change", () => {
+      const over = totalPoints() - earned;
+      if (over > 0) lvlSel.value = String(Math.max(0, Number(lvlSel.value) - over));
+    });
+    row.appendChild(name);
     row.appendChild(lvlSel);
     box.appendChild(row);
-    rows.push({ treeSel, lvlSel });
-  }
+    rows.push({ tree, lvlSel });
+  });
 
   const startBtn = document.createElement("button");
   startBtn.textContent = `START WAVE ${target}`;
   startBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#ffe066;border:1px solid #ffe066;cursor:pointer;";
   startBtn.addEventListener("click", () => {
-    const taken = {};
-    rows.forEach(({ treeSel, lvlSel }) => {
-      const tree = UPGRADE_TREES.find((t) => t.id === treeSel.value);
-      const want = Number(lvlSel.value);
-      const level = Math.min(want, (taken[tree.id] || 0) + 1, tree.levels.length);
-      taken[tree.id] = Math.max(taken[tree.id] || 0, level);
+    upgradeLevels = { offense: 0, defense: 0, mobility: 0 };
+    rows.forEach(({ tree, lvlSel }) => {
+      const level = Math.min(Number(lvlSel.value), tree.levels.length);
+      if (level < 1) return;
       applyUpgrade({ treeId: tree.id, level, text: `${tree.name} ${level}: ${tree.levels[level - 1].label}` });
     });
     if (testPanelOpen) toggleTestPanel();
@@ -194,7 +189,7 @@ function buildTestPanel() {
   waveLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
   const waveSelect = document.createElement("select");
   waveSelect.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
-  for (let w = 1; w <= 12; w += 1) {
+  for (let w = 1; w <= 10; w += 1) {
     const opt = document.createElement("option");
     opt.value = String(w);
     opt.textContent = "WAVE " + w;
@@ -219,39 +214,23 @@ function buildTestPanel() {
   promptBox.style.cssText = "display:none;margin-top:8px;padding:8px;border:1px solid #ffe066;background:rgba(24,18,4,0.9);";
   waveRow.appendChild(promptBox);
 
-  const permaRow = document.createElement("div");
-  permaRow.style.cssText = "margin-top:10px;";
-  const permaLabel = document.createElement("div");
-  permaLabel.textContent = "PERMANENT UPGRADE";
-  permaLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
-  const permaSelect = document.createElement("select");
-  permaSelect.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
-  UPGRADE_TREES.forEach((tree) => {
-    tree.levels.forEach((lvl, i) => {
-      const opt = document.createElement("option");
-      opt.value = tree.id + ":" + (i + 1);
-      opt.textContent = tree.name + " " + (i + 1) + ": " + lvl.label;
-      permaSelect.appendChild(opt);
-    });
-  });
-  const permaBtn = document.createElement("button");
-  permaBtn.textContent = "APPLY UPGRADE";
-  permaBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
-  permaBtn.addEventListener("click", () => {
-    const [treeId, lvl] = permaSelect.value.split(":");
-    applyUpgrade({ treeId, level: Number(lvl) });
-    updateStatus("Applied " + permaSelect.options[permaSelect.selectedIndex].text);
-  });
-  permaRow.appendChild(permaLabel);
-  permaRow.appendChild(permaSelect);
-  permaRow.appendChild(permaBtn);
-  panel.appendChild(permaRow);
-
-  const loadBtn = document.createElement("button");
-  loadBtn.textContent = "LOADOUT: 2 BOMBS, DASH 1, SHIELD 1";
-  loadBtn.style.cssText = "display:block;margin-top:8px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
-  loadBtn.addEventListener("click", applyTestLoadout);
-  panel.appendChild(loadBtn);
+  const bombRow = document.createElement("div");
+  bombRow.style.cssText = "margin-top:10px;";
+  const bombLabel = document.createElement("div");
+  bombLabel.textContent = "GIVE YOURSELF";
+  bombLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
+  const bombBtn = document.createElement("button");
+  bombBtn.textContent = "+1 BOMB";
+  bombBtn.style.cssText = "display:inline-block;margin-right:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
+  bombBtn.addEventListener("click", () => { bombInventory += 1; updateStatus("+1 bomb"); });
+  const laserBtn = document.createElement("button");
+  laserBtn.textContent = "+1 LASER";
+  laserBtn.style.cssText = "display:inline-block;padding:3px 8px;font:12px monospace;background:#101820;color:#6fdcff;border:1px solid #2c5f7a;cursor:pointer;";
+  laserBtn.addEventListener("click", () => { laserCharges += 1; updateStatus("+1 laser"); });
+  bombRow.appendChild(bombLabel);
+  bombRow.appendChild(bombBtn);
+  bombRow.appendChild(laserBtn);
+  panel.appendChild(bombRow);
 
   const hint = document.createElement("div");
   hint.textContent = "toggle panel: `";

@@ -1,790 +1,972 @@
+/* THE DROWNED ONE — Cthulhu / "captain with tentacles" final-boss mockup.
+   3 looks: Abyssal Priest · Shattered Captain · Deep One Warlord.
+   2-skill kit: THE CALLING (minions: zealots / idols) + SIREN BELL (frozen volley,
+   mine-style capped tracking).
+   Click a minion to damage it. */
 import * as THREE from "./vendor/three.module.js";
-import { MOBS as BASE_MOBS, GAME_COLOR } from "./toon3d.js";
+import { MOBS as BASE_MOBS, GAME_COLOR, surfMaterial } from "./toon3d.js";
 import { MOB_V2 } from "./toon3d.v2.js";
 
 const MOBS = Object.assign({}, BASE_MOBS, MOB_V2);
 const RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
 
-const W = 900;
-const H = 560;
-const LEVEL = 6;
-
-const DESIGN = {
-  monarch: {
-    name: "OBSIDIAN MONARCH", color: "#6d28d9", accent: "#c86bff", model: "skull",
-    speed: 70, mineShieldDamage: 10, tag: "black skull monolith, purple crown"
-  },
-  crawler: {
-    name: "VOID CRAWLER", color: "#5a1f9d", accent: "#c86bff", model: "crab_b",
-    speed: 85, mineShieldDamage: 10, tag: "black carapace spider, purple core"
-  },
-  wyrm: {
-    name: "UMBRAL WYRM", color: "#8a2be2", accent: "#e0b3ff", model: "viper",
-    speed: 95, mineShieldDamage: 10, tag: "black serpent, purple mane"
-  }
+const P = {
+  void: 0x050109, abyss: 0x150a24, ink: 0x2b1740, deep: 0x4a2568,
+  violet: 0x8b5cf6, magenta: 0xc026d3, bone: 0xe8e2d0, flesh: 0x6d5a8c,
+  glow: 0xc9a7ff, gold: 0xffd76a, water: 0x35597f, pale: 0xbfe3ff,
 };
 
-function fitCanvas(canvas) {
-  const w = Math.max(1, Math.floor(canvas.clientWidth));
-  const h = Math.max(1, Math.floor(canvas.clientHeight));
-  canvas.width = w;
-  canvas.height = h;
-  return { w, h };
+const hex = (n) => "#" + n.toString(16).padStart(6, "0");
+const toon = (color, opts = {}) => (opts.transparent
+  ? new THREE.MeshLambertMaterial({ color, ...opts })
+  : surfMaterial(hex(color), RIG));
+const glowMat = (color, intensity = 1.6) =>
+  new THREE.MeshBasicMaterial({ color, transparent: true, opacity: Math.min(1, 0.85 * intensity) });
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist2 = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+
+const anim = [];
+const glowMats = [];
+
+function addGlow(parent, r, x, y, z, color, intensity = 1.6) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), glowMat(color, intensity));
+  m.position.set(x, y, z);
+  parent.add(m);
+  glowMats.push(m.material);
+  return m;
+}
+function addBox(parent, w, h, d, x, y, z, mat, rx = 0, ry = 0, rz = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.rotation.set(rx, ry, rz);
+  parent.add(m);
+  return m;
+}
+function addSphere(parent, r, x, y, z, mat, sx = 1, sy = 1, sz = 1) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 12), mat);
+  m.position.set(x, y, z);
+  m.scale.set(sx, sy, sz);
+  parent.add(m);
+  return m;
+}
+function addCone(parent, r, h, x, y, z, mat, rx = 0, seg = 8) {
+  const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), mat);
+  m.position.set(x, y, z);
+  m.rotation.x = rx;
+  parent.add(m);
+  return m;
 }
 
-function makeStage3D(canvas) {
-  const { w, h } = fitCanvas(canvas);
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  renderer.setClearColor(0x000000, 0);
-  renderer.setSize(w, h, false);
-  const scene = new THREE.Scene();
-  const cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, -4000, 4000);
-  return { renderer, scene, cam, w, h };
+/* ---------- procedural tentacle (hanging, swaying) ---------- */
+function tentacle(parent, { x, y, z, len = 1.2, r = 0.14, segs = 5, mat, phase = 0, sway = 0.22, curl = 0.4 }) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  parent.add(root);
+  const parts = [];
+  let cur = root;
+  for (let i = 0; i < segs; i++) {
+    const seg = new THREE.Mesh(
+      new THREE.CylinderGeometry(r * (1 - i / segs * 0.8), r * (1 - (i + 1) / segs * 0.8), len / segs, 6), mat);
+    seg.position.y = -len / segs / 2;
+    const pivot = new THREE.Group();
+    pivot.add(seg);
+    pivot.position.y = i === 0 ? 0 : -len / segs;
+    cur.add(pivot);
+    parts.push(pivot);
+    cur = pivot;
+  }
+  anim.push((t) => {
+    parts.forEach((p, i) => {
+      p.rotation.x = Math.sin(t * 2.2 + phase + i * 0.7) * sway + curl * 0.12 * i;
+      p.rotation.z = Math.cos(t * 1.7 + phase + i * 0.5) * sway * 0.6;
+    });
+  });
+  return root;
 }
 
-function addModel(stage, key, hex, targetSize) {
-  const builder = MOBS[key] || MOBS.skull;
-  const model = builder(RIG, hex);
+/* ---------- LOOK A: ABYSSAL SQUID (giant squid: mantle, fins, big eyes, 8 arms + 2 clubs) ---------- */
+function buildAbyssalSquid() {
+  const g = new THREE.Group();
+  const ink = toon(P.ink), deep = toon(P.deep), flesh = toon(P.flesh), bone = toon(P.bone);
+  addSphere(g, 0.9, 0, 0.9, 0, ink, 0.85, 1.5, 0.85);
+  addCone(g, 0.55, 1.3, 0, 2.1, 0, ink, 0, 10);
+  addSphere(g, 0.62, 0, -0.1, 0.1, deep, 1.1, 0.8, 1);
+  for (const s of [-1, 1]) {
+    addSphere(g, 0.26, s * 0.42, 0.05, 0.45, bone, 1, 1.15, 0.8);
+    addSphere(g, 0.13, s * 0.42, 0.05, 0.62, glowMat(P.glow));
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 7 - 0.5) * 2.4;
+    const root = tentacle(g, { x: Math.sin(a) * 0.5, y: -0.55, z: Math.cos(a) * 0.35,
+      len: rnd(1.6, 2.4), r: 0.16, segs: 6, mat: flesh, phase: i * 0.8, sway: 0.2, curl: 0.35 });
+    root.rotation.z = -a * 0.5;
+  }
+  return g;
+}
+
+/* ---------- LOOK B: SHATTERED CAPTAIN (Salazar-style split head) ---------- */
+function buildShatteredCaptain() {
+  const g = new THREE.Group();
+  const bone = toon(P.bone), ink = toon(P.ink), water = toon(P.water);
+  const f1 = addSphere(g, 0.85, 0, 1.05, 0, bone, 1, 0.85, 0.95);
+  const f2 = addSphere(g, 0.4, -0.62, 0.45, 0.25, bone, 0.9, 1.1, 0.8);
+  const f3 = addSphere(g, 0.36, 0.66, 0.5, 0.2, bone, 0.9, 1.1, 0.8);
+  addSphere(g, 0.55, 0, -0.5, 0.4, bone, 1.05, 0.6, 0.9);
+  addSphere(g, 0.13, -0.26, 0.62, 0.7, glowMat(P.pale));
+  addSphere(g, 0.13, 0.26, 0.62, 0.7, glowMat(P.pale));
+  for (let i = 0; i < 7; i++) {
+    tentacle(g, { x: rnd(-0.55, 0.55), y: rnd(0.2, 0.9), z: rnd(0.35, 0.6),
+      len: rnd(0.9, 1.4), r: 0.09, mat: water, phase: i * 1.3, sway: 0.3, curl: 0.8 });
+  }
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 6 - 0.5) * 2.4;
+    const flap = addCone(g, 0.28, rnd(1.1, 1.6), Math.sin(a) * 0.75, -1.5, Math.cos(a) * 0.35, ink, Math.PI, 4);
+    flap.scale.z = 0.3;
+  }
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.15, 0.12, 8), ink);
+  brim.position.y = 1.75;
+  g.add(brim);
+  addCone(g, 0.5, 0.5, 0, 2.0, 0, ink);
+  anim.push((t) => {
+    const b = Math.sin(t * 1.1) * 0.08;
+    f1.position.y = 1.05 + b;
+    f2.position.x = -0.62 - b * 0.6;
+    f3.position.x = 0.66 + b * 0.6;
+    f2.rotation.z = b * 0.4;
+    f3.rotation.z = -b * 0.4;
+  });
+  addGlow(g, 0.6, 0, 0.6, -0.4, P.pale, 0.4);
+  return g;
+}
+
+/* ---------- LOOK C: DEEP ONE WARLORD ---------- */
+function buildDeepOneWarlord() {
+  const g = new THREE.Group();
+  const deep = toon(P.deep), ink = toon(P.ink), flesh = toon(P.flesh), bone = toon(P.bone);
+  addSphere(g, 1.0, 0, 0.6, 0.1, deep, 0.95, 0.9, 1.3);
+  addCone(g, 0.42, 0.9, 0, -0.05, 1.05, flesh, Math.PI / 2);
+  addSphere(g, 0.14, -0.3, 0.35, 0.92, glowMat(P.gold));
+  addSphere(g, 0.14, 0.3, 0.35, 0.92, glowMat(P.gold));
+  for (let i = -1; i <= 1; i++) {
+    const fin = addCone(g, 0.3, 0.85, i * 0.42, 1.35, 0, ink, 0, 4);
+    fin.scale.z = 0.25;
+    fin.rotation.z = i * 0.35;
+  }
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 3; i++) addBox(g, 0.06, 0.34, 0.1, s * 0.85, 0.15 - i * 0.28, 0.15, glowMat(P.glow, 0.9));
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 7 - 0.5) * 1.3;
+    tentacle(g, { x: Math.sin(a) * 0.5, y: -0.55, z: 0.75,
+      len: rnd(0.9, 1.3), r: 0.11, mat: flesh, phase: i * 0.8, curl: 0.5 });
+  }
+  for (const s of [-1, 1]) {
+    addSphere(g, 0.62, s * 1.25, -0.85, -0.15, ink, 1.1, 0.7, 1);
+    for (let i = 0; i < 4; i++) {
+      addSphere(g, rnd(0.08, 0.14), s * 1.25 + rnd(-0.4, 0.4), -0.6 + rnd(-0.3, 0.3), rnd(0.1, 0.5), bone);
+    }
+  }
+  addGlow(g, 0.5, 0, 0.6, -0.5, P.violet, 0.5);
+  return g;
+}
+
+const looks = [
+  { name: "Abyssal Squid", build: buildAbyssalSquid, scale: 0.8 },
+  { name: "Shattered Captain", build: buildShatteredCaptain },
+  { name: "Deep One Warlord", build: buildDeepOneWarlord },
+];
+
+/* ---------- scene ---------- */
+const canvas = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const ARENA = { w: 12, h: 8.4 };
+const camera = new THREE.OrthographicCamera(-ARENA.w / 2, ARENA.w / 2, ARENA.h / 2, -ARENA.h / 2, -100, 100);
+
+function fitModel(model, target) {
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  const scale = targetSize / Math.max(size.x, size.y, size.z);
-  model.scale.setScalar(scale);
-  model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+  const s = target / Math.max(size.x, size.y, size.z);
+  model.scale.setScalar(s);
+  model.position.set(-center.x * s, -center.y * s, -center.z * s);
   const pivot = new THREE.Group();
   pivot.add(model);
-  pivot.userData.model = model;
-  stage.scene.add(pivot);
   return pivot;
 }
 
-function place3D(pivot, x, y, tilt, baseRot) {
-  pivot.position.set(x - W / 2, H / 2 - y, 0);
-  const base = baseRot || [0, 0, 0];
-  pivot.userData.model.rotation.set(base[0], base[1] + tilt, base[2]);
+scene.add(new THREE.AmbientLight(0x8a7fb8, 1.1));
+const key = new THREE.DirectionalLight(0xc9a7ff, 2.2);
+key.position.set(3, 6, 8);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7c3aed, 1.6);
+rim.position.set(-4, 2, -6);
+scene.add(rim);
+
+function fit() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", fit);
+
+let bossModel = null;
+let lookIndex = 0;
+function applyLook(i) {
+  lookIndex = i;
+  if (bossModel) {
+    scene.remove(bossModel);
+    anim.length = 0;
+    glowMats.length = 0;
+  }
+  bossModel = fitModel(looks[i].build(), 2.4);
+  bossModel.position.set(0, 1.6, 0);
+  scene.add(bossModel);
+  document.getElementById("lookName").textContent = looks[i].name;
 }
 
-const stage = makeStage3D(document.getElementById("stage3d"));
-const fx = document.getElementById("fx");
-const fxctx = fx.getContext("2d");
-fitCanvas(fx);
+/* ---------- LOOK D: DAVY JONES (barnacled captain, tentacle beard, claws) ---------- */
+function buildDavyJones() {
+  const g = new THREE.Group();
+  const flesh = toon(0x8fae8b), ink = toon(P.ink), deep = toon(P.deep),
+        bone = toon(P.bone), crab = toon(0x9a3b2e);
+  addSphere(g, 1.0, 0, 0.55, 0, flesh, 0.95, 1.0, 0.95);
+  addBox(g, 0.95, 0.16, 0.3, 0, 0.55, 0.82, ink);
+  addSphere(g, 0.15, -0.3, 0.35, 0.85, glowMat(0xffe9a8));
+  addSphere(g, 0.15, 0.3, 0.35, 0.85, glowMat(0xffe9a8));
+  addCone(g, 0.12, 0.32, 0, 0.05, 0.95, flesh, Math.PI / 2);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.1, 3), ink);
+  brim.position.y = 1.45;
+  brim.rotation.y = Math.PI / 6;
+  g.add(brim);
+  addCone(g, 0.55, 0.6, 0, 1.75, 0, ink);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 13 - 0.5) * 1.7;
+    tentacle(g, { x: Math.sin(a) * 0.7, y: -0.55, z: 0.5 + Math.cos(a) * 0.15,
+      len: rnd(1.3, 2.0), r: 0.15, mat: deep, phase: i * 0.7, sway: 0.25, curl: 0.5 });
+  }
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 4 - 0.5) * 2.0;
+    const flap = addCone(g, 0.35, 1.2, Math.sin(a) * 0.9, -0.4, -0.55, deep, Math.PI * 0.9, 4);
+    flap.scale.z = 0.25;
+    flap.position.z = -0.55 + Math.cos(a) * 0.1;
+  }
+  for (let i = 0; i < 6; i++) {
+    addSphere(g, rnd(0.06, 0.12), rnd(-0.7, 0.7), rnd(-0.3, 0.6), rnd(0.6, 0.9), bone);
+  }
+  for (const s of [-1, 1]) {
+    const arm = addCone(g, 0.18, 1.2, s * 1.5, -0.9, 0.1, ink, Math.PI, 6);
+    arm.rotation.z = s * 0.6;
+    addSphere(g, 0.35, s * 2.1, -1.5, 0.2, crab, 1.2, 0.8, 0.8);
+    addBox(g, 0.5, 0.12, 0.2, s * 2.35, -1.35, 0.35, crab, 0, 0, s * -0.5);
+  }
+  addGlow(g, 0.55, 0, 0.5, -0.5, P.violet, 0.5);
+  return g;
+}
+looks.push({ name: "Davy Jones", build: buildDavyJones });
 
-let bossModel = addModel(stage, DESIGN.monarch.model, DESIGN.monarch.color, 150);
-const shipModel = addModel(stage, "player", GAME_COLOR.player, 64);
+/* ---------- arena: game look (dark + green ground line + stars) ---------- */
+const ground = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-ARENA.w / 2, -ARENA.h / 2, 0),
+    new THREE.Vector3(ARENA.w / 2, -ARENA.h / 2, 0),
+  ]),
+  new THREE.LineBasicMaterial({ color: 0x246b24 }));
+scene.add(ground);
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(140 * 3);
+for (let i = 0; i < 140; i++) {
+  starPos[i * 3] = rnd(-ARENA.w / 2, ARENA.w / 2);
+  starPos[i * 3 + 1] = rnd(-ARENA.h / 2, ARENA.h / 2);
+  starPos[i * 3 + 2] = -3;
+}
+starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x9ae6ff, size: 0.05, transparent: true, opacity: 0.6 })));
 
-function buildBarrier() {
-  const cells = [];
-  for (let s = 0; s < 4; s += 1) {
-    const sx = 96 + s * 168;
-    const sy = H - 128;
-    for (let row = 0; row < 3; row += 1) {
-      for (let col = 0; col < 6; col += 1) {
-        cells.push({ x: sx + col * 12, y: sy + row * 8, w: 11, h: 7, hp: 3, maxHp: 3 });
+/* ---------- player: the game's gunship (design A) ---------- */
+const player = { x: 0, y: -3.2, r: 0.35, hp: 5, maxHp: 5, inv: 0, fire: 0, shieldHits: 2, keys: {} };
+const ship = fitModel(MOBS.player(RIG, GAME_COLOR.player), 0.85);
+scene.add(ship);
+const shieldRing = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.035, 8, 40), glowMat(0x62ffa1, 1.2));
+scene.add(shieldRing);
+
+/* ---------- barriers: the game's 4 green cell bunkers ---------- */
+const barriers = [];
+(function buildBarriers() {
+  const cellW = 0.17, cellH = 0.11, gap = 0.02;
+  for (const bx of [-4.2, -1.4, 1.4, 4.2]) {
+    const cells = [];
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 6; col++) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(cellW, cellH, 0.3),
+          new THREE.MeshBasicMaterial({ color: 0x286b28, transparent: true }));
+        const cx = bx + col * (cellW + gap) - (6 * (cellW + gap)) / 2 + cellW / 2;
+        const cy = -2.15 + row * (cellH + gap);
+        m.position.set(cx, cy, 0);
+        scene.add(m);
+        cells.push({ x: cx, y: cy, w: cellW, h: cellH, hp: 3, m });
+      }
+    }
+    barriers.push({ cells });
+  }
+})();
+function damageCell(c, dmg) {
+  c.hp -= dmg;
+  const frac = Math.max(0, c.hp / 3);
+  c.m.material.color.setHex(frac > 0.66 ? 0x286b28 : frac > 0.33 ? 0x1d7a2a : 0x175017);
+  c.m.material.opacity = 0.35 + 0.65 * frac;
+  if (c.hp <= 0) {
+    scene.remove(c.m);
+    burst(c.x, c.y, 0x286b28, 6, 2);
+    const b = barriers.find((it) => it.cells.includes(c));
+    b.cells.splice(b.cells.indexOf(c), 1);
+  }
+}
+function hitBarrier(x, y, dmg) {
+  for (const b of barriers) {
+    for (const c of b.cells) {
+      if (Math.abs(x - c.x) < c.w / 2 + 0.06 && Math.abs(y - c.y) < c.h / 2 + 0.06) {
+        damageCell(c, dmg);
+        return true;
       }
     }
   }
-  return cells;
+  return false;
 }
 
-function damageShieldBlast(x, y, radius) {
-  for (const cell of world.barrier) {
-    const cx = cell.x + cell.w / 2;
-    const cy = cell.y + cell.h / 2;
-    if (Math.hypot(cx - x, cy - y) <= radius) {
-      cell.hp -= 1;
-      cell.flash = 0.5;
-    }
+addEventListener("keydown", (e) => {
+  player.keys[e.key] = true;
+  if (e.key === " ") e.preventDefault();
+});
+addEventListener("keyup", (e) => { player.keys[e.key] = false; });
+
+/* ---------- bullets ---------- */
+const bullets = [];
+function addBullet(x, y, vx, vy, r, color, opts = {}) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 10), glowMat(color));
+  m.position.set(x, y, 0);
+  scene.add(m);
+  const b = { x, y, vx, vy, r, m, color, life: opts.life ?? 8, frozen: false, homing: opts.homing ?? 0, seek: 0, hp: opts.hp ?? 0 };
+  bullets.push(b);
+  return b;
+}
+function killBullet(b) { scene.remove(b.m); bullets.splice(bullets.indexOf(b), 1); }
+
+const shots = [];
+function addShot(x, y, vx, vy) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.34, 6), glowMat(P.pale));
+  m.position.set(x, y, 0);
+  scene.add(m);
+  shots.push({ x, y, vx, vy, m });
+}
+function killShot(s) { scene.remove(s.m); shots.splice(shots.indexOf(s), 1); }
+
+/* ---------- particles + floaters ---------- */
+const parts = [];
+function burst(x, y, color, n = 12, spd = 3) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = rnd(0.3, 1) * spd;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(rnd(0.04, 0.1), 6, 6), glowMat(color));
+    m.position.set(x, y, 0);
+    scene.add(m);
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, m, life: rnd(0.3, 0.7) });
   }
-  world.barrier = world.barrier.filter((c) => c.hp > 0);
+}
+const floaters = [];
+function say(x, y, text, color = "#c9a7ff") {
+  const div = document.createElement("div");
+  div.className = "floater";
+  div.textContent = text;
+  div.style.color = color;
+  document.getElementById("fx").appendChild(div);
+  floaters.push({ el: div, x, y, life: 1.2 });
+}
+function toScreen(x, y) {
+  return { sx: (x / ARENA.w + 0.5) * 100, sy: (0.5 - y / ARENA.h) * 100 };
 }
 
-function cellsOnBeam(x1, y1, x2, y2) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const dist = Math.hypot(dx, dy);
-  const steps = Math.max(24, Math.ceil(dist / 8));
-  const seen = [];
-  const picked = new Set();
-  for (let i = 0; i <= steps; i += 1) {
-    const t = i / steps;
-    const x = x1 + dx * t;
-    const y = y1 + dy * t;
-    for (const cell of world.barrier) {
-      if (picked.has(cell)) continue;
-      if (x >= cell.x && x <= cell.x + cell.w && y >= cell.y && y <= cell.y + cell.h) {
-        picked.add(cell);
-        seen.push({ cell, px: x, py: y });
-      }
+/* ---------- minions ---------- */
+const minions = [];
+let callingVariant = "b";
+function spawnMinion(type, x, y) {
+  const g = new THREE.Group();
+  let hp = 1, r = 0.4, extra = null;
+  if (type === "zealot") {
+    addSphere(g, 0.3, 0, 0, 0, toon(P.ink));
+    addSphere(g, 0.14, 0, 0, 0.25, glowMat(P.magenta));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 6, 20), glowMat(P.gold, 1.2));
+    ring.rotation.x = Math.PI / 2.4;
+    g.add(ring);
+    hp = 4; r = 0.5;
+  } else if (type === "idol") {
+    addSphere(g, 0.45, 0, 0.25, 0, toon(P.ink), 1, 0.95, 1);
+    addCone(g, 0.3, 0.75, 0, 0.9, 0, toon(P.ink), 0, 8);
+    addSphere(g, 0.15, -0.17, 0.32, 0.34, toon(P.bone), 1, 1.15, 0.8);
+    addSphere(g, 0.15, 0.17, 0.32, 0.34, toon(P.bone), 1, 1.15, 0.8);
+    addSphere(g, 0.06, -0.17, 0.32, 0.44, glowMat(P.gold));
+    addSphere(g, 0.06, 0.17, 0.32, 0.44, glowMat(P.gold));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 5 - 0.5) * 2.2;
+      tentacle(g, { x: Math.sin(a) * 0.3, y: -0.08, z: Math.cos(a) * 0.2,
+        len: 0.8, r: 0.07, segs: 4, mat: toon(P.flesh), phase: i, curl: 0.4 });
     }
+    hp = 3; r = 0.6;
+    g.scale.setScalar(0.7);
+    const aura = new THREE.Mesh(new THREE.RingGeometry(1.95, 2.1, 48), glowMat(P.gold, 0.8));
+    g.add(aura);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(2.0, 48), new THREE.MeshBasicMaterial({ color: P.gold, transparent: true, opacity: 0.08 }));
+    g.add(disc);
+    extra = { aura };
   }
-  return seen;
+  g.position.set(x, y, 0);
+  scene.add(g);
+  const mn = { type, x, y, bx: x, by: y, hp, maxHp: hp, r, g, t: 0, fire: rnd(1, 2), latched: false, phase: Math.random() * 6, beam: null, dive: rnd(1, 2), diving: false, bites: 3, aura: extra && extra.aura };
+  if (type === "zealot" || type === "idol") {
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.09), new THREE.MeshBasicMaterial({ color: 0x110820 }));
+    const fill = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.07), new THREE.MeshBasicMaterial({ color: 0x62ffa1 }));
+    scene.add(bg);
+    scene.add(fill);
+    mn.bar = { bg, fill, y: r + 0.45 };
+  }
+  minions.push(mn);
+  say(x, y, type.toUpperCase(), type === "idol" ? "#ffd76a" : "#c9a7ff");
+  return mn;
 }
-
-const world = {
-  boss: { x: W / 2 - 64, y: 70, w: 128, h: 64, vx: 120, vy: 14 },
-  ship: { x: W / 2 - 17, y: H - 64, w: 34, h: 22, vx: 0, targetX: W / 2 },
-  bullets: [], bombs: [], mines: [], waves: [], tele: [], shots: [], pods: [],
-  minions: [], auraT: 0, staggerT: 0,
-  barrier: buildBarrier(), bubble: 0,
-  laser: null, msg: "", msgTtl: 0, t: 0
+function killMinion(mn) {
+  burst(mn.x, mn.y, mn.type === "idol" ? P.gold : P.violet, 16, 3.4);
+  if (mn.type === "zealot") {
+    const a0 = -Math.PI / 2;
+    for (let i = 0; i < 3; i++) {
+      const a = a0 + (i - 1) * 0.22;
+      addBullet(mn.x, mn.y, Math.cos(a) * 2.2, Math.sin(a) * 2.2, 0.12, P.magenta, { life: 3, hp: 1 });
+    }
+    say(mn.x, mn.y, "DEATH HEX", "#c026d3");
+  }
+  if (mn.beam) scene.remove(mn.beam);
+  if (mn.bar) { scene.remove(mn.bar.bg); scene.remove(mn.bar.fill); }
+  dropPowerup(mn.x, mn.y);
+  scene.remove(mn.g);
+  minions.splice(minions.indexOf(mn), 1);
+}
+/* ---------- weakened powerup drops from killed minions ---------- */
+const PU = {
+  rapid:  { color: 0xff5c8a },
+  double: { color: 0x42d3e6 },
+  shield: { color: 0x62ffa1 },
+  bomb:   { color: 0xffd76a },
+  laser:  { color: 0xff3366 },
+  slow:   { color: 0x9ae6ff },
 };
-
-function bossCenter() { return { x: world.boss.x + world.boss.w / 2, y: world.boss.y + world.boss.h / 2 }; }
-function shipCenter() { return { x: world.ship.x + world.ship.w / 2, y: world.ship.y + world.ship.h / 2 }; }
-
-function addBullet(sx, sy, vx, speed, color) {
-  if (world.bullets.length >= 14) return;
-  world.bullets.push({ x: sx, y: sy, vx, speed, color });
+const weak = { rapid: 0, double: 0, laser: 0, slow: 0, shieldTtl: 0 };
+const drops = [];
+function dropPowerup(x, y) {
+  const type = pick(Object.keys(PU));
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.26, 0.12), toon(PU[type].color));
+  m.position.set(x, y, 0.2);
+  scene.add(m);
+  drops.push({ type, x, y, m, ttl: 8 });
+  say(x, y, "WEAK " + type.toUpperCase(), "#ffd76a");
 }
-
-function addShot(sx, sy, vx, vy, color) {
-  world.shots.push({ x: sx, y: sy, vx, vy, color });
-}
-
-function addMine(sx, sy, vx, vy) {
-  world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: vy === undefined ? 112 : vy, ttl: 6, arm: 1.2, fuse: 3.0, blast: 64 });
-}
-
-function addWave(x, y, r, color) { world.waves.push({ x, y, r, max: r, ttl: 0.7, color: color || "#ffe066" }); }
-
-function addPod(sx, sy, vx, vy, opts) {
-  world.pods.push({ x: sx, y: sy, vx, vy, kind: opts.kind, targetY: opts.targetY, color: opts.color, burst: opts.burst || 3 });
-}
-
-function addTele(kind, x, ttl) { world.tele.push({ kind, x, ttl }); }
-
-function say(text) { world.msg = text; world.msgTtl = 1.4; }
-
-const MINION_GLYPHS = [
-  ["01100110", "01111110", "11111111", "10111101", "10100101", "00100100"],
-  ["00100100", "00111100", "01111110", "11011011", "10111101", "01000010"],
-  ["00011000", "00111100", "01111110", "11100111", "10111101", "01000010"]
-];
-
-function spawnSquad(color) {
-  for (let i = 0; i < 5; i += 1) {
-    world.minions.push({
-      x: W / 2 - 96 + i * 48, y: -24 - i * 18, w: 26, h: 18,
-      glyph: i % 3, color: color || "#c86bff",
-      state: "drop", hoverY: 120 + (i % 2) * 26, t: 0, seed: i * 1.7,
-      diveT: 1.6 + i * 0.25, vy: 0, vx: 0
-    });
-  }
-  say("MINIONS SUMMONED");
-}
-
-function updateWorld(dt) {
-  world.t += dt;
-  const b = world.boss;
-  if (world.staggerT > 0) world.staggerT = Math.max(0, world.staggerT - dt);
-  if (world.auraT > 0) world.auraT = Math.max(0, world.auraT - dt);
-  const slow = world.staggerT > 0 ? 0.22 : 1;
-  b.x += b.vx * dt * slow;
-  b.y += b.vy * dt;
-  if (b.x <= 18) { b.x = 18; b.vx = Math.abs(b.vx); }
-  if (b.x + b.w >= W - 18) { b.x = W - b.w - 18; b.vx = -Math.abs(b.vx); }
-  b.y = Math.max(58, Math.min(H - b.h - 170, b.y));
-
-  const s = world.ship;
-  let danger = null;
-  for (const bullet of world.bullets) {
-    const t = (s.y - bullet.y) / bullet.speed;
-    if (t > 0 && t < 1.4 && Math.abs(bullet.x + bullet.vx * t - (s.x + s.w / 2)) < 60) { danger = bullet; break; }
-  }
-  for (const mine of world.mines) {
-    if (Math.abs(mine.x - (s.x + s.w / 2)) < 80 && mine.y > H * 0.4) { danger = mine; break; }
-  }
-  if (world.laser && world.laser.state === "fire" && world.laser.lethal !== false) {
-    const away = (s.x + s.w / 2) > world.laser.endX ? 1 : -1;
-    s.targetX = Math.max(40, Math.min(W - 40, s.x + s.w / 2 + away * 260));
-  } else if (danger) {
-    const away = (s.x + s.w / 2) - danger.x >= 0 ? 1 : -1;
-    s.targetX = Math.max(40, Math.min(W - 40, s.x + s.w / 2 + away * 190));
-  } else if (Math.random() < 0.02) {
-    s.targetX = 60 + Math.random() * (W - 120);
-  }
-  const dir = Math.sign(s.targetX - (s.x + s.w / 2));
-  s.vx = dir * 260;
-  s.x += s.vx * dt;
-  s.x = Math.max(10, Math.min(W - s.w - 10, s.x));
-
-  world.bullets = world.bullets.filter((p) => {
-    p.y += p.speed * dt;
-    p.x += p.vx * dt;
-    return p.y < H + 20 && p.x > -30 && p.x < W + 30;
-  });
-
-  world.shots = world.shots.filter((p) => {
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    return p.y < H + 20 && p.y > -20 && p.x > -30 && p.x < W + 30;
-  });
-
-  world.mines = world.mines.filter((m) => {
-    m.arm = Math.max(0, (m.arm || 0) - dt);
-    if (m.arm <= 0) {
-      const dx = shipCenter().x - (m.x + 8);
-      const target = Math.max(-90, Math.min(90, dx * 0.9));
-      m.vx += Math.max(-140 * dt, Math.min(140 * dt, target - m.vx));
-      m.fuse -= dt;
-    }
-    m.y += m.vy * dt * (m.arm > 0 ? 0.25 : 1);
-    m.x += m.vx * dt;
-    m.ttl -= dt;
-    if (m.arm <= 0) {
-      for (const cell of world.barrier) {
-        if (m.x < cell.x + cell.w && m.x + 16 > cell.x && m.y < cell.y + cell.h && m.y + 16 > cell.y) {
-          damageShieldBlast(m.x + 8, m.y + 8, 40);
-          addWave(m.x + 8, m.y + 8, 30, "#62ffa1");
-          return false;
-        }
-      }
-    }
-    if (m.y >= H - 30 || m.ttl <= 0 || m.fuse <= 0) {
-      addWave(m.x + 8, m.y + 8, m.blast || 64, "#ff6b6b");
-      damageShieldBlast(m.x + 8, m.y + 8, (m.blast || 64) + 40);
-      return false;
-    }
-    return true;
-  });
-
-  world.pods = world.pods.filter((pod) => {
-    pod.vy += 300 * dt;
-    pod.x += pod.vx * dt;
-    pod.y += pod.vy * dt;
-    const apex = pod.vy >= 0;
-    const landed = pod.y >= pod.targetY;
-    if ((pod.kind === "seed" && apex) || (pod.kind === "mortar" && landed)) {
-      addWave(pod.x, pod.y, 40, pod.color);
-      for (let i = 0; i < pod.burst; i += 1) {
-        addMine(pod.x - 24 + i * 24, pod.y - 8, (i - (pod.burst - 1) / 2) * 30);
-      }
-      return false;
-    }
-    return pod.y < H + 30;
-  });
-
-  world.minions = world.minions.filter((m) => {
-    m.t += dt;
-    if (m.state === "drop") {
-      m.y += 150 * dt;
-      if (m.y >= m.hoverY) m.state = "hover";
-    } else if (m.state === "hover") {
-      m.x += Math.sin(m.t * 2.2 + m.seed) * 34 * dt;
-      m.diveT -= dt;
-      if (m.diveT <= 0) { m.state = "dive"; m.vy = 320; m.vx = (shipCenter().x - m.x) * 0.8; }
-    } else {
-      m.y += m.vy * dt;
-      m.x += m.vx * dt;
-    }
-    return m.y < H + 24;
-  });
-
-  world.waves = world.waves.filter((wv) => {
-    wv.ttl -= dt;
-    wv.r += (wv.max - wv.r) * 6 * dt;
-    return wv.ttl > 0;
-  });
-
-  world.tele = world.tele.filter((tl) => { tl.ttl -= dt; return tl.ttl > 0; });
-  for (const cell of world.barrier) {
-    if (cell.flash > 0) cell.flash = Math.max(0, cell.flash - dt);
-  }
-  world.bubble = Math.max(0, world.bubble - dt);
-
-  updateLaser(dt);
-
-  world.msgTtl = Math.max(0, world.msgTtl - dt);
-}
-
-function updateLaser(dt) {
-  const L = world.laser;
-  if (!L) return;
-  L.ttl -= dt;
-  const b = world.boss;
-  const ox = b.x + b.w / 2;
-  const oy = b.y + b.h;
-
-  if (L.state === "aim") {
-    L.endX += (shipCenter().x - L.endX) * 1.3 * dt;
-    L.endY = shipCenter().y;
-    L.angle = Math.atan2(L.endY - oy, L.endX - ox);
-    if (L.ttl <= 0) {
-      L.state = "fire";
-      L.ttl = L.fireTtl;
-      L.pulseT = 0;
-      L.on = true;
-      say(L.say || "LASER");
-    }
+function applyWeak(type) {
+  if (type === "bomb") {
+    for (const bl of [...bullets]) killBullet(bl);
+    say(player.x, player.y + 0.8, "BOMB: CLEARED", "#ffd76a");
     return;
   }
-
-  if (L.state === "fire") {
-    if (L.sweep) L.angle += L.sweep * dt;
-    const len = 1400;
-    L.endX = ox + Math.cos(L.angle) * len;
-    L.endY = oy + Math.sin(L.angle) * len;
-
-    if (L.pulses > 0) {
-      L.pulseT += dt;
-      const cycle = 0.55;
-      L.on = (L.pulseT % cycle) < 0.25;
-      L.pulseCount = Math.floor(L.pulseT / cycle);
-      if (L.pulseCount >= L.pulses) { world.laser = null; return; }
+  if (type === "shield") {
+    player.shieldHits += 1;
+    weak.shieldTtl = 10;
+    say(player.x, player.y + 0.8, "SHIELD 10s", "#62ffa1");
+    return;
+  }
+  weak[type] = Math.max(weak[type], 10);
+  say(player.x, player.y + 0.8, type.toUpperCase() + " 10s", "#ffd76a");
+}
+function updateDrops(dt) {
+  for (const key of ["rapid", "double", "laser", "slow"]) weak[key] = Math.max(0, weak[key] - dt);
+  if (weak.shieldTtl > 0) {
+    weak.shieldTtl -= dt;
+    if (weak.shieldTtl <= 0) player.shieldHits = 0;
+  }
+  for (const d of [...drops]) {
+    d.y -= 1.3 * dt;
+    d.ttl -= dt;
+    if (d.y < -ARENA.h / 2 + 0.3) d.y = -ARENA.h / 2 + 0.3;
+    d.m.position.set(d.x, d.y, 0.2);
+    d.m.rotation.y += dt * 2;
+    if (dist2(d.x, d.y, player.x, player.y) < 0.55) {
+      applyWeak(d.type);
+      burst(d.x, d.y, PU[d.type].color, 8, 2);
+      scene.remove(d.m);
+      drops.splice(drops.indexOf(d), 1);
+    } else if (d.ttl <= 0) {
+      scene.remove(d.m);
+      drops.splice(drops.indexOf(d), 1);
     }
-    if (L.heat) {
-      L.width = 2 + 12 * (1 - Math.max(0, L.ttl / L.fireTtl));
-      L.lethal = L.ttl <= 0.4;
-    }
-    const hits = cellsOnBeam(ox, oy, L.endX, L.endY);
-    if (!L.pierce && hits.length) {
-      L.endX = hits[0].px;
-      L.endY = hits[0].py;
-    }
-    L.tick = (L.tick || 0) + dt;
-    if (L.tick >= 0.1) {
-      L.tick = 0;
-      const targets = L.pierce ? hits : hits.slice(0, 1);
-      targets.forEach((h) => { h.cell.hp -= 1; h.cell.flash = 0.5; });
-      world.barrier = world.barrier.filter((c) => c.hp > 0);
-    }
-    if (L.ttl <= 0) world.laser = null;
   }
 }
 
-function resetWorld(design) {
-  world.bullets = []; world.bombs = []; world.mines = []; world.waves = [];
-  world.tele = []; world.shots = []; world.pods = [];
-  world.barrier = buildBarrier(); world.bubble = 0;
-  world.laser = null; world.msgTtl = 0; world.t = 0;
-  world.minions = []; world.auraT = 0; world.staggerT = 0;
-  world.boss = { x: W / 2 - 64, y: 70, w: 128, h: 64, vx: design.speed + LEVEL * 8, vy: 14 };
-  world.ship.x = W / 2 - 17; world.ship.vx = 0; world.ship.targetX = W / 2;
-}
-
-function swapBossModel(design) {
-  stage.scene.remove(bossModel);
-  bossModel = addModel(stage, design.model, design.color, 150);
-}
-
-function renderFx() {
-  fxctx.clearRect(0, 0, W, H);
-  const b = world.boss;
-
-  for (const cell of world.barrier) {
-    const frac = Math.max(0, cell.hp / cell.maxHp);
-    fxctx.globalAlpha = 0.35 + 0.65 * frac;
-    fxctx.fillStyle = frac > 0.95 ? "#2fc96f" : frac > 0.6 ? "#d8c94a" : "#c94a4a";
-    fxctx.fillRect(cell.x, cell.y, cell.w, cell.h);
-    if (cell.hp < cell.maxHp) {
-      fxctx.globalAlpha = 0.8;
-      fxctx.strokeStyle = "#0b0c14";
-      fxctx.beginPath();
-      fxctx.moveTo(cell.x + 2, cell.y + 1);
-      fxctx.lineTo(cell.x + cell.w - 3, cell.y + cell.h - 2);
-      if (cell.hp === 1) {
-        fxctx.moveTo(cell.x + cell.w - 2, cell.y + 1);
-        fxctx.lineTo(cell.x + 2, cell.y + cell.h - 2);
-      }
-      fxctx.stroke();
+canvas.addEventListener("pointerdown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = ((e.clientX - rect.left) / rect.width - 0.5) * ARENA.w;
+  const my = -((e.clientY - rect.top) / rect.height - 0.5) * ARENA.h;
+  for (const mn of [...minions]) {
+    if (dist2(mx, my, mn.x, mn.y) < mn.r + 0.5) {
+      mn.hp -= 1;
+      burst(mn.x, mn.y, P.bone, 5, 2);
+      if (mn.hp <= 0) killMinion(mn);
+      return;
     }
-    if (cell.flash > 0) {
-      fxctx.globalAlpha = Math.min(1, cell.flash * 2.2);
-      fxctx.fillStyle = "#ffffff";
-      fxctx.fillRect(cell.x - 1, cell.y - 1, cell.w + 2, cell.h + 2);
-    }
-    fxctx.globalAlpha = 1;
-  }
-
-  if (world.bubble > 0) {
-    fxctx.strokeStyle = "rgba(130, 255, 190, 0.85)";
-    fxctx.lineWidth = 4;
-    fxctx.beginPath();
-    fxctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + 14, 0, Math.PI * 2);
-    fxctx.stroke();
-    fxctx.lineWidth = 1;
-    fxctx.fillStyle = "#62ffa1";
-    fxctx.font = "12px 'Courier New', monospace";
-    fxctx.fillText("INVULNERABLE", b.x + b.w / 2 - 44, b.y - 16);
-  }
-
-  if (world.auraT > 0) {
-    const pulse = 0.6 + 0.4 * Math.sin(world.t * 7);
-    fxctx.strokeStyle = "rgba(200, 107, 255, 0.8)";
-    fxctx.lineWidth = 5;
-    fxctx.globalAlpha = pulse;
-    fxctx.beginPath();
-    fxctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + 22, 0, Math.PI * 2);
-    fxctx.stroke();
-    fxctx.globalAlpha = 0.25 * pulse;
-    fxctx.fillStyle = "#8a2be2";
-    fxctx.fill();
-    fxctx.globalAlpha = 1;
-    fxctx.lineWidth = 1;
-    fxctx.fillStyle = "#e0b3ff";
-    fxctx.font = "12px 'Courier New', monospace";
-    fxctx.fillText("PHASE 2 AURA", b.x + b.w / 2 - 42, b.y - 30);
-  }
-
-  if (world.staggerT > 0) {
-    const bw = 120;
-    fxctx.fillStyle = "#10060f";
-    fxctx.fillRect(b.x + b.w / 2 - bw / 2, b.y - 26, bw, 8);
-    fxctx.fillStyle = "#ff5050";
-    fxctx.fillRect(b.x + b.w / 2 - bw / 2 + 1, b.y - 25, (bw - 2) * (world.staggerT / 3), 6);
-    fxctx.fillStyle = "#ffb0c0";
-    fxctx.font = "10px 'Courier New', monospace";
-    fxctx.fillText("STAGGERED", b.x + b.w / 2 - 32, b.y - 32);
-  }
-
-  for (const m of world.minions) {
-    const glyph = MINION_GLYPHS[m.glyph];
-    const px = 3;
-    fxctx.fillStyle = m.color;
-    fxctx.shadowColor = m.color;
-    fxctx.shadowBlur = 8;
-    for (let row = 0; row < glyph.length; row += 1) {
-      for (let col = 0; col < 8; col += 1) {
-        if (glyph[row][col] === "1") fxctx.fillRect(m.x + col * px, m.y + row * px, px, px);
-      }
-    }
-    fxctx.shadowBlur = 0;
-  }
-
-  for (const tl of world.tele) {
-    if (tl.kind === "reticle") {
-      fxctx.strokeStyle = "rgba(255, 224, 102, 0.75)";
-      fxctx.lineWidth = 2;
-      fxctx.beginPath();
-      fxctx.arc(tl.x, H - 90, 22, 0, Math.PI * 2);
-      fxctx.stroke();
-      fxctx.beginPath();
-      fxctx.moveTo(tl.x - 30, H - 90); fxctx.lineTo(tl.x + 30, H - 90);
-      fxctx.moveTo(tl.x, H - 120); fxctx.lineTo(tl.x, H - 60);
-      fxctx.stroke();
-      fxctx.lineWidth = 1;
-    } else if (tl.kind === "windup") {
-      fxctx.strokeStyle = "rgba(130, 255, 190, 0.6)";
-      fxctx.lineWidth = 3;
-      fxctx.strokeRect(b.x - 10, b.y + b.h - 6, b.w + 20, 12);
-      fxctx.fillStyle = "#62ffa1";
-      fxctx.font = "12px 'Courier New', monospace";
-      fxctx.fillText("WINDING UP", b.x + b.w / 2 - 40, b.y + b.h + 26);
-      fxctx.lineWidth = 1;
-    }
-  }
-
-  if (world.laser) {
-    const L = world.laser;
-    const ox = b.x + b.w / 2;
-    const oy = b.y + b.h;
-    if (L.state === "aim") {
-      fxctx.strokeStyle = "rgba(255, 51, 102, 0.62)";
-      fxctx.lineWidth = 2;
-      fxctx.setLineDash([10, 9]);
-      fxctx.beginPath(); fxctx.moveTo(ox, oy); fxctx.lineTo(L.endX, L.endY); fxctx.stroke();
-      fxctx.setLineDash([]);
-      fxctx.strokeRect(L.endX - 18, L.endY - 18, 36, 36);
-      fxctx.lineWidth = 1;
-    } else if (L.on !== false) {
-      const heatFlash = L.heat && L.lethal;
-      fxctx.strokeStyle = heatFlash ? "rgba(255, 90, 40, 0.30)" : "rgba(255, 51, 102, 0.24)";
-      fxctx.lineWidth = (L.width || 11) * 2.4;
-      fxctx.beginPath(); fxctx.moveTo(ox, oy); fxctx.lineTo(L.endX, L.endY); fxctx.stroke();
-      fxctx.strokeStyle = heatFlash ? "#ff5a28" : "#ff3366";
-      fxctx.lineWidth = L.width || 11;
-      fxctx.beginPath(); fxctx.moveTo(ox, oy); fxctx.lineTo(L.endX, L.endY); fxctx.stroke();
-      fxctx.strokeStyle = "#ffffff";
-      fxctx.lineWidth = 3;
-      fxctx.beginPath(); fxctx.moveTo(ox, oy); fxctx.lineTo(L.endX, L.endY); fxctx.stroke();
-      if (L.pierce) {
-        fxctx.fillStyle = "#ffe066";
-        fxctx.font = "11px 'Courier New', monospace";
-        fxctx.fillText("PIERCING", ox - 26, oy + 18);
-      }
-    }
-  }
-
-  for (const pod of world.pods) {
-    fxctx.fillStyle = pod.color;
-    fxctx.shadowColor = pod.color;
-    fxctx.shadowBlur = 10;
-    fxctx.beginPath();
-    fxctx.arc(pod.x, pod.y, 8, 0, Math.PI * 2);
-    fxctx.fill();
-    fxctx.shadowBlur = 0;
-  }
-
-  for (const m of world.mines) {
-    const armed = (m.arm || 0) <= 0;
-    const lit = armed && m.fuse < 0.7;
-    fxctx.save();
-    fxctx.globalAlpha = (m.arm || 0) > 0 ? 0.5 + 0.3 * Math.sin(world.t * 10)
-      : lit ? 0.6 + 0.4 * Math.sin(world.t * 40) : 1;
-    fxctx.translate(m.x + 8, m.y + 8);
-    fxctx.fillStyle = lit ? "#ff6b6b" : "#2fc96f";
-    fxctx.shadowColor = fxctx.fillStyle;
-    fxctx.shadowBlur = 8;
-    fxctx.beginPath();
-    for (let i = 0; i < 8; i += 1) {
-      const a = i * Math.PI / 4;
-      fxctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 9);
-      fxctx.lineTo(Math.cos(a + Math.PI / 8) * 4.5, Math.sin(a + Math.PI / 8) * 4.5);
-    }
-    fxctx.closePath();
-    fxctx.fill();
-    fxctx.shadowBlur = 0;
-    fxctx.restore();
-  }
-
-  for (const p of world.shots) {
-    fxctx.save();
-    fxctx.translate(p.x, p.y);
-    fxctx.rotate(Math.atan2(p.vy, p.vx));
-    fxctx.fillStyle = p.color;
-    fxctx.shadowColor = p.color;
-    fxctx.shadowBlur = 6;
-    fxctx.fillRect(-6, -2.5, 12, 5);
-    fxctx.shadowBlur = 0;
-    fxctx.restore();
-  }
-
-  for (const p of world.bullets) {
-    fxctx.save();
-    fxctx.translate(p.x, p.y + 7.5);
-    fxctx.rotate(Math.atan2(-(p.vx || 0), p.speed || 250));
-    fxctx.fillStyle = p.color;
-    fxctx.shadowColor = p.color;
-    fxctx.shadowBlur = 6;
-    fxctx.fillRect(-2.5, -7.5, 5, 15);
-    fxctx.shadowBlur = 0;
-    fxctx.restore();
-  }
-
-  for (const wv of world.waves) {
-    fxctx.strokeStyle = wv.color;
-    fxctx.globalAlpha = Math.max(0, wv.ttl / 0.7);
-    fxctx.lineWidth = 3;
-    fxctx.beginPath();
-    fxctx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2);
-    fxctx.stroke();
-    fxctx.globalAlpha = 1;
-    fxctx.lineWidth = 1;
-  }
-
-  if (world.msgTtl > 0) {
-    fxctx.fillStyle = "#ffe066";
-    fxctx.font = "16px 'Courier New', monospace";
-    fxctx.textAlign = "center";
-    fxctx.fillText(world.msg, W / 2, 40);
-    fxctx.textAlign = "left";
-  }
-}
-
-function laserStart(opts) {
-  const b = world.boss;
-  b.vx = 26;
-  b.vy = 0;
-  world.laser = Object.assign({
-    state: "aim", ttl: 0.8, fireTtl: 1.2, endX: shipCenter().x, endY: shipCenter().y,
-    angle: Math.PI / 2, width: 11, sweep: 0, pierce: false, pulses: 0, heat: false,
-    on: true, lethal: true, say: "LASER"
-  }, opts);
-}
-
-const KIT = [
-  { key: "1", name: "VOID SPREAD", dur: 7,
-    desc: "0.5s crown telegraph, then a 7-shot purple fan plus 2 aimed pods at your lane. Phase 2 doubles the fan. The opener of the kit.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 0.5; },
-    step(d, dt) {
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "done";
-          const b = world.boss;
-          world.tele.push({ kind: "windup", ttl: 0.5 });
-          const n = world.auraT > 0 ? 11 : 7;
-          for (let i = 0; i < n; i += 1) {
-            addShot(b.x + b.w / 2, b.y + b.h, (i - (n - 1) / 2) * 46, 190, d.accent);
-          }
-          addPod(b.x + b.w / 2, b.y + b.h, (shipCenter().x - b.x - b.w / 2) * 0.7, 60, { kind: "plain", color: d.accent });
-          say("VOID SPREAD"); } }
-    } },
-  { key: "2", name: "MINION SUMMON", dur: 9,
-    desc: "0.8s pentagram telegraph, then a 5-invader squad drops in formation, hovers, and dives at you one by one. The crowd mechanic the 2-boss stage used to give you.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; },
-    step(d, dt) {
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "done";
-          addWave(bossCenter().x, bossCenter().y, 90, d.accent);
-          spawnSquad(d.accent); } }
-    } },
-  { key: "3", name: "PIERCING BEAM", dur: 8,
-    desc: "0.9s aim, 1.4s purple beam that BURNS THROUGH barrier blocks and keeps going to your ship. Same numbers as the skull's in-game piercing laser.",
-    start(d) { resetWorld(d); this.t = 0.3; this.fired = false; },
-    step(d, dt) { this.t -= dt;
-      if (!this.fired && this.t <= 0) { this.fired = true;
-        laserStart({ ttl: 0.9, fireTtl: 1.4, pierce: true, width: 11, say: "PIERCING BEAM" }); } } },
-  { key: "4", name: "CARAPACE BARRAGE", dur: 8,
-    desc: "Boss slows to a stop, braces, parks invulnerable and drops fused mines straight below: 3 first cast, 4 second, 5 after. Pure zone denial.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 0.5; this.cast = (this.cast || 0) + 1; this.count = Math.min(2 + this.cast, 5); this.dropped = 0; },
-    step(d, dt) {
-      const b = world.boss;
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "slow"; this.t = 0.8; this.slowFrom = b.vx; } }
-      else if (this.state === "slow") { this.t -= dt;
-        b.vx = this.slowFrom * Math.max(0, this.t / 0.8);
-        if (this.t <= 0) { this.state = "windup"; this.t = 0.9; b.vx = 0;
-          world.tele.push({ kind: "windup", ttl: 0.9 });
-          say("BRACED"); } }
-      else if (this.state === "windup") { this.t -= dt; b.vx = 0;
-        if (this.t <= 0) { this.state = "drop"; this.t = 1.6; this.drop = 0.1;
-          world.bubble = 1.6;
-          say("CARAPACE BARRAGE"); } }
-      else if (this.state === "drop") { this.t -= dt; b.vx = 0; this.drop -= dt;
-        if (this.drop <= 0 && this.dropped < this.count) {
-          this.dropped += 1; this.drop = 0.22;
-          addMine(b.x + b.w / 2 - 8 + (this.dropped - (this.count + 1) / 2) * 26, b.y + b.h, 0);
-        } }
-    } },
-  { key: "5", name: "MINE MORTAR", dur: 8,
-    desc: "3 reticle telegraphs land on your lane, 0.8s later a mortar volley arcs in and bursts into fused drifting mines. Aimed, readable, dodge by moving.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; this.marked = false; },
-    step(d, dt) {
-      if (this.state === "idle") { this.t -= dt;
-        if (!this.marked) { this.marked = true;
-          const px = shipCenter().x;
-          [-90, 0, 90].forEach((o) => addTele("reticle", Math.max(40, Math.min(W - 40, px + o)), 0.8));
-          say("MINE MORTAR"); }
-        if (this.t <= 0) { this.state = "done";
-          const b = world.boss;
-          const px = shipCenter().x;
-          [-90, 0, 90].forEach((o) => {
-            const tx = Math.max(40, Math.min(W - 40, px + o));
-            addPod(b.x + b.w / 2, b.y + b.h, (tx - b.x - b.w / 2) * 0.55, -160,
-              { kind: "mortar", targetY: H - 170, color: d.accent, burst: 3 });
-          }); } }
-    } },
-  { key: "6", name: "OBSIDIAN DIVE", dur: 8,
-    desc: "0.6s red telegraph over your lane, then the whole boss body swoops down to your row, sweeps across, and climbs back. Touching it hurts; the sweep is the dodge window.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 0.6; },
-    step(d, dt) {
-      const b = world.boss;
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "dive"; this.t = 1.1;
-          b.vy = 340; b.vx = Math.sign(shipCenter().x - bossCenter().x) * 150;
-          addTele("reticle", shipCenter().x, 0.6);
-          say("OBSIDIAN DIVE"); } }
-      else if (this.state === "dive") { this.t -= dt;
-        if (this.t <= 0) { this.state = "climb"; this.t = 1.0; b.vy = -300; } }
-      else if (this.state === "climb") { this.t -= dt;
-        if (this.t <= 0) { this.state = "done"; b.vy = 14; b.vx = d.speed + LEVEL * 8; } }
-    } },
-  { key: "7", name: "PHASE 2 AURA", dur: 9,
-    desc: "At 50% HP the boss cracks open: purple aura, +40% speed, VOID SPREAD doubles. Every remaining skill keeps its tell — the fight gets denser, not unfair.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 1.2; },
-    step(d, dt) {
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "done";
-          world.auraT = 6;
-          world.boss.vx *= 1.4;
-          addWave(bossCenter().x, bossCenter().y, 220, d.accent);
-          say("PHASE 2 — AURA"); } }
-    } },
-  { key: "8", name: "STAGGER", dur: 7,
-    desc: "4 + 2×wave bullet damage in a 3s window → 3.0s stagger: boss at 22% speed, bar over the HP bar. The final boss keeps the same rule — no immunity.",
-    start(d) { resetWorld(d); this.state = "idle"; this.t = 1.0; },
-    step(d, dt) {
-      if (this.state === "idle") { this.t -= dt;
-        if (this.t <= 0) { this.state = "done";
-          world.staggerT = 3.0;
-          say("STAGGERED"); } }
-    } }
-];
-
-const ABILITIES = { monarch: KIT, crawler: KIT, wyrm: KIT };
-
-const tabsEl = document.getElementById("tabs");
-const cardsEl = document.getElementById("cards");
-const captionEl = document.getElementById("caption");
-const badgeEl = document.getElementById("badge");
-
-const BOSS_KEYS = ["monarch", "crawler", "wyrm"];
-let curBoss = "monarch";
-let curAbility = 0;
-let abilityElapsed = 0;
-
-function renderTabs() {
-  tabsEl.innerHTML = "";
-  BOSS_KEYS.forEach((key) => {
-    const tab = document.createElement("div");
-    tab.className = "tab" + (key === curBoss ? " on" : "");
-    tab.textContent = DESIGN[key].name;
-    tab.onclick = () => { curBoss = key; curAbility = 0; selectAbility(); };
-    tabsEl.appendChild(tab);
-  });
-}
-
-function renderCards() {
-  cardsEl.innerHTML = "";
-  ABILITIES[curBoss].forEach((ab, i) => {
-    const card = document.createElement("div");
-    card.className = "card" + (i === curAbility ? " on" : "");
-    card.innerHTML = `<span class="key">${ab.key}</span><h3>${ab.name}</h3><p>${ab.desc}</p>`;
-    card.onclick = () => { curAbility = i; selectAbility(); };
-    cardsEl.appendChild(card);
-  });
-}
-
-function selectAbility() {
-  const design = DESIGN[curBoss];
-  swapBossModel(design);
-  const ab = ABILITIES[curBoss][curAbility];
-  ab.start(design);
-  abilityElapsed = 0;
-  badgeEl.textContent = design.name;
-  captionEl.textContent = `${ab.key} — ${ab.name}`;
-  renderTabs();
-  renderCards();
-}
-
-document.addEventListener("keydown", (event) => {
-  const n = Number(event.key);
-  if (n >= 1 && n <= ABILITIES[curBoss].length) {
-    curAbility = n - 1;
-    selectAbility();
   }
 });
 
-let last = performance.now();
-function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  const design = DESIGN[curBoss];
-  const ab = ABILITIES[curBoss][curAbility];
-  abilityElapsed += dt;
-  if (abilityElapsed > ab.dur) {
-    curAbility = (curAbility + 1) % ABILITIES[curBoss].length;
-    selectAbility();
-  } else {
-    try { ab.step(design, dt); } catch (err) { console.error("ability step", ab.name, err); }
+/* ---------- boss + effects state ---------- */
+const boss = { x: 0, y: 1.6, r: 1.6, hp: 100, maxHp: 100, t: 0, shot: 1.2, castTimer: 4, skill: null, regen: 0 };
+const effects = { bell: null };
+let castName = "", castTotal = 0, castTime = 0;
+
+const ambient = scene.children.find((c) => c.isAmbientLight);
+
+function hurtPlayer(n = 1) {
+  if (player.inv > 0) return;
+  if (player.shieldHits > 0) {
+    player.shieldHits -= 1;
+    player.inv = 0.6;
+    burst(player.x, player.y, 0x62ffa1, 12, 3);
+    say(player.x, player.y + 0.6, player.shieldHits > 0 ? "SHIELD ABSORBED HIT x" + player.shieldHits : "SHIELD GONE", "#62ffa1");
+    return;
   }
-  updateWorld(dt);
-  const b = world.boss;
-  place3D(bossModel, b.x + b.w / 2, b.y + b.h / 2, Math.sin(world.t / 1.1) * 0.2, [0, 0, 0]);
-  place3D(shipModel, world.ship.x + world.ship.w / 2, world.ship.y + world.ship.h / 2, 0, [-Math.PI / 2, 0, 0]);
-  stage.renderer.render(stage.scene, stage.cam);
-  renderFx();
-  requestAnimationFrame(frame);
+  player.hp -= n;
+  player.inv = 1.2;
+  burst(player.x, player.y, P.magenta, 10, 3);
+  if (player.hp <= 0) {
+    player.hp = player.maxHp;
+    player.x = 0;
+    player.y = -3.2;
+    say(0, 0, "PLAYER RESET", "#8fff8f");
+  }
+}
+function fireHex(n, opts = {}) {
+  const a0 = Math.atan2(player.y - boss.y, player.x - boss.x);
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (i - (n - 1) / 2) * (opts.spread ?? 0.22);
+    const s = opts.speed ?? 2.4;
+    addBullet(boss.x, boss.y - 0.8, Math.cos(a) * s, Math.sin(a) * s, opts.r ?? 0.14, opts.color ?? P.violet, { life: opts.life ?? 8 });
+  }
+}
+function beamMesh(color) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 6), glowMat(color, 1.2));
+  scene.add(m);
+  return m;
+}
+function aimBeam(m, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy);
+  m.scale.y = L;
+  m.position.set((ax + bx) / 2, (ay + by) / 2, -0.3);
+  m.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
 }
 
-selectAbility();
-requestAnimationFrame(frame);
+/* ---------- THE CALLING (minions) ---------- */
+let callWindup = 0;
+function castCalling() {
+  callWindup = 2.5;
+  say(boss.x, boss.y - 1.6, "THE CALLING", "#c9a7ff");
+}
+function doCallingSpawn() {
+  const type = callingVariant === "b" ? "zealot" : "idol";
+  if (type === "idol") {
+    if (minions.some((m) => m.type === "idol")) { say(boss.x, boss.y - 1.6, "THE IDOL ENDURES", "#ffd76a"); return; }
+    spawnMinion(type, rnd(-ARENA.w / 2 + 2.2, ARENA.w / 2 - 2.2), rnd(-1.2, 2.2));
+  } else {
+    const alive = minions.filter((m) => m.type === "zealot").length;
+    for (let i = 0; i < 2 && alive + i < 3; i++) spawnMinion(type, boss.x + (i === 0 ? -1 : 1) * 0.5, boss.y);
+  }
+}
+function updateCalling() { if (callWindup <= 0) boss.skill = null; }
 
-window.__ba = {
-  world,
-  get stage() { return stage; },
-  get bossModel() { return bossModel; },
-  get shipModel() { return shipModel; },
-  get cap() { return document.getElementById("caption").textContent; },
-  get badge() { return document.getElementById("badge").textContent; }
+function updateMinions(dt) {
+  for (const mn of [...minions]) {
+    mn.t += dt;
+    if (mn.bar) {
+      const frac = clamp(mn.hp / mn.maxHp, 0, 1);
+      mn.bar.bg.position.set(mn.x, mn.y + mn.bar.y, 0.5);
+      mn.bar.fill.scale.x = Math.max(0.001, frac);
+      mn.bar.fill.position.set(mn.x - (1 - frac) * 0.3, mn.y + mn.bar.y, 0.51);
+      mn.bar.fill.material.color.setHex(frac > 0.6 ? 0x62ffa1 : frac > 0.3 ? 0xffd76a : 0xff5a5a);
+    }
+    if (mn.type === "zealot") {
+      if (mn.t < 1.6) {
+        mn.x += Math.sign(mn.x - boss.x) * 2.4 * dt;
+        mn.y += (boss.y - 0.9 - mn.y) * dt * 2.2;
+      } else {
+        mn.x += Math.cos(mn.t * 1.1 + mn.phase) * 1.4 * dt;
+        mn.y += Math.sin(mn.t * 1.9 + mn.phase) * 0.9 * dt;
+      }
+      mn.g.position.set(mn.x, mn.y, 0);
+      mn.g.rotation.y += dt * 1.2;
+      mn.fire -= dt;
+      if (mn.fire <= 0) {
+        mn.fire = rnd(1.5, 2.5);
+        const a = Math.atan2(player.y - mn.y, player.x - mn.x);
+        addBullet(mn.x, mn.y, Math.cos(a) * 1.6, Math.sin(a) * 1.6, 0.16, P.magenta, { life: 6, hp: 1 });
+      }
+    } else if (mn.type === "idol") {
+      mn.x = clamp(mn.bx + Math.sin(mn.t * 0.6 + mn.phase) * 2.2, -ARENA.w / 2 + 2.2, ARENA.w / 2 - 2.2);
+      mn.y = clamp(mn.by + Math.sin(mn.t * 0.42 + mn.phase * 1.7) * 1.2, -1.2, 2.2);
+      mn.g.position.set(mn.x, mn.y, 0);
+      if (mn.aura) mn.aura.rotation.z += dt * 0.5;
+      for (const o of minions) {
+        if (o !== mn && dist2(o.x, o.y, mn.x, mn.y) < 2.0) o.hp = Math.min(o.maxHp, o.hp + dt * 0.5);
+      }
+      if (dist2(boss.x, boss.y, mn.x, mn.y) < 2.0) boss.hp = Math.min(boss.maxHp, boss.hp + dt * 0.5);
+    }
+  }
+  for (let i = 0; i < minions.length; i++) {
+    const a = minions[i];
+    for (let j = i + 1; j < minions.length; j++) {
+      const b = minions[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const minD = a.r + b.r + 0.15;
+      if (d < minD) {
+        const p = (minD - d) / 2;
+        const nx = dx / d, ny = dy / d;
+        if (a.type === "idol") { a.bx -= nx * p; a.by -= ny * p; } else { a.x -= nx * p; a.y -= ny * p; }
+        if (b.type === "idol") { b.bx += nx * p; b.by += ny * p; } else { b.x += nx * p; b.y += ny * p; }
+      }
+    }
+    const dx = a.x - boss.x, dy = a.y - boss.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const minD = boss.r + a.r + 0.1;
+    if (d < minD) {
+      const p = minD - d;
+      if (a.type === "idol") { a.bx += (dx / d) * p; a.by += (dy / d) * p; }
+      else { a.x += (dx / d) * p; a.y += (dy / d) * p; }
+    }
+  }
+  boss.regen = 0;
+}
+
+/* ---------- SIREN BELL (freeze, then mine-style capped tracking) ---------- */
+function castBell() {
+  effects.bell = { t: 0, phase: 0 };
+  say(boss.x, boss.y, "THE BELL TOLLS", "#ffd76a");
+}
+function updateBell(dt) {
+  const b = effects.bell;
+  if (!b) { boss.skill = null; return; }
+  b.t += dt;
+  if (b.phase === 0) {
+    for (const bl of bullets) {
+      bl.frozen = true;
+      bl.m.material.color.setHex(P.bone);
+    }
+    if (b.t > 1.6) {
+      b.phase = 1;
+      const volley = bullets.slice(0, 8);
+      for (const bl of bullets) {
+        bl.frozen = false;
+        if (volley.indexOf(bl) < 0) continue;
+        const a = Math.atan2(player.y - bl.y, player.x - bl.x);
+        bl.vx = Math.cos(a) * 3.4;
+        bl.vy = Math.sin(a) * 3.4;
+        bl.seek = 1.2;
+        bl.seekA0 = Math.atan2(bl.vy, bl.vx);
+        bl.homing = 0;
+        bl.hp = 1;
+        bl.life = Math.min(bl.life, 4.5);
+        bl.m.material.color.setHex(P.magenta);
+      }
+    }
+  } else if (b.t > 4.5) {
+    effects.bell = null;
+    boss.skill = null;
+  }
+}
+
+const kit = {
+  calling: { name: "THE CALLING", icon: "⁂", cd: 10, cast: castCalling, update: updateCalling },
+  bell: { name: "SIREN BELL", icon: "♒", cd: 13, cast: castBell, update: updateBell },
+};
+const skillKeys = Object.keys(kit);
+let forced = null;
+
+function castSkill(key) {
+  if (boss.skill) return;
+  const s = kit[key];
+  boss.skill = key;
+  castName = s.name;
+  castTotal = key === "calling" ? 2.5 : 0.9;
+  castTime = castTotal;
+  document.getElementById("castName").textContent = s.name;
+  setTimeout(() => { document.getElementById("castName").textContent = ""; }, 1600);
+  s.cast();
+}
+
+/* ---------- updates ---------- */
+function updatePlayer(dt) {
+  player.inv = Math.max(0, player.inv - dt);
+  const sp = 5.2;
+  const k = player.keys;
+  let dx = 0;
+  if (k.ArrowLeft || k.a) dx -= 1;
+  if (k.ArrowRight || k.d) dx += 1;
+  player.x += dx * sp * dt;
+  player.x = clamp(player.x, -ARENA.w / 2 + player.r, ARENA.w / 2 - player.r);
+  player.y = -3.2;
+  ship.position.set(player.x, player.y, 0);
+  ship.visible = player.inv <= 0 || Math.floor(performance.now() / 90) % 2 === 0;
+  shieldRing.position.set(player.x, player.y, 0.1);
+  shieldRing.visible = player.shieldHits > 0;
+  player.fire -= dt;
+  if ((k[" "] || k.j) && player.fire <= 0) {
+    player.fire = weak.rapid > 0 ? 0.09 : 0.18;
+    addShot(player.x, player.y + 0.4, 0, 9);
+    if (weak.double > 0) {
+      addShot(player.x - 0.25, player.y + 0.3, 0, 9);
+      addShot(player.x + 0.25, player.y + 0.3, 0, 9);
+    }
+  }
+}
+function updateBullets(dt) {
+  for (const bl of [...bullets]) {
+    if (bl.frozen) continue;
+    if (bl.homing > 0) {
+      const a = Math.atan2(player.y - bl.y, player.x - bl.x);
+      const sp = Math.hypot(bl.vx, bl.vy);
+      const ca = Math.atan2(bl.vy, bl.vx);
+      let da = a - ca;
+      while (da > Math.PI) da -= Math.PI * 2;
+      while (da < -Math.PI) da += Math.PI * 2;
+      const na = ca + clamp(da, -bl.homing * dt, bl.homing * dt);
+      bl.vx = Math.cos(na) * sp;
+      bl.vy = Math.sin(na) * sp;
+    }
+    bl.x += bl.vx * dt * (weak.slow > 0 ? 0.55 : 1);
+    if (bl.seek > 0) {
+      bl.seek -= dt;
+      const sp = Math.hypot(bl.vx, bl.vy) || 3.4;
+      const ta = Math.atan2(player.y - bl.y, player.x - bl.x);
+      const ca = Math.atan2(bl.vy, bl.vx);
+      let da = ta - ca;
+      while (da > Math.PI) da -= Math.PI * 2;
+      while (da < -Math.PI) da += Math.PI * 2;
+      let na = ca + clamp(da, -2.6 * dt, 2.6 * dt);
+      if (bl.seekA0 !== undefined) {
+        let off = na - bl.seekA0;
+        while (off > Math.PI) off -= Math.PI * 2;
+        while (off < -Math.PI) off += Math.PI * 2;
+        na = bl.seekA0 + clamp(off, -1.05, 1.05);
+      }
+      bl.vx = Math.cos(na) * sp;
+      bl.vy = Math.sin(na) * sp;
+    }
+    bl.y += bl.vy * dt * (weak.slow > 0 ? 0.55 : 1);
+    bl.m.position.set(bl.x, bl.y, 0);
+    bl.life -= dt;
+    if (bl.life <= 0 || Math.abs(bl.x) > ARENA.w / 2 + 0.5 || Math.abs(bl.y) > ARENA.h / 2 + 0.5) {
+      if (bl.hp > 0 && bl.life <= 0) burst(bl.x, bl.y, P.magenta, 4, 2);
+      killBullet(bl);
+    }
+    else if (hitBarrier(bl.x, bl.y, 1)) killBullet(bl);
+    else if (dist2(bl.x, bl.y, player.x, player.y) < bl.r + player.r) {
+      killBullet(bl);
+      hurtPlayer();
+    }
+  }
+}
+function updateShots(dt) {
+  for (const s of [...shots]) {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.m.position.set(s.x, s.y, 0);
+    if (s.y > ARENA.h / 2) { killShot(s); continue; }
+    let hit = hitBarrier(s.x, s.y, 1);
+    if (!hit) for (const bl of bullets) {
+      if (bl.hp > 0 && dist2(s.x, s.y, bl.x, bl.y) < bl.r + 0.15) {
+        bl.hp -= 1;
+        burst(bl.x, bl.y, P.magenta, 5, 2);
+        if (bl.hp <= 0) killBullet(bl);
+        hit = true;
+        break;
+      }
+    }
+    if (!hit) for (const mn of minions) {
+      if (dist2(s.x, s.y, mn.x, mn.y) < mn.r + 0.15) {
+        mn.hp -= weak.laser > 0 ? 2 : 1;
+        burst(s.x, s.y, P.bone, 4, 2);
+        if (mn.hp <= 0) killMinion(mn);
+        hit = true;
+        break;
+      }
+    }
+    if (!hit && dist2(s.x, s.y, boss.x, boss.y) < boss.r) {
+      boss.hp -= weak.laser > 0 ? 2 : 1;
+      burst(s.x, s.y, P.glow, 4, 2);
+      if (boss.hp <= 0) {
+        say(boss.x, boss.y, "THE DROWNED ONE FALLS", "#8fff8f");
+        burst(boss.x, boss.y, P.violet, 40, 5);
+        boss.hp = boss.maxHp;
+      }
+      hit = true;
+    }
+    if (hit) killShot(s);
+  }
+}
+function updateParts(dt) {
+  for (const p of [...parts]) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    p.m.position.set(p.x, p.y, 0);
+    p.m.material.opacity = clamp(p.life * 2, 0, 1);
+    if (p.life <= 0) { scene.remove(p.m); parts.splice(parts.indexOf(p), 1); }
+  }
+}
+function updateFloaters(dt) {
+  for (const f of [...floaters]) {
+    f.life -= dt;
+    f.y += dt * 0.8;
+    const { sx, sy } = toScreen(f.x, f.y);
+    f.el.style.left = sx + "%";
+    f.el.style.top = sy + "%";
+    f.el.style.opacity = clamp(f.life, 0, 1);
+    if (f.life <= 0) { f.el.remove(); floaters.splice(floaters.indexOf(f), 1); }
+  }
+}
+function updateBoss(dt) {
+  boss.t += dt;
+  if (callWindup > 0) {
+    callWindup -= dt;
+    if (callWindup <= 0) doCallingSpawn();
+  }
+  const wslow = callWindup > 0 ? 0.45 : 1;
+  const idol = minions.find((m) => m.type === "idol");
+  const side = Math.sin(boss.t * 0.45) >= 0 ? 1 : -1;
+  const tx = idol ? idol.x + side * (2.6 + Math.sin(boss.t * 1.7) * 0.5) : Math.sin(boss.t * 0.35) * 3.2;
+  const ty = idol ? Math.min(idol.y + 1.5 + Math.sin(boss.t * 0.7) * 0.6, ARENA.h / 2 - 1.4) : 1.6 + Math.sin(boss.t * 0.8) * 0.35;
+  boss.x += (tx - boss.x) * dt * (idol ? 1.6 : 0.8) * wslow;
+  boss.y += (ty - boss.y) * dt * (idol ? 1.6 : 0.8) * wslow;
+  if (idol && boss.y < idol.y + 0.9) boss.y = idol.y + 0.9;
+  bossModel.position.set(boss.x, boss.y, 0);
+  boss.shot -= dt;
+  if (boss.shot <= 0 && (!boss.skill || callWindup > 0)) {
+    boss.shot = callWindup > 0 ? 3.1 : 1.4;
+    fireHex(3);
+  }
+  if (!boss.skill) {
+    boss.castTimer -= dt;
+    if (boss.castTimer <= 0) {
+      const key = forced || (Math.random() < 0.65 ? "calling" : "bell");
+      forced = null;
+      castSkill(key);
+      boss.castTimer = key === "calling" && callingVariant === "c" ? 13 : kit[key].cd;
+    }
+  } else if (castTime > 0) {
+    castTime -= dt;
+  } else {
+    kit[boss.skill].update(dt);
+  }
+}
+function updateHud() {
+  document.getElementById("bossFill").style.width = (boss.hp / boss.maxHp * 100) + "%";
+  document.getElementById("hpFill").style.width = (player.hp / player.maxHp * 100) + "%";
+  document.getElementById("castFill").style.width = (castTime > 0 ? (1 - castTime / castTotal) * 100 : 100) + "%";
+  document.getElementById("skillNow").textContent = boss.skill ? kit[boss.skill].name : "—";
+  document.getElementById("skillCd").textContent = boss.skill ? "casting" : "next in " + Math.max(0, boss.castTimer).toFixed(0) + "s";
+}
+
+/* ---------- UI wiring ---------- */
+const skillsEl = document.getElementById("skills");
+for (const key of skillKeys) {
+  const b = document.createElement("button");
+  b.className = "skill";
+  b.innerHTML = `<b>${kit[key].icon} ${kit[key].name}</b><span>${kit[key].cd}s cd</span>`;
+  b.onclick = () => { forced = key; boss.castTimer = Math.min(boss.castTimer, 0.3); };
+  skillsEl.appendChild(b);
+}
+const looksEl = document.getElementById("looks");
+looks.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.textContent = l.name;
+  b.className = i === 0 ? "on" : "";
+  b.onclick = () => {
+    applyLook(i);
+    [...looksEl.children].forEach((c) => c.classList.remove("on"));
+    b.classList.add("on");
+  };
+  looksEl.appendChild(b);
+});
+const variantsEl = document.getElementById("variants");
+for (const [v, label] of [["b", "b · Zealots (6 HP, spawn at boss, spread out)"], ["c", "c · Idol (3 HP, one at a time, squid-themed, heal-all aura)"]]) {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.className = v === "b" ? "on" : "";
+  b.onclick = () => {
+    callingVariant = v;
+    [...variantsEl.children].forEach((c) => c.classList.remove("on"));
+    b.classList.add("on");
+  };
+  variantsEl.appendChild(b);
+}
+
+/* ---------- loop ---------- */
+let last = 0;
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000 || 0.016);
+  last = ts;
+  const t = ts / 1000;
+  anim.forEach((f) => f(t));
+  glowMats.forEach((m) => { m.opacity = 0.55 + 0.35 * Math.sin(t * 3); });
+  updateBoss(dt);
+  updateMinions(dt);
+  updateDrops(dt);
+  updatePlayer(dt);
+  updateBullets(dt);
+  updateShots(dt);
+  updateParts(dt);
+  updateFloaters(dt);
+  updateHud();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+fit();
+applyLook(0);
+requestAnimationFrame(loop);
+
+window.__bossFinal = {
+  dbg: () => ({
+    canvasAttr: [canvas.width, canvas.height],
+    canvasCss: [canvas.clientWidth, canvas.clientHeight],
+    children: scene.children.length,
+    bossPos: bossModel ? bossModel.position.toArray() : null,
+    bossKids: bossModel ? bossModel.children.length : 0,
+    cam: camera.position.toArray(),
+    camOrtho: [camera.left, camera.right, camera.top, camera.bottom],
+    renderCalls: renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+    ctxLost: renderer.getContext().isContextLost(),
+  }),
+  state: () => ({
+    look: looks[lookIndex].name,
+    skill: boss.skill,
+    minions: minions.map((m) => m.type + ":" + m.hp),
+    bullets: bullets.length,
+    hp: Math.round(boss.hp),
+    shieldHits: player.shieldHits,
+    drops: drops.map((d) => d.type),
+    weak: Object.fromEntries(Object.entries(weak).map(([k2, v]) => [k2, Math.round(v)])),
+    barrierCells: barriers.reduce((n, b) => n + b.cells.length, 0),
+    effects: Object.fromEntries(Object.entries(effects).map(([k2, v]) => [k2, typeof v === "number" ? Math.round(v * 10) / 10 : !!v])),
+  }),
+  cast: castSkill,
+  setLook: applyLook,
+  setVariant: (v) => { callingVariant = v; },
+  kit: skillKeys,
+  looks: looks.map((l) => l.name),
 };

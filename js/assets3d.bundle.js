@@ -9769,15 +9769,35 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     } },
     sentry: { path(c) {
       c.beginPath();
-      c.moveTo(-26, 12); c.lineTo(-22, -2); c.lineTo(-14, -10); c.lineTo(14, -10);
-      c.lineTo(22, -2); c.lineTo(26, 12); c.lineTo(16, 12); c.lineTo(12, 4);
-      c.lineTo(-12, 4); c.lineTo(-16, 12); c.closePath();
-      c.moveTo(-22, -2); c.lineTo(-28, -10); c.lineTo(-18, -8);
-      c.moveTo(-8, -10); c.lineTo(-4, -20); c.lineTo(2, -10);
-      c.moveTo(10, -10); c.lineTo(18, -18); c.lineTo(20, -6);
-      c.moveTo(22, -2); c.lineTo(30, 2); c.lineTo(22, 6);
-      c.moveTo(-16, 12); c.lineTo(-18, 18); c.lineTo(-10, 12);
-      c.moveTo(10, 12); c.lineTo(16, 18); c.lineTo(18, 12);
+      c.moveTo(-26, 12);
+      c.lineTo(-22, -2);
+      c.lineTo(-14, -10);
+      c.lineTo(14, -10);
+      c.lineTo(22, -2);
+      c.lineTo(26, 12);
+      c.lineTo(16, 12);
+      c.lineTo(12, 4);
+      c.lineTo(-12, 4);
+      c.lineTo(-16, 12);
+      c.closePath();
+      c.moveTo(-22, -2);
+      c.lineTo(-28, -10);
+      c.lineTo(-18, -8);
+      c.moveTo(-8, -10);
+      c.lineTo(-4, -20);
+      c.lineTo(2, -10);
+      c.moveTo(10, -10);
+      c.lineTo(18, -18);
+      c.lineTo(20, -6);
+      c.moveTo(22, -2);
+      c.lineTo(30, 2);
+      c.lineTo(22, 6);
+      c.moveTo(-16, 12);
+      c.lineTo(-18, 18);
+      c.lineTo(-10, 12);
+      c.moveTo(10, 12);
+      c.lineTo(16, 18);
+      c.lineTo(18, 12);
     } },
     skull: { path(c) {
       c.beginPath();
@@ -9927,11 +9947,11 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     const g = new jl();
     bodyFromShape("sentry", cfg, hex, g);
     const spike = new mu(2.4, 10, 12);
-    [[-22, -2, 0.95], [-8, -10, 0.18], [10, -10, -0.28], [22, -2, -0.95], [-16, 12, 1.25], [12, 12, -1.25]].forEach(([x, y2, s]) => {
+    [[-22, -2, 0.95], [-8, -10, 0.18], [10, -10, -0.28], [22, -2, -0.95], [-16, 12, 1.25], [12, 12, -1.25]].forEach(([x, y2, rot]) => {
       const m = part(g, spike, "#e8fff0", cfg, x, y2, 2, 0.01);
-      m.rotation.z = s;
+      m.rotation.z = rot;
     });
-    const wheel = new mu(5.6, 5.6, 5.4, 18);
+    const wheel = new pu(5.6, 5.6, 5.4, 18);
     const wheels = [];
     [-18, -4, 10, 18].forEach((x) => {
       const m = part(g, wheel, "#3a3f52", cfg, x, 14, 0, 0.01);
@@ -10619,6 +10639,87 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     void tail;
     return finishMob(g, 2.5);
   }
+  function buildSquidAbyssal(cfg, hex) {
+    const g = new jl();
+    const ink = hex || "#2b1740";
+    const deep = "#4a2568";
+    const flesh = "#6d5a8c";
+    const bone = "#e8e2d0";
+    const glow = new es({ color: "#c9a7ff" });
+    part(g, new id(0.9, 26, 18), ink, cfg, 0, 0.9, 0, 0.02, 0.85, 1.5, 0.85);
+    part(g, new mu(0.55, 1.3, 10), ink, cfg, 0, 2.1, 0, 0.016);
+    part(g, new id(0.62, 26, 18), deep, cfg, 0, -0.1, 0.1, 0.016, 1.1, 0.8, 1);
+    for (const s of [-1, 1]) {
+      part(g, new id(0.26, 20, 14), bone, cfg, s * 0.42, 0.05, 0.45, 0.01, 1, 1.15, 0.8);
+      const pupil = new Bs(new id(0.13, 12, 10), glow);
+      pupil.position.set(s * 0.42, 0.05, 0.62);
+      g.add(pupil);
+    }
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i / 7 - 0.5) * 2.4;
+      const arm = new jl();
+      arm.position.set(Math.sin(a) * 0.5, -0.55, Math.cos(a) * 0.35);
+      arm.rotation.z = -a * 0.5;
+      const len = 1.6 + i % 3 * 0.4;
+      part(arm, new pu(0.16, 0.05, len, 6), flesh, cfg, 0, -len / 2, 0, 8e-3);
+      g.add(arm);
+    }
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
+  function buildZealotV2(cfg, hex) {
+    const g = new jl();
+    const ink = hex || "#2b1740";
+    part(g, new id(0.3, 22, 16), ink, cfg, 0, 0, 0, 0.014);
+    const eye = new Bs(
+      new id(0.14, 14, 10),
+      new es({ color: "#c026d3" })
+    );
+    eye.position.set(0, 0, 0.25);
+    g.add(eye);
+    const ring = new Bs(
+      new sd(0.42, 0.04, 6, 20),
+      new es({ color: "#ffd76a" })
+    );
+    ring.rotation.x = Math.PI / 2.4;
+    g.add(ring);
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
+  function buildIdolSquid(cfg, hex) {
+    const g = new jl();
+    const ink = hex || "#2b1740";
+    const bone = "#e8e2d0";
+    const flesh = "#6d5a8c";
+    const gold = new es({ color: "#ffd76a" });
+    part(g, new id(0.45, 24, 16), ink, cfg, 0, 0.25, 0, 0.016, 1, 0.95, 1);
+    part(g, new mu(0.3, 0.75, 8), ink, cfg, 0, 0.9, 0, 0.012);
+    for (const s of [-1, 1]) {
+      part(g, new id(0.15, 14, 10), bone, cfg, s * 0.17, 0.32, 0.34, 8e-3, 1, 1.15, 0.8);
+      const pupil = new Bs(new id(0.06, 10, 8), gold);
+      pupil.position.set(s * 0.17, 0.32, 0.44);
+      g.add(pupil);
+    }
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i / 5 - 0.5) * 2.2;
+      const arm = new jl();
+      arm.position.set(Math.sin(a) * 0.3, -0.08, Math.cos(a) * 0.2);
+      arm.rotation.z = -a * 0.4;
+      part(arm, new pu(0.07, 0.025, 0.8, 6), flesh, cfg, 0, -0.4, 0, 6e-3);
+      g.add(arm);
+    }
+    const orb = new Bs(new id(0.12, 12, 10), gold);
+    orb.position.set(0, 1.35, 0);
+    g.add(orb);
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
   var QUALITY = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
   var GLYPH = "#141420";
   var SHIELD_GREEN = "#0c6b3d";
@@ -10824,6 +10925,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     scrap: buildScrapB,
     skull: buildSkullB,
     turtle: buildTurtleB,
+    squid: buildSquidAbyssal,
+    zealot: buildZealotV2,
+    idol: buildIdolSquid,
     drop_bomb: DROPS_V2.drop_bomb,
     drop_shield: DROPS_V2.drop_shield,
     drop_laser: DROPS_V2.drop_laser,
@@ -10914,12 +11018,23 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   var RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
   var TARGET = 2.35;
   var FIT = 1.35;
-  var FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, turtle: 1.12, stinger: 1.65 };
-  var BUILDERS = Object.assign({}, MOBS, MOB_V2);
+  var FIT_KEY = {
+    scrap: 1.2,
+    sentry: 1.2,
+    skull: 1.15,
+    viper: 1.2,
+    turtle: 1.12,
+    stinger: 1.65,
+    squid: 1.15,
+    zealot: 1.6,
+    idol: 1.6,
+    "ABYSSAL SQUID": 1.15
+  };
+  var BUILDERS = Object.assign({}, MOBS, MOB_V2, { invSquid: MOBS.squid });
   var KEY = {
-    squid: "squid",
-    octopus: "squid",
-    octo: "squid",
+    squid: "invSquid",
+    octopus: "invSquid",
+    octo: "invSquid",
     crab: "crab_b",
     ufo: "ufo",
     player: "player",
@@ -10928,6 +11043,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     skull: "skull",
     viper: "viper",
     turtle: "turtle",
+    "ABYSSAL SQUID": "squid",
+    zealot: "zealot",
+    idol: "idol",
     rapid: "drop_rapid",
     double: "drop_double",
     laser: "drop_laser",
@@ -11166,6 +11284,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     count: () => pool.size,
     ready: true,
     keys: KEY,
+    pool,
     debug: (id2) => {
       const it = pool.get(id2);
       if (!it) return { missing: true };

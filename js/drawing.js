@@ -22,6 +22,7 @@ function draw() {
   drawInvaders();
   drawFrenzy()
   drawBoss();
+  drawMinions();
   drawUfo();
   drawPowerups();
   drawBombShots();
@@ -326,6 +327,46 @@ function drawInvaders() {
 
     }
 
+  });
+}
+
+function drawMinions() {
+  minions.forEach((minion) => {
+    const cx = minion.x + minion.w / 2;
+    const cy = minion.y + minion.h / 2;
+    const color = minion.type === "idol" ? "#ffd76a" : "#c9a7ff";
+    if (minion.type === "idol") {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 215, 106, 0.35)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, minion.auraR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+    if (!push3D({ id: "minion" + minion.id, key: minion.type, x: minion.x, y: minion.y,
+      w: minion.w, h: minion.h, color, phase: minion.x * 0.02, tilt: 0.25 })) {
+      ctx.save();
+      ctx.fillStyle = "#2b1740";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = minion.type === "idol" ? "#ffd76a" : "#c026d3";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    const frac = clamp(minion.hp / minion.maxHp, 0, 1);
+    ctx.save();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = frac > 0.6 ? "#62ffa1" : frac > 0.3 ? "#ffd76a" : "#ff5a5a";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 21, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+    ctx.stroke();
+    ctx.restore();
   });
 }
 
@@ -713,7 +754,8 @@ function drawBullets() {
   });
 
   enemyBullets.forEach((bullet) => {
-    const col = bullet.color || (bullet.fromBoss ? "#ff3366" : COLORS.enemyBullet);
+    const col = bullet.frozen ? "#ffffff"
+      : bullet.color || (bullet.fromBoss ? "#ff3366" : COLORS.enemyBullet);
     const cx = bullet.x + bullet.w / 2;
 
     ctx.save();

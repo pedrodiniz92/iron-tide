@@ -1801,8 +1801,8 @@
       return this.multiplyMatrices(t2, this);
     }
     multiplyMatrices(t2, e) {
-      const n = t2.elements, i = e.elements, r = this.elements, s = n[0], a = n[4], o = n[8], l = n[12], c = n[1], h = n[5], u2 = n[9], d2 = n[13], p2 = n[2], m = n[6], f = n[10], g = n[14], v = n[3], _ = n[7], x = n[11], y2 = n[15], M2 = i[0], S2 = i[4], b = i[8], T = i[12], w2 = i[1], E2 = i[5], A2 = i[9], R2 = i[13], C2 = i[2], I2 = i[6], P2 = i[10], L2 = i[14], U2 = i[3], D2 = i[7], N2 = i[11], O2 = i[15];
-      return r[0] = s * M2 + a * w2 + o * C2 + l * U2, r[4] = s * S2 + a * E2 + o * I2 + l * D2, r[8] = s * b + a * A2 + o * P2 + l * N2, r[12] = s * T + a * R2 + o * L2 + l * O2, r[1] = c * M2 + h * w2 + u2 * C2 + d2 * U2, r[5] = c * S2 + h * E2 + u2 * I2 + d2 * D2, r[9] = c * b + h * A2 + u2 * P2 + d2 * N2, r[13] = c * T + h * R2 + u2 * L2 + d2 * O2, r[2] = p2 * M2 + m * w2 + f * C2 + g * U2, r[6] = p2 * S2 + m * E2 + f * I2 + g * D2, r[10] = p2 * b + m * A2 + f * P2 + g * N2, r[14] = p2 * T + m * R2 + f * L2 + g * O2, r[3] = v * M2 + _ * w2 + x * C2 + y2 * U2, r[7] = v * S2 + _ * E2 + x * I2 + y2 * D2, r[11] = v * b + _ * A2 + x * P2 + y2 * N2, r[15] = v * T + _ * R2 + x * L2 + y2 * O2, this;
+      const n = t2.elements, i = e.elements, r = this.elements, s = n[0], a = n[4], o = n[8], l = n[12], c = n[1], h = n[5], u2 = n[9], d2 = n[13], p2 = n[2], m = n[6], f = n[10], g = n[14], v = n[3], _ = n[7], x = n[11], y2 = n[15], M2 = i[0], S2 = i[4], b = i[8], T = i[12], w2 = i[1], E2 = i[5], A2 = i[9], R2 = i[13], C2 = i[2], I2 = i[6], P3 = i[10], L2 = i[14], U2 = i[3], D2 = i[7], N2 = i[11], O2 = i[15];
+      return r[0] = s * M2 + a * w2 + o * C2 + l * U2, r[4] = s * S2 + a * E2 + o * I2 + l * D2, r[8] = s * b + a * A2 + o * P3 + l * N2, r[12] = s * T + a * R2 + o * L2 + l * O2, r[1] = c * M2 + h * w2 + u2 * C2 + d2 * U2, r[5] = c * S2 + h * E2 + u2 * I2 + d2 * D2, r[9] = c * b + h * A2 + u2 * P3 + d2 * N2, r[13] = c * T + h * R2 + u2 * L2 + d2 * O2, r[2] = p2 * M2 + m * w2 + f * C2 + g * U2, r[6] = p2 * S2 + m * E2 + f * I2 + g * D2, r[10] = p2 * b + m * A2 + f * P3 + g * N2, r[14] = p2 * T + m * R2 + f * L2 + g * O2, r[3] = v * M2 + _ * w2 + x * C2 + y2 * U2, r[7] = v * S2 + _ * E2 + x * I2 + y2 * D2, r[11] = v * b + _ * A2 + x * P3 + y2 * N2, r[15] = v * T + _ * R2 + x * L2 + y2 * O2, this;
     }
     multiplyScalar(t2) {
       const e = this.elements;
@@ -4343,8 +4343,8 @@
         for (let w2 = 0; w2 < h; w2++) {
           const E2 = f[w2], A2 = g[w2], R2 = v[w2], C2 = x * y2 * 4 * w2;
           for (let I2 = 0; I2 < E2.count; I2++) {
-            const P2 = I2 * b;
-            true === d2 && (r.fromBufferAttribute(E2, I2), M2[C2 + P2 + 0] = r.x, M2[C2 + P2 + 1] = r.y, M2[C2 + P2 + 2] = r.z, M2[C2 + P2 + 3] = 0), true === p2 && (r.fromBufferAttribute(A2, I2), M2[C2 + P2 + 4] = r.x, M2[C2 + P2 + 5] = r.y, M2[C2 + P2 + 6] = r.z, M2[C2 + P2 + 7] = 0), true === m && (r.fromBufferAttribute(R2, I2), M2[C2 + P2 + 8] = r.x, M2[C2 + P2 + 9] = r.y, M2[C2 + P2 + 10] = r.z, M2[C2 + P2 + 11] = 4 === R2.itemSize ? r.w : 1);
+            const P3 = I2 * b;
+            true === d2 && (r.fromBufferAttribute(E2, I2), M2[C2 + P3 + 0] = r.x, M2[C2 + P3 + 1] = r.y, M2[C2 + P3 + 2] = r.z, M2[C2 + P3 + 3] = 0), true === p2 && (r.fromBufferAttribute(A2, I2), M2[C2 + P3 + 4] = r.x, M2[C2 + P3 + 5] = r.y, M2[C2 + P3 + 6] = r.z, M2[C2 + P3 + 7] = 0), true === m && (r.fromBufferAttribute(R2, I2), M2[C2 + P3 + 8] = r.x, M2[C2 + P3 + 9] = r.y, M2[C2 + P3 + 10] = r.z, M2[C2 + P3 + 11] = 4 === R2.itemSize ? r.w : 1);
           }
         }
         u2 = { count: h, texture: S2, size: new Jn(x, y2) }, i.set(a, u2), a.addEventListener("dispose", T);
@@ -5083,10 +5083,10 @@
         const t3 = pa[b];
         E2 = t3.vertexShader, A2 = t3.fragmentShader;
       } else E2 = s2.vertexShader, A2 = s2.fragmentShader, l.update(s2), R2 = l.getVertexShaderID(s2), C2 = l.getFragmentShaderID(s2);
-      const P2 = t2.getRenderTarget(), L2 = t2.state.buffers.depth.getReversed(), U2 = true === v.isInstancedMesh, D2 = true === v.isBatchedMesh, N2 = !!s2.map, O2 = !!s2.matcap, F2 = !!M2, B2 = !!s2.aoMap, z2 = !!s2.lightMap, k2 = !!s2.bumpMap, V2 = !!s2.normalMap, H3 = !!s2.displacementMap, G2 = !!s2.emissiveMap, W3 = !!s2.metalnessMap, X2 = !!s2.roughnessMap, j2 = s2.anisotropy > 0, q2 = s2.clearcoat > 0, Y = s2.dispersion > 0, Z = s2.iridescence > 0, J = s2.sheen > 0, K = s2.transmission > 0, $ = j2 && !!s2.anisotropyMap, Q = q2 && !!s2.clearcoatMap, tt = q2 && !!s2.clearcoatNormalMap, et = q2 && !!s2.clearcoatRoughnessMap, nt = Z && !!s2.iridescenceMap, it = Z && !!s2.iridescenceThicknessMap, rt = J && !!s2.sheenColorMap, st = J && !!s2.sheenRoughnessMap, at = !!s2.specularMap, ot2 = !!s2.specularColorMap, lt2 = !!s2.specularIntensityMap, ct2 = K && !!s2.transmissionMap, ht2 = K && !!s2.thicknessMap, ut2 = !!s2.gradientMap, pt2 = !!s2.alphaMap, mt2 = s2.alphaTest > 0, ft2 = !!s2.alphaHash, gt2 = !!s2.extensions;
+      const P3 = t2.getRenderTarget(), L2 = t2.state.buffers.depth.getReversed(), U2 = true === v.isInstancedMesh, D2 = true === v.isBatchedMesh, N2 = !!s2.map, O2 = !!s2.matcap, F2 = !!M2, B2 = !!s2.aoMap, z2 = !!s2.lightMap, k2 = !!s2.bumpMap, V2 = !!s2.normalMap, H2 = !!s2.displacementMap, G2 = !!s2.emissiveMap, W2 = !!s2.metalnessMap, X2 = !!s2.roughnessMap, j2 = s2.anisotropy > 0, q2 = s2.clearcoat > 0, Y = s2.dispersion > 0, Z = s2.iridescence > 0, J = s2.sheen > 0, K = s2.transmission > 0, $ = j2 && !!s2.anisotropyMap, Q = q2 && !!s2.clearcoatMap, tt = q2 && !!s2.clearcoatNormalMap, et = q2 && !!s2.clearcoatRoughnessMap, nt = Z && !!s2.iridescenceMap, it = Z && !!s2.iridescenceThicknessMap, rt = J && !!s2.sheenColorMap, st = J && !!s2.sheenRoughnessMap, at = !!s2.specularMap, ot2 = !!s2.specularColorMap, lt2 = !!s2.specularIntensityMap, ct2 = K && !!s2.transmissionMap, ht2 = K && !!s2.thicknessMap, ut2 = !!s2.gradientMap, pt2 = !!s2.alphaMap, mt2 = s2.alphaTest > 0, ft2 = !!s2.alphaHash, gt2 = !!s2.extensions;
       let vt2 = 0;
-      s2.toneMapped && (null !== P2 && true !== P2.isXRRenderTarget || (vt2 = t2.toneMapping));
-      const _t = { shaderID: b, shaderType: s2.type, shaderName: s2.name, vertexShader: E2, fragmentShader: A2, defines: s2.defines, customVertexShaderID: R2, customFragmentShaderID: C2, isRawShaderMaterial: true === s2.isRawShaderMaterial, glslVersion: s2.glslVersion, precision: p2, batching: D2, batchingColor: D2 && null !== v._colorsTexture, instancing: U2, instancingColor: U2 && null !== v.instanceColor, instancingMorph: U2 && null !== v.morphTexture, supportsVertexTextures: d2, outputColorSpace: null === P2 ? t2.outputColorSpace : true === P2.isXRRenderTarget ? P2.texture.colorSpace : Ke, alphaToCoverage: !!s2.alphaToCoverage, map: N2, matcap: O2, envMap: F2, envMapMode: F2 && M2.mapping, envMapCubeUVHeight: S2, aoMap: B2, lightMap: z2, bumpMap: k2, normalMap: V2, displacementMap: d2 && H3, emissiveMap: G2, normalMapObjectSpace: V2 && 1 === s2.normalMapType, normalMapTangentSpace: V2 && 0 === s2.normalMapType, metalnessMap: W3, roughnessMap: X2, anisotropy: j2, anisotropyMap: $, clearcoat: q2, clearcoatMap: Q, clearcoatNormalMap: tt, clearcoatRoughnessMap: et, dispersion: Y, iridescence: Z, iridescenceMap: nt, iridescenceThicknessMap: it, sheen: J, sheenColorMap: rt, sheenRoughnessMap: st, specularMap: at, specularColorMap: ot2, specularIntensityMap: lt2, transmission: K, transmissionMap: ct2, thicknessMap: ht2, gradientMap: ut2, opaque: false === s2.transparent && 1 === s2.blending && false === s2.alphaToCoverage, alphaMap: pt2, alphaTest: mt2, alphaHash: ft2, combine: s2.combine, mapUv: N2 && f(s2.map.channel), aoMapUv: B2 && f(s2.aoMap.channel), lightMapUv: z2 && f(s2.lightMap.channel), bumpMapUv: k2 && f(s2.bumpMap.channel), normalMapUv: V2 && f(s2.normalMap.channel), displacementMapUv: H3 && f(s2.displacementMap.channel), emissiveMapUv: G2 && f(s2.emissiveMap.channel), metalnessMapUv: W3 && f(s2.metalnessMap.channel), roughnessMapUv: X2 && f(s2.roughnessMap.channel), anisotropyMapUv: $ && f(s2.anisotropyMap.channel), clearcoatMapUv: Q && f(s2.clearcoatMap.channel), clearcoatNormalMapUv: tt && f(s2.clearcoatNormalMap.channel), clearcoatRoughnessMapUv: et && f(s2.clearcoatRoughnessMap.channel), iridescenceMapUv: nt && f(s2.iridescenceMap.channel), iridescenceThicknessMapUv: it && f(s2.iridescenceThicknessMap.channel), sheenColorMapUv: rt && f(s2.sheenColorMap.channel), sheenRoughnessMapUv: st && f(s2.sheenRoughnessMap.channel), specularMapUv: at && f(s2.specularMap.channel), specularColorMapUv: ot2 && f(s2.specularColorMap.channel), specularIntensityMapUv: lt2 && f(s2.specularIntensityMap.channel), transmissionMapUv: ct2 && f(s2.transmissionMap.channel), thicknessMapUv: ht2 && f(s2.thicknessMap.channel), alphaMapUv: pt2 && f(s2.alphaMap.channel), vertexTangents: !!x.attributes.tangent && (V2 || j2), vertexColors: s2.vertexColors, vertexAlphas: true === s2.vertexColors && !!x.attributes.color && 4 === x.attributes.color.itemSize, pointsUvs: true === v.isPoints && !!x.attributes.uv && (N2 || pt2), fog: !!_, useFog: true === s2.fog, fogExp2: !!_ && _.isFogExp2, flatShading: true === s2.flatShading, sizeAttenuation: true === s2.sizeAttenuation, logarithmicDepthBuffer: u2, reverseDepthBuffer: L2, skinning: true === v.isSkinnedMesh, morphTargets: void 0 !== x.morphAttributes.position, morphNormals: void 0 !== x.morphAttributes.normal, morphColors: void 0 !== x.morphAttributes.color, morphTargetsCount: w2, morphTextureStride: I2, numDirLights: o2.directional.length, numPointLights: o2.point.length, numSpotLights: o2.spot.length, numSpotLightMaps: o2.spotLightMap.length, numRectAreaLights: o2.rectArea.length, numHemiLights: o2.hemi.length, numDirLightShadows: o2.directionalShadowMap.length, numPointLightShadows: o2.pointShadowMap.length, numSpotLightShadows: o2.spotShadowMap.length, numSpotLightShadowsWithMaps: o2.numSpotLightShadowsWithMaps, numLightProbes: o2.numLightProbes, numClippingPlanes: a.numPlanes, numClipIntersection: a.numIntersection, dithering: s2.dithering, shadowMapEnabled: t2.shadowMap.enabled && h2.length > 0, shadowMapType: t2.shadowMap.type, toneMapping: vt2, decodeVideoTexture: N2 && true === s2.map.isVideoTexture && ai.getTransfer(s2.map.colorSpace) === Qe, decodeVideoTextureEmissive: G2 && true === s2.emissiveMap.isVideoTexture && ai.getTransfer(s2.emissiveMap.colorSpace) === Qe, premultipliedAlpha: s2.premultipliedAlpha, doubleSided: 2 === s2.side, flipSided: 1 === s2.side, useDepthPacking: s2.depthPacking >= 0, depthPacking: s2.depthPacking || 0, index0AttributeName: s2.index0AttributeName, extensionClipCullDistance: gt2 && true === s2.extensions.clipCullDistance && i.has("WEBGL_clip_cull_distance"), extensionMultiDraw: (gt2 && true === s2.extensions.multiDraw || D2) && i.has("WEBGL_multi_draw"), rendererExtensionParallelShaderCompile: i.has("KHR_parallel_shader_compile"), customProgramCacheKey: s2.customProgramCacheKey() };
+      s2.toneMapped && (null !== P3 && true !== P3.isXRRenderTarget || (vt2 = t2.toneMapping));
+      const _t = { shaderID: b, shaderType: s2.type, shaderName: s2.name, vertexShader: E2, fragmentShader: A2, defines: s2.defines, customVertexShaderID: R2, customFragmentShaderID: C2, isRawShaderMaterial: true === s2.isRawShaderMaterial, glslVersion: s2.glslVersion, precision: p2, batching: D2, batchingColor: D2 && null !== v._colorsTexture, instancing: U2, instancingColor: U2 && null !== v.instanceColor, instancingMorph: U2 && null !== v.morphTexture, supportsVertexTextures: d2, outputColorSpace: null === P3 ? t2.outputColorSpace : true === P3.isXRRenderTarget ? P3.texture.colorSpace : Ke, alphaToCoverage: !!s2.alphaToCoverage, map: N2, matcap: O2, envMap: F2, envMapMode: F2 && M2.mapping, envMapCubeUVHeight: S2, aoMap: B2, lightMap: z2, bumpMap: k2, normalMap: V2, displacementMap: d2 && H2, emissiveMap: G2, normalMapObjectSpace: V2 && 1 === s2.normalMapType, normalMapTangentSpace: V2 && 0 === s2.normalMapType, metalnessMap: W2, roughnessMap: X2, anisotropy: j2, anisotropyMap: $, clearcoat: q2, clearcoatMap: Q, clearcoatNormalMap: tt, clearcoatRoughnessMap: et, dispersion: Y, iridescence: Z, iridescenceMap: nt, iridescenceThicknessMap: it, sheen: J, sheenColorMap: rt, sheenRoughnessMap: st, specularMap: at, specularColorMap: ot2, specularIntensityMap: lt2, transmission: K, transmissionMap: ct2, thicknessMap: ht2, gradientMap: ut2, opaque: false === s2.transparent && 1 === s2.blending && false === s2.alphaToCoverage, alphaMap: pt2, alphaTest: mt2, alphaHash: ft2, combine: s2.combine, mapUv: N2 && f(s2.map.channel), aoMapUv: B2 && f(s2.aoMap.channel), lightMapUv: z2 && f(s2.lightMap.channel), bumpMapUv: k2 && f(s2.bumpMap.channel), normalMapUv: V2 && f(s2.normalMap.channel), displacementMapUv: H2 && f(s2.displacementMap.channel), emissiveMapUv: G2 && f(s2.emissiveMap.channel), metalnessMapUv: W2 && f(s2.metalnessMap.channel), roughnessMapUv: X2 && f(s2.roughnessMap.channel), anisotropyMapUv: $ && f(s2.anisotropyMap.channel), clearcoatMapUv: Q && f(s2.clearcoatMap.channel), clearcoatNormalMapUv: tt && f(s2.clearcoatNormalMap.channel), clearcoatRoughnessMapUv: et && f(s2.clearcoatRoughnessMap.channel), iridescenceMapUv: nt && f(s2.iridescenceMap.channel), iridescenceThicknessMapUv: it && f(s2.iridescenceThicknessMap.channel), sheenColorMapUv: rt && f(s2.sheenColorMap.channel), sheenRoughnessMapUv: st && f(s2.sheenRoughnessMap.channel), specularMapUv: at && f(s2.specularMap.channel), specularColorMapUv: ot2 && f(s2.specularColorMap.channel), specularIntensityMapUv: lt2 && f(s2.specularIntensityMap.channel), transmissionMapUv: ct2 && f(s2.transmissionMap.channel), thicknessMapUv: ht2 && f(s2.thicknessMap.channel), alphaMapUv: pt2 && f(s2.alphaMap.channel), vertexTangents: !!x.attributes.tangent && (V2 || j2), vertexColors: s2.vertexColors, vertexAlphas: true === s2.vertexColors && !!x.attributes.color && 4 === x.attributes.color.itemSize, pointsUvs: true === v.isPoints && !!x.attributes.uv && (N2 || pt2), fog: !!_, useFog: true === s2.fog, fogExp2: !!_ && _.isFogExp2, flatShading: true === s2.flatShading, sizeAttenuation: true === s2.sizeAttenuation, logarithmicDepthBuffer: u2, reverseDepthBuffer: L2, skinning: true === v.isSkinnedMesh, morphTargets: void 0 !== x.morphAttributes.position, morphNormals: void 0 !== x.morphAttributes.normal, morphColors: void 0 !== x.morphAttributes.color, morphTargetsCount: w2, morphTextureStride: I2, numDirLights: o2.directional.length, numPointLights: o2.point.length, numSpotLights: o2.spot.length, numSpotLightMaps: o2.spotLightMap.length, numRectAreaLights: o2.rectArea.length, numHemiLights: o2.hemi.length, numDirLightShadows: o2.directionalShadowMap.length, numPointLightShadows: o2.pointShadowMap.length, numSpotLightShadows: o2.spotShadowMap.length, numSpotLightShadowsWithMaps: o2.numSpotLightShadowsWithMaps, numLightProbes: o2.numLightProbes, numClippingPlanes: a.numPlanes, numClipIntersection: a.numIntersection, dithering: s2.dithering, shadowMapEnabled: t2.shadowMap.enabled && h2.length > 0, shadowMapType: t2.shadowMap.type, toneMapping: vt2, decodeVideoTexture: N2 && true === s2.map.isVideoTexture && ai.getTransfer(s2.map.colorSpace) === Qe, decodeVideoTextureEmissive: G2 && true === s2.emissiveMap.isVideoTexture && ai.getTransfer(s2.emissiveMap.colorSpace) === Qe, premultipliedAlpha: s2.premultipliedAlpha, doubleSided: 2 === s2.side, flipSided: 1 === s2.side, useDepthPacking: s2.depthPacking >= 0, depthPacking: s2.depthPacking || 0, index0AttributeName: s2.index0AttributeName, extensionClipCullDistance: gt2 && true === s2.extensions.clipCullDistance && i.has("WEBGL_clip_cull_distance"), extensionMultiDraw: (gt2 && true === s2.extensions.multiDraw || D2) && i.has("WEBGL_multi_draw"), rendererExtensionParallelShaderCompile: i.has("KHR_parallel_shader_compile"), customProgramCacheKey: s2.customProgramCacheKey() };
       return _t.vertexUv1s = c.has(1), _t.vertexUv2s = c.has(2), _t.vertexUv3s = c.has(3), c.clear(), _t;
     }, getProgramCacheKey: function(e2) {
       const n2 = [];
@@ -5567,7 +5567,7 @@
         e2 = false, n2 = null, i2 = null, r2 = null, s2 = null, a2 = null, o2 = null, l2 = null, c2 = null;
       } };
     }(), s = /* @__PURE__ */ new WeakMap(), a = /* @__PURE__ */ new WeakMap();
-    let o = {}, l = {}, c = /* @__PURE__ */ new WeakMap(), h = [], u2 = null, d2 = false, p2 = null, m = null, f = null, g = null, v = null, _ = null, x = null, b = new Kr(0, 0, 0), T = 0, k2 = false, V2 = null, H3 = null, G2 = null, W3 = null, X2 = null;
+    let o = {}, l = {}, c = /* @__PURE__ */ new WeakMap(), h = [], u2 = null, d2 = false, p2 = null, m = null, f = null, g = null, v = null, _ = null, x = null, b = new Kr(0, 0, 0), T = 0, k2 = false, V2 = null, H2 = null, G2 = null, W2 = null, X2 = null;
     const j2 = t2.getParameter(t2.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
     let q2 = false, Y = 0;
     const Z = t2.getParameter(t2.VERSION);
@@ -5635,10 +5635,10 @@
       V2 !== e2 && (e2 ? t2.frontFace(t2.CW) : t2.frontFace(t2.CCW), V2 = e2);
     }
     function ht2(e2) {
-      0 !== e2 ? (rt(t2.CULL_FACE), e2 !== H3 && (1 === e2 ? t2.cullFace(t2.BACK) : 2 === e2 ? t2.cullFace(t2.FRONT) : t2.cullFace(t2.FRONT_AND_BACK))) : st(t2.CULL_FACE), H3 = e2;
+      0 !== e2 ? (rt(t2.CULL_FACE), e2 !== H2 && (1 === e2 ? t2.cullFace(t2.BACK) : 2 === e2 ? t2.cullFace(t2.FRONT) : t2.cullFace(t2.FRONT_AND_BACK))) : st(t2.CULL_FACE), H2 = e2;
     }
     function ut2(e2, n2, i2) {
-      e2 ? (rt(t2.POLYGON_OFFSET_FILL), W3 === n2 && X2 === i2 || (t2.polygonOffset(n2, i2), W3 = n2, X2 = i2)) : st(t2.POLYGON_OFFSET_FILL);
+      e2 ? (rt(t2.POLYGON_OFFSET_FILL), W2 === n2 && X2 === i2 || (t2.polygonOffset(n2, i2), W2 = n2, X2 = i2)) : st(t2.POLYGON_OFFSET_FILL);
     }
     return { buffers: { color: n, depth: i, stencil: r }, enable: rt, disable: st, bindFramebuffer: function(e2, n2) {
       return l[e2] !== n2 && (t2.bindFramebuffer(e2, n2), l[e2] = n2, e2 === t2.DRAW_FRAMEBUFFER && (l[t2.FRAMEBUFFER] = n2), e2 === t2.FRAMEBUFFER && (l[t2.DRAW_FRAMEBUFFER] = n2), true);
@@ -5747,7 +5747,7 @@
     }, viewport: function(e2) {
       false === et.equals(e2) && (t2.viewport(e2.x, e2.y, e2.z, e2.w), et.copy(e2));
     }, reset: function() {
-      t2.disable(t2.BLEND), t2.disable(t2.CULL_FACE), t2.disable(t2.DEPTH_TEST), t2.disable(t2.POLYGON_OFFSET_FILL), t2.disable(t2.SCISSOR_TEST), t2.disable(t2.STENCIL_TEST), t2.disable(t2.SAMPLE_ALPHA_TO_COVERAGE), t2.blendEquation(t2.FUNC_ADD), t2.blendFunc(t2.ONE, t2.ZERO), t2.blendFuncSeparate(t2.ONE, t2.ZERO, t2.ONE, t2.ZERO), t2.blendColor(0, 0, 0, 0), t2.colorMask(true, true, true, true), t2.clearColor(0, 0, 0, 0), t2.depthMask(true), t2.depthFunc(t2.LESS), i.setReversed(false), t2.clearDepth(1), t2.stencilMask(4294967295), t2.stencilFunc(t2.ALWAYS, 0, 4294967295), t2.stencilOp(t2.KEEP, t2.KEEP, t2.KEEP), t2.clearStencil(0), t2.cullFace(t2.BACK), t2.frontFace(t2.CCW), t2.polygonOffset(0, 0), t2.activeTexture(t2.TEXTURE0), t2.bindFramebuffer(t2.FRAMEBUFFER, null), t2.bindFramebuffer(t2.DRAW_FRAMEBUFFER, null), t2.bindFramebuffer(t2.READ_FRAMEBUFFER, null), t2.useProgram(null), t2.lineWidth(1), t2.scissor(0, 0, t2.canvas.width, t2.canvas.height), t2.viewport(0, 0, t2.canvas.width, t2.canvas.height), o = {}, J = null, K = {}, l = {}, c = /* @__PURE__ */ new WeakMap(), h = [], u2 = null, d2 = false, p2 = null, m = null, f = null, g = null, v = null, _ = null, x = null, b = new Kr(0, 0, 0), T = 0, k2 = false, V2 = null, H3 = null, G2 = null, W3 = null, X2 = null, tt.set(0, 0, t2.canvas.width, t2.canvas.height), et.set(0, 0, t2.canvas.width, t2.canvas.height), n.reset(), i.reset(), r.reset();
+      t2.disable(t2.BLEND), t2.disable(t2.CULL_FACE), t2.disable(t2.DEPTH_TEST), t2.disable(t2.POLYGON_OFFSET_FILL), t2.disable(t2.SCISSOR_TEST), t2.disable(t2.STENCIL_TEST), t2.disable(t2.SAMPLE_ALPHA_TO_COVERAGE), t2.blendEquation(t2.FUNC_ADD), t2.blendFunc(t2.ONE, t2.ZERO), t2.blendFuncSeparate(t2.ONE, t2.ZERO, t2.ONE, t2.ZERO), t2.blendColor(0, 0, 0, 0), t2.colorMask(true, true, true, true), t2.clearColor(0, 0, 0, 0), t2.depthMask(true), t2.depthFunc(t2.LESS), i.setReversed(false), t2.clearDepth(1), t2.stencilMask(4294967295), t2.stencilFunc(t2.ALWAYS, 0, 4294967295), t2.stencilOp(t2.KEEP, t2.KEEP, t2.KEEP), t2.clearStencil(0), t2.cullFace(t2.BACK), t2.frontFace(t2.CCW), t2.polygonOffset(0, 0), t2.activeTexture(t2.TEXTURE0), t2.bindFramebuffer(t2.FRAMEBUFFER, null), t2.bindFramebuffer(t2.DRAW_FRAMEBUFFER, null), t2.bindFramebuffer(t2.READ_FRAMEBUFFER, null), t2.useProgram(null), t2.lineWidth(1), t2.scissor(0, 0, t2.canvas.width, t2.canvas.height), t2.viewport(0, 0, t2.canvas.width, t2.canvas.height), o = {}, J = null, K = {}, l = {}, c = /* @__PURE__ */ new WeakMap(), h = [], u2 = null, d2 = false, p2 = null, m = null, f = null, g = null, v = null, _ = null, x = null, b = new Kr(0, 0, 0), T = 0, k2 = false, V2 = null, H2 = null, G2 = null, W2 = null, X2 = null, tt.set(0, 0, t2.canvas.width, t2.canvas.height), et.set(0, 0, t2.canvas.width, t2.canvas.height), n.reset(), i.reset(), r.reset();
     } };
   }
   function Vl(t2, e, n, i) {
@@ -5972,7 +5972,7 @@
         }
       }
     }
-    function P2(e2, n2) {
+    function P3(e2, n2) {
       let i2 = false;
       void 0 === e2.__webglInit && (e2.__webglInit = true, n2.addEventListener("dispose", S2));
       const r2 = n2.source;
@@ -5992,7 +5992,7 @@
     function L2(e2, a2, o2) {
       let l2 = t2.TEXTURE_2D;
       (a2.isDataArrayTexture || a2.isCompressedArrayTexture) && (l2 = t2.TEXTURE_2D_ARRAY), a2.isData3DTexture && (l2 = t2.TEXTURE_3D);
-      const c2 = P2(e2, a2), h2 = a2.source;
+      const c2 = P3(e2, a2), h2 = a2.source;
       n.bindTexture(l2, e2.__webglTexture, t2.TEXTURE0 + o2);
       const u3 = i.get(h2);
       if (h2.version !== u3.__version || true === c2) {
@@ -6155,7 +6155,7 @@
       const o2 = i.get(e2);
       e2.version > 0 && o2.__version !== e2.version ? (function(e3, a3, o3) {
         if (6 !== a3.image.length) return;
-        const l2 = P2(e3, a3), c2 = a3.source;
+        const l2 = P3(e3, a3), c2 = a3.source;
         n.bindTexture(t2.TEXTURE_CUBE_MAP, e3.__webglTexture, t2.TEXTURE0 + o3);
         const h2 = i.get(c2);
         if (c2.version !== h2.__version || true === l2) {
@@ -6556,7 +6556,7 @@
       }, this.getDepthTexture = function() {
         return m.getDepthTexture();
       };
-      const P2 = new Ci(), L2 = new Ci();
+      const P3 = new Ci(), L2 = new Ci();
       function U2(t3, e2) {
         null === e2 ? t3.matrixWorld.copy(t3.matrix) : t3.matrixWorld.multiplyMatrices(e2.matrixWorld, t3.matrix), t3.matrixWorldInverse.copy(t3.matrixWorld).invert();
       }
@@ -6568,8 +6568,8 @@
         U2(w2, r2);
         for (let t4 = 0; t4 < s2.length; t4++) U2(s2[t4], r2);
         2 === s2.length ? (function(t4, e3, n3) {
-          P2.setFromMatrixPosition(e3.matrixWorld), L2.setFromMatrixPosition(n3.matrixWorld);
-          const i2 = P2.distanceTo(L2), r3 = e3.projectionMatrix.elements, s3 = n3.projectionMatrix.elements, a2 = r3[14] / (r3[10] - 1), o2 = r3[14] / (r3[10] + 1), l2 = (r3[9] + 1) / r3[5], c2 = (r3[9] - 1) / r3[5], h2 = (r3[8] - 1) / r3[0], u3 = (s3[8] + 1) / s3[0], d3 = a2 * h2, p3 = a2 * u3, m2 = i2 / (-h2 + u3), f2 = m2 * -h2;
+          P3.setFromMatrixPosition(e3.matrixWorld), L2.setFromMatrixPosition(n3.matrixWorld);
+          const i2 = P3.distanceTo(L2), r3 = e3.projectionMatrix.elements, s3 = n3.projectionMatrix.elements, a2 = r3[14] / (r3[10] - 1), o2 = r3[14] / (r3[10] + 1), l2 = (r3[9] + 1) / r3[5], c2 = (r3[9] - 1) / r3[5], h2 = (r3[8] - 1) / r3[0], u3 = (s3[8] + 1) / s3[0], d3 = a2 * h2, p3 = a2 * u3, m2 = i2 / (-h2 + u3), f2 = m2 * -h2;
           if (e3.matrixWorld.decompose(t4.position, t4.quaternion, t4.scale), t4.translateX(f2), t4.translateZ(m2), t4.matrixWorld.compose(t4.position, t4.quaternion, t4.scale), t4.matrixWorldInverse.copy(t4.matrixWorld).invert(), -1 === r3[10]) t4.projectionMatrix.copy(e3.projectionMatrix), t4.projectionMatrixInverse.copy(e3.projectionMatrixInverse);
           else {
             const e4 = a2 + m2, n4 = o2 + m2, r4 = d3 - f2, s4 = p3 + (i2 - f2), h3 = l2 * o2 / n4 * e4, u4 = c2 * o2 / n4 * e4;
@@ -6777,12 +6777,12 @@
       const A2 = new Mi(), R2 = new Mi();
       let C2 = null;
       const I2 = new Kr(0);
-      let P2 = 0, L2 = n.width, U2 = n.height, D2 = 1, N2 = null, O2 = null;
+      let P3 = 0, L2 = n.width, U2 = n.height, D2 = 1, N2 = null, O2 = null;
       const F2 = new Mi(0, 0, L2, U2), B2 = new Mi(0, 0, L2, U2);
       let z2 = false;
       const k2 = new oa();
-      let V2 = false, H3 = false;
-      const G2 = new sr(), W3 = new sr(), X2 = new Ci(), j2 = new Mi(), q2 = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
+      let V2 = false, H2 = false;
+      const G2 = new sr(), W2 = new sr(), X2 = new Ci(), j2 = new Mi(), q2 = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
       let Y = false;
       function Z() {
         return null === T ? D2 : 1;
@@ -6909,7 +6909,7 @@
           let m3 = 0;
           i3.toneMapped && (null !== T && true !== T.isXRRenderTarget || (m3 = y2.toneMapping));
           const f3 = n3.morphAttributes.position || n3.morphAttributes.normal || n3.morphAttributes.color, g3 = void 0 !== f3 ? f3.length : 0, _2 = tt.get(i3), x2 = v.state.lights;
-          if (true === V2 && (true === H3 || t3 !== E2)) {
+          if (true === V2 && (true === H2 || t3 !== E2)) {
             const e4 = t3 === E2 && i3.id === w2;
             ut2.setState(i3, t3, e4);
           }
@@ -6938,8 +6938,8 @@
             t4 && (null === t4.boneTexture && t4.computeBoneTexture(), C3.setValue(yt, "boneTexture", t4.boneTexture, et));
           }
           r3.isBatchedMesh && (C3.setOptional(yt, r3, "batchingTexture"), C3.setValue(yt, "batchingTexture", r3._matricesTexture, et), C3.setOptional(yt, r3, "batchingIdTexture"), C3.setValue(yt, "batchingIdTexture", r3._indirectTexture, et), C3.setOptional(yt, r3, "batchingColorTexture"), null !== r3._colorsTexture && C3.setValue(yt, "batchingColorTexture", r3._colorsTexture, et));
-          const P3 = n3.morphAttributes;
-          void 0 === P3.position && void 0 === P3.normal && void 0 === P3.color || mt2.update(r3, n3, S3);
+          const P4 = n3.morphAttributes;
+          void 0 === P4.position && void 0 === P4.normal && void 0 === P4.color || mt2.update(r3, n3, S3);
           (A3 || _2.receiveShadow !== r3.receiveShadow) && (_2.receiveShadow = r3.receiveShadow, C3.setValue(yt, "receiveShadow", r3.receiveShadow));
           i3.isMeshGouraudMaterial && null !== i3.envMap && (I3.envMap.value = l3, I3.flipEnvMap.value = l3.isCubeTexture && false === l3.isRenderTargetTexture ? -1 : 1);
           i3.isMeshStandardMaterial && null === i3.envMap && null !== e3.environment && (I3.envMapIntensity.value = e3.environmentIntensity);
@@ -7029,13 +7029,13 @@
           else if (t2.isLight) v.pushLight(t2), t2.castShadow && v.pushShadow(t2);
           else if (t2.isSprite) {
             if (!t2.frustumCulled || k2.intersectsSprite(t2)) {
-              i2 && j2.setFromMatrixPosition(t2.matrixWorld).applyMatrix4(W3);
+              i2 && j2.setFromMatrixPosition(t2.matrixWorld).applyMatrix4(W2);
               const e3 = at.update(t2), r3 = t2.material;
               r3.visible && g.push(t2, e3, r3, n2, j2.z, null);
             }
           } else if ((t2.isMesh || t2.isLine || t2.isPoints) && (!t2.frustumCulled || k2.intersectsObject(t2))) {
             const e3 = at.update(t2), r3 = t2.material;
-            if (i2 && (void 0 !== t2.boundingSphere ? (null === t2.boundingSphere && t2.computeBoundingSphere(), j2.copy(t2.boundingSphere.center)) : (null === e3.boundingSphere && e3.computeBoundingSphere(), j2.copy(e3.boundingSphere.center)), j2.applyMatrix4(t2.matrixWorld).applyMatrix4(W3)), Array.isArray(r3)) {
+            if (i2 && (void 0 !== t2.boundingSphere ? (null === t2.boundingSphere && t2.computeBoundingSphere(), j2.copy(t2.boundingSphere.center)) : (null === e3.boundingSphere && e3.computeBoundingSphere(), j2.copy(e3.boundingSphere.center)), j2.applyMatrix4(t2.matrixWorld).applyMatrix4(W2)), Array.isArray(r3)) {
               const i3 = e3.groups;
               for (let s2 = 0, a2 = i3.length; s2 < a2; s2++) {
                 const a3 = i3[s2], o2 = r3[a3.materialIndex];
@@ -7057,7 +7057,7 @@
         const r2 = v.state.transmissionRenderTarget[i2.id], a2 = i2.viewport || A2;
         r2.setSize(a2.z, a2.w);
         const o2 = y2.getRenderTarget();
-        y2.setRenderTarget(r2), y2.getClearColor(I2), P2 = y2.getClearAlpha(), P2 < 1 && y2.setClearColor(16777215, 0.5), y2.clear(), Y && pt2.render(n2);
+        y2.setRenderTarget(r2), y2.getClearColor(I2), P3 = y2.getClearAlpha(), P3 < 1 && y2.setClearColor(16777215, 0.5), y2.clear(), Y && pt2.render(n2);
         const l2 = y2.toneMapping;
         y2.toneMapping = 0;
         const c2 = i2.viewport;
@@ -7072,7 +7072,7 @@
           }
           true === t3 && (et.updateMultisampleRenderTarget(r2), et.updateRenderTargetMipmap(r2));
         }
-        y2.setRenderTarget(o2), y2.setClearColor(I2, P2), void 0 !== c2 && (i2.viewport = c2), y2.toneMapping = l2;
+        y2.setRenderTarget(o2), y2.setClearColor(I2, P3), void 0 !== c2 && (i2.viewport = c2), y2.toneMapping = l2;
       }
       function Wt2(t2, e2, n2) {
         const i2 = true === e2.isScene ? e2.overrideMaterial : null;
@@ -7116,7 +7116,7 @@
       }, bt.addEventListener("sessionstart", Bt2), bt.addEventListener("sessionend", zt2), this.render = function(t2, e2) {
         if (void 0 !== e2 && true !== e2.isCamera) return void console.error("THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.");
         if (true === M2) return;
-        if (true === t2.matrixWorldAutoUpdate && t2.updateMatrixWorld(), null === e2.parent && true === e2.matrixWorldAutoUpdate && e2.updateMatrixWorld(), true === bt.enabled && true === bt.isPresenting && (true === bt.cameraAutoUpdate && bt.updateCamera(e2), e2 = bt.getCamera()), true === t2.isScene && t2.onBeforeRender(y2, t2, e2, T), v = ht2.get(t2, x.length), v.init(e2), x.push(v), W3.multiplyMatrices(e2.projectionMatrix, e2.matrixWorldInverse), k2.setFromProjectionMatrix(W3), H3 = this.localClippingEnabled, V2 = ut2.init(this.clippingPlanes, H3), g = ct2.get(t2, _.length), g.init(), _.push(g), true === bt.enabled && true === bt.isPresenting) {
+        if (true === t2.matrixWorldAutoUpdate && t2.updateMatrixWorld(), null === e2.parent && true === e2.matrixWorldAutoUpdate && e2.updateMatrixWorld(), true === bt.enabled && true === bt.isPresenting && (true === bt.cameraAutoUpdate && bt.updateCamera(e2), e2 = bt.getCamera()), true === t2.isScene && t2.onBeforeRender(y2, t2, e2, T), v = ht2.get(t2, x.length), v.init(e2), x.push(v), W2.multiplyMatrices(e2.projectionMatrix, e2.matrixWorldInverse), k2.setFromProjectionMatrix(W2), H2 = this.localClippingEnabled, V2 = ut2.init(this.clippingPlanes, H2), g = ct2.get(t2, _.length), g.init(), _.push(g), true === bt.enabled && true === bt.isPresenting) {
           const t3 = y2.xr.getDepthSensingMesh();
           null !== t3 && Vt2(t3, e2, -1 / 0, y2.sortObjects);
         }
@@ -7337,6 +7337,17 @@
   var lh = new Ci();
   var ch = new th();
   var hh = new Bs();
+  var fh = class extends ts {
+    static get type() {
+      return "LineBasicMaterial";
+    }
+    constructor(t2) {
+      super(), this.isLineBasicMaterial = true, this.color = new Kr(16777215), this.map = null, this.linewidth = 1, this.linecap = "round", this.linejoin = "round", this.fog = true, this.setValues(t2);
+    }
+    copy(t2) {
+      return super.copy(t2), this.color.copy(t2.color), this.map = t2.map, this.linewidth = t2.linewidth, this.linecap = t2.linecap, this.linejoin = t2.linejoin, this.fog = t2.fog, this;
+    }
+  };
   var gh = new Ci();
   var vh = new Ci();
   var _h = new sr();
@@ -7344,12 +7355,133 @@
   var yh = new Ji();
   var Mh = new Ci();
   var Sh = new Ci();
+  var bh = class extends Lr {
+    constructor(t2 = new Es(), e = new fh()) {
+      super(), this.isLine = true, this.type = "Line", this.geometry = t2, this.material = e, this.updateMorphTargets();
+    }
+    copy(t2, e) {
+      return super.copy(t2, e), this.material = Array.isArray(t2.material) ? t2.material.slice() : t2.material, this.geometry = t2.geometry, this;
+    }
+    computeLineDistances() {
+      const t2 = this.geometry;
+      if (null === t2.index) {
+        const e = t2.attributes.position, n = [0];
+        for (let t3 = 1, i = e.count; t3 < i; t3++) gh.fromBufferAttribute(e, t3 - 1), vh.fromBufferAttribute(e, t3), n[t3] = n[t3 - 1], n[t3] += gh.distanceTo(vh);
+        t2.setAttribute("lineDistance", new _s(n, 1));
+      } else console.warn("THREE.Line.computeLineDistances(): Computation only possible with non-indexed BufferGeometry.");
+      return this;
+    }
+    raycast(t2, e) {
+      const n = this.geometry, i = this.matrixWorld, r = t2.params.Line.threshold, s = n.drawRange;
+      if (null === n.boundingSphere && n.computeBoundingSphere(), yh.copy(n.boundingSphere), yh.applyMatrix4(i), yh.radius += r, false === t2.ray.intersectsSphere(yh)) return;
+      _h.copy(i).invert(), xh.copy(t2.ray).applyMatrix4(_h);
+      const a = r / ((this.scale.x + this.scale.y + this.scale.z) / 3), o = a * a, l = this.isLineSegments ? 2 : 1, c = n.index, h = n.attributes.position;
+      if (null !== c) {
+        const n2 = Math.max(0, s.start), i2 = Math.min(c.count, s.start + s.count);
+        for (let r2 = n2, s2 = i2 - 1; r2 < s2; r2 += l) {
+          const n3 = c.getX(r2), i3 = c.getX(r2 + 1), s3 = Th(this, t2, xh, o, n3, i3);
+          s3 && e.push(s3);
+        }
+        if (this.isLineLoop) {
+          const r2 = c.getX(i2 - 1), s2 = c.getX(n2), a2 = Th(this, t2, xh, o, r2, s2);
+          a2 && e.push(a2);
+        }
+      } else {
+        const n2 = Math.max(0, s.start), i2 = Math.min(h.count, s.start + s.count);
+        for (let r2 = n2, s2 = i2 - 1; r2 < s2; r2 += l) {
+          const n3 = Th(this, t2, xh, o, r2, r2 + 1);
+          n3 && e.push(n3);
+        }
+        if (this.isLineLoop) {
+          const r2 = Th(this, t2, xh, o, i2 - 1, n2);
+          r2 && e.push(r2);
+        }
+      }
+    }
+    updateMorphTargets() {
+      const t2 = this.geometry.morphAttributes, e = Object.keys(t2);
+      if (e.length > 0) {
+        const n = t2[e[0]];
+        if (void 0 !== n) {
+          this.morphTargetInfluences = [], this.morphTargetDictionary = {};
+          for (let t3 = 0, e2 = n.length; t3 < e2; t3++) {
+            const e3 = n[t3].name || String(t3);
+            this.morphTargetInfluences.push(0), this.morphTargetDictionary[e3] = t3;
+          }
+        }
+      }
+    }
+  };
+  function Th(t2, e, n, i, r, s) {
+    const a = t2.geometry.attributes.position;
+    gh.fromBufferAttribute(a, r), vh.fromBufferAttribute(a, s);
+    if (n.distanceSqToSegment(gh, vh, Mh, Sh) > i) return;
+    Mh.applyMatrix4(t2.matrixWorld);
+    const o = e.ray.origin.distanceTo(Mh);
+    return o < e.near || o > e.far ? void 0 : { distance: o, point: Sh.clone().applyMatrix4(t2.matrixWorld), index: r, face: null, faceIndex: null, barycoord: null, object: t2 };
+  }
   var wh = new Ci();
   var Eh = new Ci();
+  var Ch = class extends ts {
+    static get type() {
+      return "PointsMaterial";
+    }
+    constructor(t2) {
+      super(), this.isPointsMaterial = true, this.color = new Kr(16777215), this.map = null, this.alphaMap = null, this.size = 1, this.sizeAttenuation = true, this.fog = true, this.setValues(t2);
+    }
+    copy(t2) {
+      return super.copy(t2), this.color.copy(t2.color), this.map = t2.map, this.alphaMap = t2.alphaMap, this.size = t2.size, this.sizeAttenuation = t2.sizeAttenuation, this.fog = t2.fog, this;
+    }
+  };
   var Ih = new sr();
   var Ph = new rr();
   var Lh = new Ji();
   var Uh = new Ci();
+  var Dh = class extends Lr {
+    constructor(t2 = new Es(), e = new Ch()) {
+      super(), this.isPoints = true, this.type = "Points", this.geometry = t2, this.material = e, this.updateMorphTargets();
+    }
+    copy(t2, e) {
+      return super.copy(t2, e), this.material = Array.isArray(t2.material) ? t2.material.slice() : t2.material, this.geometry = t2.geometry, this;
+    }
+    raycast(t2, e) {
+      const n = this.geometry, i = this.matrixWorld, r = t2.params.Points.threshold, s = n.drawRange;
+      if (null === n.boundingSphere && n.computeBoundingSphere(), Lh.copy(n.boundingSphere), Lh.applyMatrix4(i), Lh.radius += r, false === t2.ray.intersectsSphere(Lh)) return;
+      Ih.copy(i).invert(), Ph.copy(t2.ray).applyMatrix4(Ih);
+      const a = r / ((this.scale.x + this.scale.y + this.scale.z) / 3), o = a * a, l = n.index, c = n.attributes.position;
+      if (null !== l) {
+        for (let n2 = Math.max(0, s.start), r2 = Math.min(l.count, s.start + s.count); n2 < r2; n2++) {
+          const r3 = l.getX(n2);
+          Uh.fromBufferAttribute(c, r3), Nh(Uh, r3, o, i, t2, e, this);
+        }
+      } else {
+        for (let n2 = Math.max(0, s.start), r2 = Math.min(c.count, s.start + s.count); n2 < r2; n2++) Uh.fromBufferAttribute(c, n2), Nh(Uh, n2, o, i, t2, e, this);
+      }
+    }
+    updateMorphTargets() {
+      const t2 = this.geometry.morphAttributes, e = Object.keys(t2);
+      if (e.length > 0) {
+        const n = t2[e[0]];
+        if (void 0 !== n) {
+          this.morphTargetInfluences = [], this.morphTargetDictionary = {};
+          for (let t3 = 0, e2 = n.length; t3 < e2; t3++) {
+            const e3 = n[t3].name || String(t3);
+            this.morphTargetInfluences.push(0), this.morphTargetDictionary[e3] = t3;
+          }
+        }
+      }
+    }
+  };
+  function Nh(t2, e, n, i, r, s, a) {
+    const o = Ph.distanceSqToPoint(t2);
+    if (o < n) {
+      const n2 = new Ci();
+      Ph.closestPointToPoint(t2, n2), n2.applyMatrix4(i);
+      const l = r.ray.origin.distanceTo(n2);
+      if (l < r.near || l > r.far) return;
+      s.push({ distance: l, distanceToRay: Math.sqrt(o), point: n2, index: e, face: null, faceIndex: null, barycoord: null, object: a });
+    }
+  }
   var Vh = class extends yi {
     constructor(t2, e, n, i, r, s, a, o, l) {
       super(t2, e, n, i, r, s, a, o, l), this.isCanvasTexture = true, this.needsUpdate = true;
@@ -8446,10 +8578,10 @@
           }
           return new Jn(i2 / s3, r2 / s3);
         }
-        const P2 = [];
-        for (let t4 = 0, e2 = E2.length, n2 = e2 - 1, i2 = t4 + 1; t4 < e2; t4++, n2++, i2++) n2 === e2 && (n2 = 0), i2 === e2 && (i2 = 0), P2[t4] = I2(E2[t4], E2[n2], E2[i2]);
+        const P3 = [];
+        for (let t4 = 0, e2 = E2.length, n2 = e2 - 1, i2 = t4 + 1; t4 < e2; t4++, n2++, i2++) n2 === e2 && (n2 = 0), i2 === e2 && (i2 = 0), P3[t4] = I2(E2[t4], E2[n2], E2[i2]);
         const L2 = [];
-        let U2, D2 = P2.concat();
+        let U2, D2 = P3.concat();
         for (let t4 = 0, e2 = T.length; t4 < e2; t4++) {
           const e3 = T[t4];
           U2 = [];
@@ -8459,7 +8591,7 @@
         for (let t4 = 0; t4 < p2; t4++) {
           const e2 = t4 / p2, n2 = h * Math.cos(e2 * Math.PI / 2), i2 = u2 * Math.sin(e2 * Math.PI / 2) + d2;
           for (let t5 = 0, e3 = E2.length; t5 < e3; t5++) {
-            const e4 = A2(E2[t5], P2[t5], i2);
+            const e4 = A2(E2[t5], P3[t5], i2);
             F2(e4.x, e4.y, -n2);
           }
           for (let t5 = 0, e3 = T.length; t5 < e3; t5++) {
@@ -8483,7 +8615,7 @@
         for (let t4 = p2 - 1; t4 >= 0; t4--) {
           const e2 = t4 / p2, n2 = h * Math.cos(e2 * Math.PI / 2), i2 = u2 * Math.sin(e2 * Math.PI / 2) + d2;
           for (let t5 = 0, e3 = E2.length; t5 < e3; t5++) {
-            const e4 = A2(E2[t5], P2[t5], i2);
+            const e4 = A2(E2[t5], P3[t5], i2);
             F2(e4.x, e4.y, l + n2);
           }
           for (let t5 = 0, e3 = T.length; t5 < e3; t5++) {
@@ -8856,6 +8988,17 @@
     return true !== n.has(i) && true !== n.has(r) && (n.add(i), n.add(r), true);
   }
   var hd = Object.freeze({ __proto__: null, BoxGeometry: ks, CapsuleGeometry: uu, CircleGeometry: du, ConeGeometry: mu, CylinderGeometry: pu, DodecahedronGeometry: gu, EdgesGeometry: Mu, ExtrudeGeometry: Ku, IcosahedronGeometry: Qu, LatheGeometry: hu, OctahedronGeometry: td, PlaneGeometry: ha, PolyhedronGeometry: fu, RingGeometry: ed, ShapeGeometry: nd, SphereGeometry: id, TetrahedronGeometry: rd, TorusGeometry: sd, TorusKnotGeometry: ad, TubeGeometry: od, WireframeGeometry: ld });
+  var _d = class extends ts {
+    static get type() {
+      return "MeshLambertMaterial";
+    }
+    constructor(t2) {
+      super(), this.isMeshLambertMaterial = true, this.color = new Kr(16777215), this.map = null, this.lightMap = null, this.lightMapIntensity = 1, this.aoMap = null, this.aoMapIntensity = 1, this.emissive = new Kr(0), this.emissiveIntensity = 1, this.emissiveMap = null, this.bumpMap = null, this.bumpScale = 1, this.normalMap = null, this.normalMapType = 0, this.normalScale = new Jn(1, 1), this.displacementMap = null, this.displacementScale = 1, this.displacementBias = 0, this.specularMap = null, this.alphaMap = null, this.envMap = null, this.envMapRotation = new fr(), this.combine = 0, this.reflectivity = 1, this.refractionRatio = 0.98, this.wireframe = false, this.wireframeLinewidth = 1, this.wireframeLinecap = "round", this.wireframeLinejoin = "round", this.flatShading = false, this.fog = true, this.setValues(t2);
+    }
+    copy(t2) {
+      return super.copy(t2), this.color.copy(t2.color), this.map = t2.map, this.lightMap = t2.lightMap, this.lightMapIntensity = t2.lightMapIntensity, this.aoMap = t2.aoMap, this.aoMapIntensity = t2.aoMapIntensity, this.emissive.copy(t2.emissive), this.emissiveMap = t2.emissiveMap, this.emissiveIntensity = t2.emissiveIntensity, this.bumpMap = t2.bumpMap, this.bumpScale = t2.bumpScale, this.normalMap = t2.normalMap, this.normalMapType = t2.normalMapType, this.normalScale.copy(t2.normalScale), this.displacementMap = t2.displacementMap, this.displacementScale = t2.displacementScale, this.displacementBias = t2.displacementBias, this.specularMap = t2.specularMap, this.alphaMap = t2.alphaMap, this.envMap = t2.envMap, this.envMapRotation.copy(t2.envMapRotation), this.combine = t2.combine, this.reflectivity = t2.reflectivity, this.refractionRatio = t2.refractionRatio, this.wireframe = t2.wireframe, this.wireframeLinewidth = t2.wireframeLinewidth, this.wireframeLinecap = t2.wireframeLinecap, this.wireframeLinejoin = t2.wireframeLinejoin, this.flatShading = t2.flatShading, this.fog = t2.fog, this;
+    }
+  };
   function Md(t2, e, n) {
     return !t2 || !n && t2.constructor === e ? t2 : "number" == typeof e.BYTES_PER_ELEMENT ? new e(t2) : Array.prototype.slice.call(t2);
   }
@@ -9229,12 +9372,81 @@
     }
   };
   Wd.DEFAULT_MATERIAL_NAME = "__DEFAULT";
+  var tp = class extends Lr {
+    constructor(t2, e = 1) {
+      super(), this.isLight = true, this.type = "Light", this.color = new Kr(t2), this.intensity = e;
+    }
+    dispose() {
+    }
+    copy(t2, e) {
+      return super.copy(t2, e), this.color.copy(t2.color), this.intensity = t2.intensity, this;
+    }
+    toJSON(t2) {
+      const e = super.toJSON(t2);
+      return e.object.color = this.color.getHex(), e.object.intensity = this.intensity, void 0 !== this.groundColor && (e.object.groundColor = this.groundColor.getHex()), void 0 !== this.distance && (e.object.distance = this.distance), void 0 !== this.angle && (e.object.angle = this.angle), void 0 !== this.decay && (e.object.decay = this.decay), void 0 !== this.penumbra && (e.object.penumbra = this.penumbra), void 0 !== this.shadow && (e.object.shadow = this.shadow.toJSON()), void 0 !== this.target && (e.object.target = this.target.uuid), e;
+    }
+  };
   var np = new sr();
   var ip = new Ci();
   var rp = new Ci();
+  var sp = class {
+    constructor(t2) {
+      this.camera = t2, this.intensity = 1, this.bias = 0, this.normalBias = 0, this.radius = 1, this.blurSamples = 8, this.mapSize = new Jn(512, 512), this.map = null, this.mapPass = null, this.matrix = new sr(), this.autoUpdate = true, this.needsUpdate = false, this._frustum = new oa(), this._frameExtents = new Jn(1, 1), this._viewportCount = 1, this._viewports = [new Mi(0, 0, 1, 1)];
+    }
+    getViewportCount() {
+      return this._viewportCount;
+    }
+    getFrustum() {
+      return this._frustum;
+    }
+    updateMatrices(t2) {
+      const e = this.camera, n = this.matrix;
+      ip.setFromMatrixPosition(t2.matrixWorld), e.position.copy(ip), rp.setFromMatrixPosition(t2.target.matrixWorld), e.lookAt(rp), e.updateMatrixWorld(), np.multiplyMatrices(e.projectionMatrix, e.matrixWorldInverse), this._frustum.setFromProjectionMatrix(np), n.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1), n.multiply(np);
+    }
+    getViewport(t2) {
+      return this._viewports[t2];
+    }
+    getFrameExtents() {
+      return this._frameExtents;
+    }
+    dispose() {
+      this.map && this.map.dispose(), this.mapPass && this.mapPass.dispose();
+    }
+    copy(t2) {
+      return this.camera = t2.camera.clone(), this.intensity = t2.intensity, this.bias = t2.bias, this.radius = t2.radius, this.mapSize.copy(t2.mapSize), this;
+    }
+    clone() {
+      return new this.constructor().copy(this);
+    }
+    toJSON() {
+      const t2 = {};
+      return 1 !== this.intensity && (t2.intensity = this.intensity), 0 !== this.bias && (t2.bias = this.bias), 0 !== this.normalBias && (t2.normalBias = this.normalBias), 1 !== this.radius && (t2.radius = this.radius), 512 === this.mapSize.x && 512 === this.mapSize.y || (t2.mapSize = this.mapSize.toArray()), t2.camera = this.camera.toJSON(false).object, delete t2.camera.matrix, t2;
+    }
+  };
   var lp = new sr();
   var cp = new Ci();
   var hp = new Ci();
+  var pp = class extends sp {
+    constructor() {
+      super(new ba(-5, 5, 5, -5, 0.5, 500)), this.isDirectionalLightShadow = true;
+    }
+  };
+  var mp = class extends tp {
+    constructor(t2, e) {
+      super(t2, e), this.isDirectionalLight = true, this.type = "DirectionalLight", this.position.copy(Lr.DEFAULT_UP), this.updateMatrix(), this.target = new Lr(), this.shadow = new pp();
+    }
+    dispose() {
+      this.shadow.dispose();
+    }
+    copy(t2) {
+      return super.copy(t2), this.target = t2.target.clone(), this.shadow = t2.shadow.clone(), this;
+    }
+  };
+  var fp = class extends tp {
+    constructor(t2, e) {
+      super(t2, e), this.isAmbientLight = true, this.type = "AmbientLight";
+    }
+  };
   var Pp = new sr();
   var Lp = new sr();
   var Up = new sr();
@@ -9463,8 +9675,8 @@
   "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
   // mockups/toon3d.js
-  function hexToHsl(hex) {
-    const n = hex.replace("#", "");
+  function hexToHsl(hex2) {
+    const n = hex2.replace("#", "");
     const r = parseInt(n.slice(0, 2), 16) / 255, g = parseInt(n.slice(2, 4), 16) / 255, b = parseInt(n.slice(4, 6), 16) / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h = 0, s = 0, l = (max + min) / 2;
@@ -9485,9 +9697,9 @@
   function three(h, s, l) {
     return new Kr().setHSL((h % 360 + 360) % 360 / 360, Math.max(0, Math.min(1, s / 100)), Math.max(0, Math.min(1, l / 100)));
   }
-  function ramp(hex, toon) {
-    const [h, s, l] = hexToHsl(hex);
-    if (!toon) {
+  function ramp(hex2, toon2) {
+    const [h, s, l] = hexToHsl(hex2);
+    if (!toon2) {
       return {
         lit: three(h, s * 0.9, Math.min(88, l + 14)),
         mid: three(h, s, l),
@@ -9604,7 +9816,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       }
     });
   }
-  function hullMaterial(hex, thick, cfg) {
+  function hullMaterial(hex2, thick, cfg) {
     const mode = cfg.inkHull ? "thin" : "off";
     const thickMode = false;
     return new Xs({
@@ -9612,7 +9824,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       fragmentShader: HULL_FS,
       uniforms: {
         uThick: { value: mode === "off" ? 0 : thick * (thickMode ? 2.9 : 1) },
-        uColor: { value: thickMode ? new Kr("#04030a") : ramp(hex, cfg.toon).edge },
+        uColor: { value: thickMode ? new Kr("#04030a") : ramp(hex2, cfg.toon).edge },
         uAlpha: { value: thickMode ? 1 : 0.8 }
       },
       side: d
@@ -9868,7 +10080,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     def.path(c);
     return sh2;
   }
-  function bodyFromShape(name, cfg, hex, group) {
+  function bodyFromShape(name, cfg, hex2, group) {
     const shape = shapeOf(SHAPES[name]);
     const probe = new nd(shape, 16);
     probe.computeBoundingBox();
@@ -9884,8 +10096,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       curveSegments: 18
     });
     geo.center();
-    const mesh = new Bs(geo, surfMaterial(hex, cfg));
-    addHull(group, mesh, geo, 0.022, cfg, hex);
+    const mesh = new Bs(geo, surfMaterial(hex2, cfg));
+    addHull(group, mesh, geo, 0.022, cfg, hex2);
     group.add(mesh);
     return { geo, span, front: span * 0.21 };
   }
@@ -9900,37 +10112,37 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     outer.add(group);
     return outer;
   }
-  function part(group, geo, hex, cfg, x, y2, z2, thick, sx, sy, sz) {
-    const mesh = new Bs(geo, surfMaterial(hex, cfg));
+  function part(group, geo, hex2, cfg, x, y2, z2, thick, sx, sy, sz) {
+    const mesh = new Bs(geo, surfMaterial(hex2, cfg));
     mesh.position.set(x, y2, z2);
     if (sx) mesh.scale.set(sx, sy, sz);
-    addHull(group, mesh, geo, thick || 0.012, cfg, hex);
+    addHull(group, mesh, geo, thick || 0.012, cfg, hex2);
     group.add(mesh);
     return mesh;
   }
-  function buildUfo(cfg, hex) {
+  function buildUfo(cfg, hex2) {
     const g = new jl();
-    const b = bodyFromShape("ufo", cfg, hex, g);
+    const b = bodyFromShape("ufo", cfg, hex2, g);
     const dome = new id(11, 28, 18);
     part(g, dome, "#f2f8ff", cfg, 0, 8.5, 0, 0.012, 1, 0.72, 0.9);
     const light = new id(2.6, 16, 12);
     [-14, 0, 14].forEach((x) => part(g, light, "#ffe066", cfg, x, -3.5, 7, 8e-3));
-    part(g, new sd(19, 2.1, 10, 34), hex, cfg, 0, 2, 0, 0.01, 1, 0.55, 1);
+    part(g, new sd(19, 2.1, 10, 34), hex2, cfg, 0, 2, 0, 0.01, 1, 0.55, 1);
     return finishMob(g, 2.3);
   }
-  function buildPlayer(cfg, hex) {
+  function buildPlayer(cfg, hex2) {
     const g = new jl();
-    const b = bodyFromShape("player", cfg, hex, g);
+    const b = bodyFromShape("player", cfg, hex2, g);
     part(g, new id(4.4, 22, 14), "#dff6ff", cfg, 0, 1.5, 3.5, 0.01, 1, 0.85, 1.5);
     const tip = new ks(4, 2.4, 6);
-    [-24, 24].forEach((x) => part(g, tip, hex, cfg, x, 4.5, 0, 0.01));
-    part(g, new mu(3.2, 7, 16), hex, cfg, 0, -8, 0, 0.01, 1, 1, 1);
+    [-24, 24].forEach((x) => part(g, tip, hex2, cfg, x, 4.5, 0, 0.01));
+    part(g, new mu(3.2, 7, 16), hex2, cfg, 0, -8, 0, 0.01, 1, 1, 1);
     g.userData.nose = true;
     return finishMob(g, 2.3);
   }
-  function buildScrap(cfg, hex) {
+  function buildScrap(cfg, hex2) {
     const g = new jl();
-    bodyFromShape("scrap", cfg, hex, g);
+    bodyFromShape("scrap", cfg, hex2, g);
     const wheel = new pu(5, 5, 4.6, 20);
     const wheels = [];
     [-12, 1, 14].forEach((x) => {
@@ -9939,13 +10151,13 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       wheels.push(m);
     });
     g.userData.legs = wheels;
-    part(g, new ks(12, 4, 7), hex, cfg, 8, 12, 2, 0.01);
+    part(g, new ks(12, 4, 7), hex2, cfg, 8, 12, 2, 0.01);
     part(g, new id(3, 16, 12), "#ffe066", cfg, -12, 8, 6, 8e-3);
     return finishMob(g, 2.3);
   }
-  function buildSentry(cfg, hex) {
+  function buildSentry(cfg, hex2) {
     const g = new jl();
-    bodyFromShape("sentry", cfg, hex, g);
+    bodyFromShape("sentry", cfg, hex2, g);
     const spike = new mu(2.4, 10, 12);
     [[-22, -2, 0.95], [-8, -10, 0.18], [10, -10, -0.28], [22, -2, -0.95], [-16, 12, 1.25], [12, 12, -1.25]].forEach(([x, y2, rot]) => {
       const m = part(g, spike, "#e8fff0", cfg, x, y2, 2, 0.01);
@@ -9966,9 +10178,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     part(g, new id(1.7, 14, 10), "#141020", cfg, 0, -2, 9.2, 6e-3);
     return finishMob(g, 2.3);
   }
-  function buildSkull(cfg, hex) {
+  function buildSkull(cfg, hex2) {
     const g = new jl();
-    bodyFromShape("skull", cfg, hex, g);
+    bodyFromShape("skull", cfg, hex2, g);
     const eye = new id(6, 22, 14);
     [-9, 9].forEach((x) => part(g, eye, "#0d0d14", cfg, x, -6, 5, 0.01, 1, 1, 0.6));
     const tooth = new ks(3, 6, 5);
@@ -9976,28 +10188,28 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     part(g, new ks(22, 3.4, 6), "#0d0d14", cfg, 0, 6.5, 4, 8e-3);
     return finishMob(g, 2.3);
   }
-  function buildViper(cfg, hex) {
+  function buildViper(cfg, hex2) {
     const g = new jl();
-    bodyFromShape("viper", cfg, hex, g);
+    bodyFromShape("viper", cfg, hex2, g);
     const wing = new ks(22, 3, 9);
     const wings = [];
     [-15, 15].forEach((x) => {
-      const m = part(g, wing, hex, cfg, x, 2, -2, 0.01);
+      const m = part(g, wing, hex2, cfg, x, 2, -2, 0.01);
       m.rotation.z = x > 0 ? -0.22 : 0.22;
       wings.push(m);
     });
     g.userData.claws = wings;
-    part(g, new id(5.4, 20, 14), hex, cfg, 0, -10, 3, 0.01, 1, 0.9, 1.1);
+    part(g, new id(5.4, 20, 14), hex2, cfg, 0, -10, 3, 0.01, 1, 0.9, 1.1);
     part(g, new mu(2.4, 6, 14), "#ffe066", cfg, 0, -16, 3, 8e-3);
     part(g, new id(1.5, 12, 8), "#141020", cfg, 2.4, -11, 7, 6e-3);
     return finishMob(g, 2.3);
   }
-  function buildTurtle(cfg, hex) {
+  function buildTurtle(cfg, hex2) {
     const g = new jl();
-    bodyFromShape("turtle", cfg, hex, g);
+    bodyFromShape("turtle", cfg, hex2, g);
     const rib = new ks(2.6, 44, 4);
     [-24, -8, 8, 24].forEach((x) => {
-      const m = part(g, rib, hex, cfg, x, 0, 9, 0.01);
+      const m = part(g, rib, hex2, cfg, x, 0, 9, 0.01);
       m.rotation.z = x * 0.012;
     });
     part(g, new id(7, 22, 14), "#9fffc9", cfg, 0, -16, 6, 0.01, 1.1, 0.8, 1);
@@ -10025,10 +10237,10 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     return tex;
   }
   var QUALITY_COLOR = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
-  function dropBuilder(letter, hex, quality) {
+  function dropBuilder(letter, hex2, quality) {
     return function(cfg, color) {
       const g = new jl();
-      const body = bodyFromShape("box", cfg, color || hex, g);
+      const body = bodyFromShape("box", cfg, color || hex2, g);
       const label = new Bs(
         new ha(15, 15),
         new es({ map: letterTexture(letter), transparent: true, depthWrite: false })
@@ -10106,17 +10318,17 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   }
   function roundedShape(pts, radius) {
     const n = pts.length;
-    const P2 = pts.map(([x, y2]) => new Jn(x, -y2));
+    const P3 = pts.map(([x, y2]) => new Jn(x, -y2));
     let r = radius;
     for (let i = 0; i < n; i += 1) {
-      const len = P2[i].distanceTo(P2[(i + 1) % n]);
+      const len = P3[i].distanceTo(P3[(i + 1) % n]);
       r = Math.min(r, len * 0.45);
     }
     const sh2 = new Su();
     for (let i = 0; i < n; i += 1) {
-      const cur = P2[i];
-      const a = cur.clone().sub(P2[(i - 1 + n) % n]).normalize().multiplyScalar(r);
-      const b = P2[(i + 1) % n].clone().sub(cur).normalize().multiplyScalar(r);
+      const cur = P3[i];
+      const a = cur.clone().sub(P3[(i - 1 + n) % n]).normalize().multiplyScalar(r);
+      const b = P3[(i + 1) % n].clone().sub(cur).normalize().multiplyScalar(r);
       const from = cur.clone().sub(a);
       const to2 = cur.clone().add(b);
       if (i === 0) sh2.moveTo(from.x, from.y);
@@ -10126,7 +10338,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     sh2.closePath();
     return sh2;
   }
-  function extrudePoly(pts, cfg, hex, group, opts) {
+  function extrudePoly(pts, cfg, hex2, group, opts) {
     const o = opts || {};
     const sh2 = o.round ? roundedShape(pts, o.round) : polyShape(pts);
     let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
@@ -10148,14 +10360,14 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       curveSegments: 12
     });
     geo.center();
-    const mesh = new Bs(geo, surfMaterial(hex, o.map ? Object.assign({}, cfg, { map: o.map, mapS: o.mapS, mapO: o.mapO }) : cfg));
-    addHull(group, mesh, geo, 0.02, cfg, hex);
+    const mesh = new Bs(geo, surfMaterial(hex2, o.map ? Object.assign({}, cfg, { map: o.map, mapS: o.mapS, mapO: o.mapO }) : cfg));
+    addHull(group, mesh, geo, 0.02, cfg, hex2);
     group.add(mesh);
     return { mesh, span, front: depth / 2 + bev };
   }
-  function buildSaucer(cfg, hex) {
+  function buildSaucer(cfg, hex2) {
     const g = new jl();
-    const pink = hex || GAME_COLOR.ufo;
+    const pink = hex2 || GAME_COLOR.ufo;
     const profile = [
       [0, -9],
       [6, -8.6],
@@ -10204,9 +10416,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     g.add(beam);
     return finishMob(g, 2.35);
   }
-  function buildPlayerC(cfg, hex) {
+  function buildPlayerC(cfg, hex2) {
     const g = new jl();
-    const green = hex || GAME_COLOR.player;
+    const green = hex2 || GAME_COLOR.player;
     const hull = new Bs(new ks(30, 12, 16), surfMaterial(green, cfg));
     addHull(g, hull, hull.geometry, 0.02, cfg, green);
     g.add(hull);
@@ -10247,10 +10459,10 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     g.userData.claws = [];
     return finishMob(g, 2.35);
   }
-  function buildCrabB(cfg, hex, opts) {
+  function buildCrabB(cfg, hex2, opts) {
     const o = opts || {};
     const g = new jl();
-    const yellow = hex || GAME_COLOR.crab;
+    const yellow = hex2 || GAME_COLOR.crab;
     const shell = extrudePoly([
       [-14, -8],
       [14, -8],
@@ -10296,20 +10508,20 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     g.userData.claws = claws;
     return finishMob(g, 2.3);
   }
-  function buildCrabC(cfg, hex) {
+  function buildCrabC(cfg, hex2) {
     const g = new jl();
-    const yellow = hex || GAME_COLOR.crab;
+    const yellow = hex2 || GAME_COLOR.crab;
     const shell = new Bs(new id(15, 44, 26), surfMaterial(yellow, cfg));
     shell.scale.set(1.5, 1.15, 1.25);
     shell.position.y = 6;
     addHull(g, shell, shell.geometry, 0.022, cfg, yellow);
     g.add(shell);
-    const rim = new Bs(new sd(19, 2.6, 12, 40), surfMaterial("#e0a83c", cfg));
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = 2;
-    rim.scale.set(1.45, 1.1, 1);
-    addHull(g, rim, rim.geometry, 0.014, cfg, "#e0a83c");
-    g.add(rim);
+    const rim2 = new Bs(new sd(19, 2.6, 12, 40), surfMaterial("#e0a83c", cfg));
+    rim2.rotation.x = Math.PI / 2;
+    rim2.position.y = 2;
+    rim2.scale.set(1.45, 1.1, 1);
+    addHull(g, rim2, rim2.geometry, 0.014, cfg, "#e0a83c");
+    g.add(rim2);
     for (const s of [-1, 1]) {
       part(g, new pu(2.1, 2.1, 10, 14), yellow, cfg, s * 7, 19, 2, 0.01);
       part(g, new id(4, 20, 14), "#f6fbff", cfg, s * 7, 25, 2, 0.012);
@@ -10353,9 +10565,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     part(g, new ks(12, 3.4, 8), "#8a5a20", cfg, 0, -6, 12, 0.01);
     return finishMob(g, 2.3);
   }
-  function buildScrapB(cfg, hex) {
+  function buildScrapB(cfg, hex2) {
     const g = new jl();
-    const blue = hex || GAME_COLOR.scrap;
+    const blue = hex2 || GAME_COLOR.scrap;
     const body = extrudePoly([
       [-22, 18],
       [-18, -6],
@@ -10388,27 +10600,27 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     g.userData.claws = [];
     return finishMob(g, 2.35);
   }
-  function makeBone(cfg, hex, len, shaft, knob, flat) {
+  function makeBone(cfg, hex2, len, shaft, knob, flat) {
     const bone = new jl();
     const barGeo = new pu(shaft, shaft, len, 22);
-    const bar = new Bs(barGeo, surfMaterial(hex, cfg));
+    const bar = new Bs(barGeo, surfMaterial(hex2, cfg));
     bar.rotation.z = Math.PI / 2;
     bar.scale.z = flat;
-    addHull(bone, bar, barGeo, 0.016, cfg, hex);
+    addHull(bone, bar, barGeo, 0.016, cfg, hex2);
     bone.add(bar);
     const lobeGeo = new id(knob, 24, 16);
     [-1, 1].forEach((ex) => [-1, 1].forEach((ey) => {
-      const lobe = new Bs(lobeGeo, surfMaterial(hex, cfg));
+      const lobe = new Bs(lobeGeo, surfMaterial(hex2, cfg));
       lobe.position.set(ex * len / 2, ey * knob * 0.8, 0);
       lobe.scale.set(1, 1, flat);
-      addHull(bone, lobe, lobeGeo, 0.014, cfg, hex);
+      addHull(bone, lobe, lobeGeo, 0.014, cfg, hex2);
       bone.add(lobe);
     }));
     return bone;
   }
-  function buildSkullB(cfg, hex) {
+  function buildSkullB(cfg, hex2) {
     const g = new jl();
-    const pink = hex || GAME_COLOR.skull;
+    const pink = hex2 || GAME_COLOR.skull;
     const bone = "#f2f4f8";
     const boneA = makeBone(cfg, bone, 88, 5.5, 8.6, 0.55);
     boneA.rotation.z = Math.PI / 4;
@@ -10542,16 +10754,16 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   }
   function bandSkinTexture() {
     if (SKIN_CACHE.band) return SKIN_CACHE.band;
-    const W3 = 1024;
-    const H3 = 128;
+    const W2 = 1024;
+    const H2 = 128;
     const c = document.createElement("canvas");
-    c.width = W3;
-    c.height = H3;
+    c.width = W2;
+    c.height = H2;
     const g = c.getContext("2d");
     g.fillStyle = "#1c6f3c";
-    g.fillRect(0, 0, W3, H3);
+    g.fillRect(0, 0, W2, H2);
     const cols = 26;
-    const cw = W3 / cols;
+    const cw = W2 / cols;
     for (let row = 0; row < 3; row += 1) {
       const cy = 28 + row * 36;
       for (let i = -1; i <= cols; i += 1) {
@@ -10569,9 +10781,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     SKIN_CACHE.band = tex;
     return tex;
   }
-  function buildTurtleB(cfg, hex) {
+  function buildTurtleB(cfg, hex2) {
     const g = new jl();
-    const green = hex || GAME_COLOR.turtle;
+    const green = hex2 || GAME_COLOR.turtle;
     const dark = "#188a4c";
     const cream = "#d8f5c0";
     const R2 = 30;
@@ -10600,11 +10812,11 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       addHull(g, lid, lid.geometry, 0.012, noRim, dark);
       g.add(lid);
     }
-    const rim = new Bs(new pu(R2 * 1.02, R2 * 0.99, 3.6, 52), surfMaterial("#ffffff", Object.assign({}, noRim, { map: bandSkinTexture() })));
-    rim.scale.set(SX, 1, SZ);
-    rim.position.y = -1;
-    addHull(g, rim, rim.geometry, 0.016, noRim, dark);
-    g.add(rim);
+    const rim2 = new Bs(new pu(R2 * 1.02, R2 * 0.99, 3.6, 52), surfMaterial("#ffffff", Object.assign({}, noRim, { map: bandSkinTexture() })));
+    rim2.scale.set(SX, 1, SZ);
+    rim2.position.y = -1;
+    addHull(g, rim2, rim2.geometry, 0.016, noRim, dark);
+    g.add(rim2);
     part(g, new ks(52, 2.6, 38), cream, noRim, 0, -11, 0, 0.014);
     const neck = part(g, new pu(6.2, 7.6, 20, 20), "#6fd698", cfg, 0, 0.5, 26, 0.014);
     neck.rotation.x = Math.PI / 2;
@@ -10639,10 +10851,91 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     void tail;
     return finishMob(g, 2.5);
   }
+  function buildSquidAbyssal(cfg, hex2) {
+    const g = new jl();
+    const ink = hex2 || "#2b1740";
+    const deep = "#4a2568";
+    const flesh = "#6d5a8c";
+    const bone = "#e8e2d0";
+    const glow = new es({ color: "#c9a7ff" });
+    part(g, new id(0.9, 26, 18), ink, cfg, 0, 0.9, 0, 0.02, 0.85, 1.5, 0.85);
+    part(g, new mu(0.55, 1.3, 10), ink, cfg, 0, 2.1, 0, 0.016);
+    part(g, new id(0.62, 26, 18), deep, cfg, 0, -0.1, 0.1, 0.016, 1.1, 0.8, 1);
+    for (const s of [-1, 1]) {
+      part(g, new id(0.26, 20, 14), bone, cfg, s * 0.42, 0.05, 0.45, 0.01, 1, 1.15, 0.8);
+      const pupil = new Bs(new id(0.13, 12, 10), glow);
+      pupil.position.set(s * 0.42, 0.05, 0.62);
+      g.add(pupil);
+    }
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i / 7 - 0.5) * 2.4;
+      const arm = new jl();
+      arm.position.set(Math.sin(a) * 0.5, -0.55, Math.cos(a) * 0.35);
+      arm.rotation.z = -a * 0.5;
+      const len = 1.6 + i % 3 * 0.4;
+      part(arm, new pu(0.16, 0.05, len, 6), flesh, cfg, 0, -len / 2, 0, 8e-3);
+      g.add(arm);
+    }
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
+  function buildZealotV2(cfg, hex2) {
+    const g = new jl();
+    const ink = hex2 || "#2b1740";
+    part(g, new id(0.3, 22, 16), ink, cfg, 0, 0, 0, 0.014);
+    const eye = new Bs(
+      new id(0.14, 14, 10),
+      new es({ color: "#c026d3" })
+    );
+    eye.position.set(0, 0, 0.25);
+    g.add(eye);
+    const ring = new Bs(
+      new sd(0.42, 0.04, 6, 20),
+      new es({ color: "#ffd76a" })
+    );
+    ring.rotation.x = Math.PI / 2.4;
+    g.add(ring);
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
+  function buildIdolSquid(cfg, hex2) {
+    const g = new jl();
+    const ink = hex2 || "#2b1740";
+    const bone = "#e8e2d0";
+    const flesh = "#6d5a8c";
+    const gold = new es({ color: "#ffd76a" });
+    part(g, new id(0.45, 24, 16), ink, cfg, 0, 0.25, 0, 0.016, 1, 0.95, 1);
+    part(g, new mu(0.3, 0.75, 8), ink, cfg, 0, 0.9, 0, 0.012);
+    for (const s of [-1, 1]) {
+      part(g, new id(0.15, 14, 10), bone, cfg, s * 0.17, 0.32, 0.34, 8e-3, 1, 1.15, 0.8);
+      const pupil = new Bs(new id(0.06, 10, 8), gold);
+      pupil.position.set(s * 0.17, 0.32, 0.44);
+      g.add(pupil);
+    }
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i / 5 - 0.5) * 2.2;
+      const arm = new jl();
+      arm.position.set(Math.sin(a) * 0.3, -0.08, Math.cos(a) * 0.2);
+      arm.rotation.z = -a * 0.4;
+      part(arm, new pu(0.07, 0.025, 0.8, 6), flesh, cfg, 0, -0.4, 0, 6e-3);
+      g.add(arm);
+    }
+    const orb = new Bs(new id(0.12, 12, 10), gold);
+    orb.position.set(0, 1.35, 0);
+    g.add(orb);
+    g.userData.legs = [];
+    g.userData.claws = [];
+    g.userData.spin = [];
+    return finishMob(g, 2.35);
+  }
   var QUALITY = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
   var GLYPH = "#141420";
   var SHIELD_GREEN = "#0c6b3d";
-  function dropBase(cfg, hex, g) {
+  function dropBase(cfg, hex2, g) {
     const shape = polyShape([[-12, -8], [-8, -12], [8, -12], [12, -8], [12, 8], [8, 12], [-8, 12], [-12, 8]]);
     const geo = new Ku(shape, {
       depth: 9,
@@ -10652,8 +10945,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       bevelSegments: 3
     });
     geo.center();
-    const mesh = new Bs(geo, surfMaterial(hex, cfg));
-    addHull(g, mesh, geo, 0.022, cfg, hex);
+    const mesh = new Bs(geo, surfMaterial(hex2, cfg));
+    addHull(g, mesh, geo, 0.022, cfg, hex2);
     g.add(mesh);
     return { front: 4.5 + 2.4 };
   }
@@ -10722,8 +11015,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     },
     drop_laser(cfg, color) {
       const g = new jl();
-      const hex = color || "#6fdcff";
-      const b = dropBase(cfg, hex, g);
+      const hex2 = color || "#6fdcff";
+      const b = dropBase(cfg, hex2, g);
       dropIcon(g, b.front + 1, (inner) => {
         [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w2, a]) => {
           const m = new Bs(
@@ -10741,8 +11034,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     },
     drop_rapid(cfg, color) {
       const g = new jl();
-      const hex = color || "#ff6655";
-      const b = dropBase(cfg, hex, g);
+      const hex2 = color || "#ff6655";
+      const b = dropBase(cfg, hex2, g);
       dropIcon(g, b.front + 0.5, (inner) => {
         extrudePoly(
           [[-2, -12], [-11, 2], [-3, 2], [2, 12], [11, -2], [3, -2]],
@@ -10756,8 +11049,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     },
     drop_double(cfg, color) {
       const g = new jl();
-      const hex = color || "#ffb04c";
-      const b = dropBase(cfg, hex, g);
+      const hex2 = color || "#ffb04c";
+      const b = dropBase(cfg, hex2, g);
       dropIcon(g, b.front + 0.5, (inner) => {
         [0, 14].forEach((off) => {
           const pts = [[17, 8], [24, 22], [20, 22], [20, 37], [14, 37], [14, 22], [10, 22]].map(([x, y2]) => [(x - 24) * 0.62 + off * 0.5, (y2 - 22) * 0.62]);
@@ -10768,8 +11061,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     },
     drop_slow(cfg, color) {
       const g = new jl();
-      const hex = color || "#bf9cff";
-      const b = dropBase(cfg, hex, g);
+      const hex2 = color || "#bf9cff";
+      const b = dropBase(cfg, hex2, g);
       dropIcon(g, b.front + 0.5, (inner) => {
         extrudePoly(
           [[-8, -10], [8, -10], [2, 0], [8, 10], [-8, 10], [-2, 0]],
@@ -10783,9 +11076,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     },
     drop_loot(cfg, color, quality) {
       const g = new jl();
-      const hex = color || "#ffd166";
-      const body = part(g, new ks(20, 18, 16), hex, cfg, 0, 0, 0, 0.016);
-      addHull(g, body, body.geometry, 0.022, cfg, hex);
+      const hex2 = color || "#ffd166";
+      const body = part(g, new ks(20, 18, 16), hex2, cfg, 0, 0, 0, 0.016);
+      addHull(g, body, body.geometry, 0.022, cfg, hex2);
       part(g, new ks(20.6, 3, 16.6), "#8a6a20", cfg, 0, 6, 0, 0.01);
       part(g, new ks(3, 18.6, 16.6), "#8a6a20", cfg, 0, 0, 0, 0.01);
       part(g, new ks(20.6, 18.6, 3), "#8a6a20", cfg, 0, 0, 0, 0.01);
@@ -10795,9 +11088,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       return finishMob(g, 2.1);
     }
   };
-  function buildPlayerTri(cfg, hex) {
+  function buildPlayerTri(cfg, hex2) {
     const g = new jl();
-    const green = hex || GAME_COLOR.player;
+    const green = hex2 || GAME_COLOR.player;
     const tri = extrudePoly([[0, -30], [24, 20], [-24, 20]], cfg, green, g, { depth: 14, bevel: 2.8, round: 9 });
     tri.mesh.rotation.x = Math.PI / 2;
     const canopy = new Bs(new id(6, 26, 16), surfMaterial("#dff6ff", cfg));
@@ -10844,6 +11137,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     scrap: buildScrapB,
     skull: buildSkullB,
     turtle: buildTurtleB,
+    squid: buildSquidAbyssal,
+    zealot: buildZealotV2,
+    idol: buildIdolSquid,
     drop_bomb: DROPS_V2.drop_bomb,
     drop_shield: DROPS_V2.drop_shield,
     drop_laser: DROPS_V2.drop_laser,
@@ -10856,985 +11152,1011 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   // mockups/boss-final.js
   var MOBS2 = Object.assign({}, MOBS, MOB_V2);
   var RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
-  var W2 = 900;
-  var H2 = 560;
-  var LEVEL = 6;
-  var DESIGN = {
-    monarch: {
-      name: "OBSIDIAN MONARCH",
-      color: "#6d28d9",
-      accent: "#c86bff",
-      model: "skull",
-      speed: 70,
-      mineShieldDamage: 10,
-      tag: "black skull monolith, purple crown"
-    },
-    crawler: {
-      name: "VOID CRAWLER",
-      color: "#5a1f9d",
-      accent: "#c86bff",
-      model: "crab_b",
-      speed: 85,
-      mineShieldDamage: 10,
-      tag: "black carapace spider, purple core"
-    },
-    wyrm: {
-      name: "UMBRAL WYRM",
-      color: "#8a2be2",
-      accent: "#e0b3ff",
-      model: "viper",
-      speed: 95,
-      mineShieldDamage: 10,
-      tag: "black serpent, purple mane"
-    }
+  var P2 = {
+    void: 327945,
+    abyss: 1378852,
+    ink: 2824e3,
+    deep: 4859240,
+    violet: 9133302,
+    magenta: 12592851,
+    bone: 15262416,
+    flesh: 7166604,
+    glow: 13215743,
+    gold: 16766826,
+    water: 3496319,
+    pale: 12575743
   };
-  function fitCanvas(canvas) {
-    const w2 = Math.max(1, Math.floor(canvas.clientWidth));
-    const h = Math.max(1, Math.floor(canvas.clientHeight));
-    canvas.width = w2;
-    canvas.height = h;
-    return { w: w2, h };
+  var hex = (n) => "#" + n.toString(16).padStart(6, "0");
+  var toon = (color, opts = {}) => opts.transparent ? new _d({ color, ...opts }) : surfMaterial(hex(color), RIG);
+  var glowMat = (color, intensity = 1.6) => new es({ color, transparent: true, opacity: Math.min(1, 0.85 * intensity) });
+  var rnd = (a, b) => a + Math.random() * (b - a);
+  var pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  var clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  var dist2 = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+  var anim = [];
+  var glowMats = [];
+  function addGlow(parent, r, x, y2, z2, color, intensity = 1.6) {
+    const m = new Bs(new id(r, 12, 12), glowMat(color, intensity));
+    m.position.set(x, y2, z2);
+    parent.add(m);
+    glowMats.push(m.material);
+    return m;
   }
-  function makeStage3D(canvas) {
-    const { w: w2, h } = fitCanvas(canvas);
-    const renderer = new ec({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setClearColor(0, 0);
-    renderer.setSize(w2, h, false);
-    const scene = new rc();
-    const cam = new ba(-w2 / 2, w2 / 2, h / 2, -h / 2, -4e3, 4e3);
-    return { renderer, scene, cam, w: w2, h };
+  function addBox(parent, w2, h, d2, x, y2, z2, mat, rx = 0, ry = 0, rz = 0) {
+    const m = new Bs(new ks(w2, h, d2), mat);
+    m.position.set(x, y2, z2);
+    m.rotation.set(rx, ry, rz);
+    parent.add(m);
+    return m;
   }
-  function addModel(stage2, key, hex, targetSize) {
-    const builder = MOBS2[key] || MOBS2.skull;
-    const model = builder(RIG, hex);
+  function addSphere(parent, r, x, y2, z2, mat, sx = 1, sy = 1, sz = 1) {
+    const m = new Bs(new id(r, 14, 12), mat);
+    m.position.set(x, y2, z2);
+    m.scale.set(sx, sy, sz);
+    parent.add(m);
+    return m;
+  }
+  function addCone(parent, r, h, x, y2, z2, mat, rx = 0, seg = 8) {
+    const m = new Bs(new mu(r, h, seg), mat);
+    m.position.set(x, y2, z2);
+    m.rotation.x = rx;
+    parent.add(m);
+    return m;
+  }
+  function tentacle(parent, { x, y: y2, z: z2, len = 1.2, r = 0.14, segs = 5, mat, phase = 0, sway = 0.22, curl = 0.4 }) {
+    const root = new jl();
+    root.position.set(x, y2, z2);
+    parent.add(root);
+    const parts2 = [];
+    let cur = root;
+    for (let i = 0; i < segs; i++) {
+      const seg = new Bs(
+        new pu(r * (1 - i / segs * 0.8), r * (1 - (i + 1) / segs * 0.8), len / segs, 6),
+        mat
+      );
+      seg.position.y = -len / segs / 2;
+      const pivot = new jl();
+      pivot.add(seg);
+      pivot.position.y = i === 0 ? 0 : -len / segs;
+      cur.add(pivot);
+      parts2.push(pivot);
+      cur = pivot;
+    }
+    anim.push((t2) => {
+      parts2.forEach((p2, i) => {
+        p2.rotation.x = Math.sin(t2 * 2.2 + phase + i * 0.7) * sway + curl * 0.12 * i;
+        p2.rotation.z = Math.cos(t2 * 1.7 + phase + i * 0.5) * sway * 0.6;
+      });
+    });
+    return root;
+  }
+  function buildAbyssalSquid() {
+    const g = new jl();
+    const ink = toon(P2.ink), deep = toon(P2.deep), flesh = toon(P2.flesh), bone = toon(P2.bone);
+    addSphere(g, 0.9, 0, 0.9, 0, ink, 0.85, 1.5, 0.85);
+    addCone(g, 0.55, 1.3, 0, 2.1, 0, ink, 0, 10);
+    addSphere(g, 0.62, 0, -0.1, 0.1, deep, 1.1, 0.8, 1);
+    for (const s of [-1, 1]) {
+      addSphere(g, 0.26, s * 0.42, 0.05, 0.45, bone, 1, 1.15, 0.8);
+      addSphere(g, 0.13, s * 0.42, 0.05, 0.62, glowMat(P2.glow));
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 7 - 0.5) * 2.4;
+      const root = tentacle(g, {
+        x: Math.sin(a) * 0.5,
+        y: -0.55,
+        z: Math.cos(a) * 0.35,
+        len: rnd(1.6, 2.4),
+        r: 0.16,
+        segs: 6,
+        mat: flesh,
+        phase: i * 0.8,
+        sway: 0.2,
+        curl: 0.35
+      });
+      root.rotation.z = -a * 0.5;
+    }
+    return g;
+  }
+  function buildShatteredCaptain() {
+    const g = new jl();
+    const bone = toon(P2.bone), ink = toon(P2.ink), water = toon(P2.water);
+    const f1 = addSphere(g, 0.85, 0, 1.05, 0, bone, 1, 0.85, 0.95);
+    const f2 = addSphere(g, 0.4, -0.62, 0.45, 0.25, bone, 0.9, 1.1, 0.8);
+    const f3 = addSphere(g, 0.36, 0.66, 0.5, 0.2, bone, 0.9, 1.1, 0.8);
+    addSphere(g, 0.55, 0, -0.5, 0.4, bone, 1.05, 0.6, 0.9);
+    addSphere(g, 0.13, -0.26, 0.62, 0.7, glowMat(P2.pale));
+    addSphere(g, 0.13, 0.26, 0.62, 0.7, glowMat(P2.pale));
+    for (let i = 0; i < 7; i++) {
+      tentacle(g, {
+        x: rnd(-0.55, 0.55),
+        y: rnd(0.2, 0.9),
+        z: rnd(0.35, 0.6),
+        len: rnd(0.9, 1.4),
+        r: 0.09,
+        mat: water,
+        phase: i * 1.3,
+        sway: 0.3,
+        curl: 0.8
+      });
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 6 - 0.5) * 2.4;
+      const flap = addCone(g, 0.28, rnd(1.1, 1.6), Math.sin(a) * 0.75, -1.5, Math.cos(a) * 0.35, ink, Math.PI, 4);
+      flap.scale.z = 0.3;
+    }
+    const brim = new Bs(new pu(1.05, 1.15, 0.12, 8), ink);
+    brim.position.y = 1.75;
+    g.add(brim);
+    addCone(g, 0.5, 0.5, 0, 2, 0, ink);
+    anim.push((t2) => {
+      const b = Math.sin(t2 * 1.1) * 0.08;
+      f1.position.y = 1.05 + b;
+      f2.position.x = -0.62 - b * 0.6;
+      f3.position.x = 0.66 + b * 0.6;
+      f2.rotation.z = b * 0.4;
+      f3.rotation.z = -b * 0.4;
+    });
+    addGlow(g, 0.6, 0, 0.6, -0.4, P2.pale, 0.4);
+    return g;
+  }
+  function buildDeepOneWarlord() {
+    const g = new jl();
+    const deep = toon(P2.deep), ink = toon(P2.ink), flesh = toon(P2.flesh), bone = toon(P2.bone);
+    addSphere(g, 1, 0, 0.6, 0.1, deep, 0.95, 0.9, 1.3);
+    addCone(g, 0.42, 0.9, 0, -0.05, 1.05, flesh, Math.PI / 2);
+    addSphere(g, 0.14, -0.3, 0.35, 0.92, glowMat(P2.gold));
+    addSphere(g, 0.14, 0.3, 0.35, 0.92, glowMat(P2.gold));
+    for (let i = -1; i <= 1; i++) {
+      const fin = addCone(g, 0.3, 0.85, i * 0.42, 1.35, 0, ink, 0, 4);
+      fin.scale.z = 0.25;
+      fin.rotation.z = i * 0.35;
+    }
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < 3; i++) addBox(g, 0.06, 0.34, 0.1, s * 0.85, 0.15 - i * 0.28, 0.15, glowMat(P2.glow, 0.9));
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 7 - 0.5) * 1.3;
+      tentacle(g, {
+        x: Math.sin(a) * 0.5,
+        y: -0.55,
+        z: 0.75,
+        len: rnd(0.9, 1.3),
+        r: 0.11,
+        mat: flesh,
+        phase: i * 0.8,
+        curl: 0.5
+      });
+    }
+    for (const s of [-1, 1]) {
+      addSphere(g, 0.62, s * 1.25, -0.85, -0.15, ink, 1.1, 0.7, 1);
+      for (let i = 0; i < 4; i++) {
+        addSphere(g, rnd(0.08, 0.14), s * 1.25 + rnd(-0.4, 0.4), -0.6 + rnd(-0.3, 0.3), rnd(0.1, 0.5), bone);
+      }
+    }
+    addGlow(g, 0.5, 0, 0.6, -0.5, P2.violet, 0.5);
+    return g;
+  }
+  var looks = [
+    { name: "Abyssal Squid", build: buildAbyssalSquid, scale: 0.8 },
+    { name: "Shattered Captain", build: buildShatteredCaptain },
+    { name: "Deep One Warlord", build: buildDeepOneWarlord }
+  ];
+  var canvas = document.getElementById("stage");
+  var renderer = new ec({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  var scene = new rc();
+  var ARENA = { w: 12, h: 8.4 };
+  var camera = new ba(-ARENA.w / 2, ARENA.w / 2, ARENA.h / 2, -ARENA.h / 2, -100, 100);
+  function fitModel(model, target) {
     const box = new Li().setFromObject(model);
     const size = box.getSize(new Ci());
     const center = box.getCenter(new Ci());
-    const scale = targetSize / Math.max(size.x, size.y, size.z);
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+    const s = target / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(s);
+    model.position.set(-center.x * s, -center.y * s, -center.z * s);
     const pivot = new jl();
     pivot.add(model);
-    pivot.userData.model = model;
-    stage2.scene.add(pivot);
     return pivot;
   }
-  function place3D(pivot, x, y2, tilt, baseRot) {
-    pivot.position.set(x - W2 / 2, H2 / 2 - y2, 0);
-    const base = baseRot || [0, 0, 0];
-    pivot.userData.model.rotation.set(base[0], base[1] + tilt, base[2]);
+  scene.add(new fp(9076664, 1.1));
+  var key = new mp(13215743, 2.2);
+  key.position.set(3, 6, 8);
+  scene.add(key);
+  var rim = new mp(8141549, 1.6);
+  rim.position.set(-4, 2, -6);
+  scene.add(rim);
+  function fit() {
+    const w2 = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w2, h, false);
+    camera.aspect = w2 / h;
+    camera.updateProjectionMatrix();
   }
-  var stage = makeStage3D(document.getElementById("stage3d"));
-  var fx = document.getElementById("fx");
-  var fxctx = fx.getContext("2d");
-  fitCanvas(fx);
-  var bossModel = addModel(stage, DESIGN.monarch.model, DESIGN.monarch.color, 150);
-  var shipModel = addModel(stage, "player", GAME_COLOR.player, 64);
-  function buildBarrier() {
-    const cells = [];
-    for (let s = 0; s < 4; s += 1) {
-      const sx = 96 + s * 168;
-      const sy = H2 - 128;
-      for (let row = 0; row < 3; row += 1) {
-        for (let col = 0; col < 6; col += 1) {
-          cells.push({ x: sx + col * 12, y: sy + row * 8, w: 11, h: 7, hp: 3, maxHp: 3 });
-        }
-      }
+  addEventListener("resize", fit);
+  var bossModel = null;
+  var lookIndex = 0;
+  function applyLook(i) {
+    lookIndex = i;
+    if (bossModel) {
+      scene.remove(bossModel);
+      anim.length = 0;
+      glowMats.length = 0;
     }
-    return cells;
+    bossModel = fitModel(looks[i].build(), 2.4);
+    bossModel.position.set(0, 1.6, 0);
+    scene.add(bossModel);
+    document.getElementById("lookName").textContent = looks[i].name;
   }
-  function damageShieldBlast(x, y2, radius) {
-    for (const cell of world.barrier) {
-      const cx = cell.x + cell.w / 2;
-      const cy = cell.y + cell.h / 2;
-      if (Math.hypot(cx - x, cy - y2) <= radius) {
-        cell.hp -= 1;
-        cell.flash = 0.5;
-      }
-    }
-    world.barrier = world.barrier.filter((c) => c.hp > 0);
-  }
-  function cellsOnBeam(x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const dist = Math.hypot(dx, dy);
-    const steps = Math.max(24, Math.ceil(dist / 8));
-    const seen = [];
-    const picked = /* @__PURE__ */ new Set();
-    for (let i = 0; i <= steps; i += 1) {
-      const t2 = i / steps;
-      const x = x1 + dx * t2;
-      const y3 = y1 + dy * t2;
-      for (const cell of world.barrier) {
-        if (picked.has(cell)) continue;
-        if (x >= cell.x && x <= cell.x + cell.w && y3 >= cell.y && y3 <= cell.y + cell.h) {
-          picked.add(cell);
-          seen.push({ cell, px: x, py: y3 });
-        }
-      }
-    }
-    return seen;
-  }
-  var world = {
-    boss: { x: W2 / 2 - 64, y: 70, w: 128, h: 64, vx: 120, vy: 14 },
-    ship: { x: W2 / 2 - 17, y: H2 - 64, w: 34, h: 22, vx: 0, targetX: W2 / 2 },
-    bullets: [],
-    bombs: [],
-    mines: [],
-    waves: [],
-    tele: [],
-    shots: [],
-    pods: [],
-    minions: [],
-    auraT: 0,
-    staggerT: 0,
-    barrier: buildBarrier(),
-    bubble: 0,
-    laser: null,
-    msg: "",
-    msgTtl: 0,
-    t: 0
-  };
-  function bossCenter() {
-    return { x: world.boss.x + world.boss.w / 2, y: world.boss.y + world.boss.h / 2 };
-  }
-  function shipCenter() {
-    return { x: world.ship.x + world.ship.w / 2, y: world.ship.y + world.ship.h / 2 };
-  }
-  function addShot(sx, sy, vx, vy, color) {
-    world.shots.push({ x: sx, y: sy, vx, vy, color });
-  }
-  function addMine(sx, sy, vx, vy) {
-    world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: vy === void 0 ? 112 : vy, ttl: 6, arm: 1.2, fuse: 3, blast: 64 });
-  }
-  function addWave(x, y2, r, color) {
-    world.waves.push({ x, y: y2, r, max: r, ttl: 0.7, color: color || "#ffe066" });
-  }
-  function addPod(sx, sy, vx, vy, opts) {
-    world.pods.push({ x: sx, y: sy, vx, vy, kind: opts.kind, targetY: opts.targetY, color: opts.color, burst: opts.burst || 3 });
-  }
-  function addTele(kind, x, ttl) {
-    world.tele.push({ kind, x, ttl });
-  }
-  function say(text) {
-    world.msg = text;
-    world.msgTtl = 1.4;
-  }
-  var MINION_GLYPHS = [
-    ["01100110", "01111110", "11111111", "10111101", "10100101", "00100100"],
-    ["00100100", "00111100", "01111110", "11011011", "10111101", "01000010"],
-    ["00011000", "00111100", "01111110", "11100111", "10111101", "01000010"]
-  ];
-  function spawnSquad(color) {
-    for (let i = 0; i < 5; i += 1) {
-      world.minions.push({
-        x: W2 / 2 - 96 + i * 48,
-        y: -24 - i * 18,
-        w: 26,
-        h: 18,
-        glyph: i % 3,
-        color: color || "#c86bff",
-        state: "drop",
-        hoverY: 120 + i % 2 * 26,
-        t: 0,
-        seed: i * 1.7,
-        diveT: 1.6 + i * 0.25,
-        vy: 0,
-        vx: 0
+  function buildDavyJones() {
+    const g = new jl();
+    const flesh = toon(9416331), ink = toon(P2.ink), deep = toon(P2.deep), bone = toon(P2.bone), crab = toon(10107694);
+    addSphere(g, 1, 0, 0.55, 0, flesh, 0.95, 1, 0.95);
+    addBox(g, 0.95, 0.16, 0.3, 0, 0.55, 0.82, ink);
+    addSphere(g, 0.15, -0.3, 0.35, 0.85, glowMat(16771496));
+    addSphere(g, 0.15, 0.3, 0.35, 0.85, glowMat(16771496));
+    addCone(g, 0.12, 0.32, 0, 0.05, 0.95, flesh, Math.PI / 2);
+    const brim = new Bs(new pu(1.25, 1.35, 0.1, 3), ink);
+    brim.position.y = 1.45;
+    brim.rotation.y = Math.PI / 6;
+    g.add(brim);
+    addCone(g, 0.55, 0.6, 0, 1.75, 0, ink);
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 13 - 0.5) * 1.7;
+      tentacle(g, {
+        x: Math.sin(a) * 0.7,
+        y: -0.55,
+        z: 0.5 + Math.cos(a) * 0.15,
+        len: rnd(1.3, 2),
+        r: 0.15,
+        mat: deep,
+        phase: i * 0.7,
+        sway: 0.25,
+        curl: 0.5
       });
     }
-    say("MINIONS SUMMONED");
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 4 - 0.5) * 2;
+      const flap = addCone(g, 0.35, 1.2, Math.sin(a) * 0.9, -0.4, -0.55, deep, Math.PI * 0.9, 4);
+      flap.scale.z = 0.25;
+      flap.position.z = -0.55 + Math.cos(a) * 0.1;
+    }
+    for (let i = 0; i < 6; i++) {
+      addSphere(g, rnd(0.06, 0.12), rnd(-0.7, 0.7), rnd(-0.3, 0.6), rnd(0.6, 0.9), bone);
+    }
+    for (const s of [-1, 1]) {
+      const arm = addCone(g, 0.18, 1.2, s * 1.5, -0.9, 0.1, ink, Math.PI, 6);
+      arm.rotation.z = s * 0.6;
+      addSphere(g, 0.35, s * 2.1, -1.5, 0.2, crab, 1.2, 0.8, 0.8);
+      addBox(g, 0.5, 0.12, 0.2, s * 2.35, -1.35, 0.35, crab, 0, 0, s * -0.5);
+    }
+    addGlow(g, 0.55, 0, 0.5, -0.5, P2.violet, 0.5);
+    return g;
   }
-  function updateWorld(dt2) {
-    world.t += dt2;
-    const b = world.boss;
-    if (world.staggerT > 0) world.staggerT = Math.max(0, world.staggerT - dt2);
-    if (world.auraT > 0) world.auraT = Math.max(0, world.auraT - dt2);
-    const slow = world.staggerT > 0 ? 0.22 : 1;
-    b.x += b.vx * dt2 * slow;
-    b.y += b.vy * dt2;
-    if (b.x <= 18) {
-      b.x = 18;
-      b.vx = Math.abs(b.vx);
-    }
-    if (b.x + b.w >= W2 - 18) {
-      b.x = W2 - b.w - 18;
-      b.vx = -Math.abs(b.vx);
-    }
-    b.y = Math.max(58, Math.min(H2 - b.h - 170, b.y));
-    const s = world.ship;
-    let danger = null;
-    for (const bullet of world.bullets) {
-      const t2 = (s.y - bullet.y) / bullet.speed;
-      if (t2 > 0 && t2 < 1.4 && Math.abs(bullet.x + bullet.vx * t2 - (s.x + s.w / 2)) < 60) {
-        danger = bullet;
-        break;
-      }
-    }
-    for (const mine of world.mines) {
-      if (Math.abs(mine.x - (s.x + s.w / 2)) < 80 && mine.y > H2 * 0.4) {
-        danger = mine;
-        break;
-      }
-    }
-    if (world.laser && world.laser.state === "fire" && world.laser.lethal !== false) {
-      const away = s.x + s.w / 2 > world.laser.endX ? 1 : -1;
-      s.targetX = Math.max(40, Math.min(W2 - 40, s.x + s.w / 2 + away * 260));
-    } else if (danger) {
-      const away = s.x + s.w / 2 - danger.x >= 0 ? 1 : -1;
-      s.targetX = Math.max(40, Math.min(W2 - 40, s.x + s.w / 2 + away * 190));
-    } else if (Math.random() < 0.02) {
-      s.targetX = 60 + Math.random() * (W2 - 120);
-    }
-    const dir = Math.sign(s.targetX - (s.x + s.w / 2));
-    s.vx = dir * 260;
-    s.x += s.vx * dt2;
-    s.x = Math.max(10, Math.min(W2 - s.w - 10, s.x));
-    world.bullets = world.bullets.filter((p2) => {
-      p2.y += p2.speed * dt2;
-      p2.x += p2.vx * dt2;
-      return p2.y < H2 + 20 && p2.x > -30 && p2.x < W2 + 30;
-    });
-    world.shots = world.shots.filter((p2) => {
-      p2.x += p2.vx * dt2;
-      p2.y += p2.vy * dt2;
-      return p2.y < H2 + 20 && p2.y > -20 && p2.x > -30 && p2.x < W2 + 30;
-    });
-    world.mines = world.mines.filter((m) => {
-      m.arm = Math.max(0, (m.arm || 0) - dt2);
-      if (m.arm <= 0) {
-        const dx = shipCenter().x - (m.x + 8);
-        const target = Math.max(-90, Math.min(90, dx * 0.9));
-        m.vx += Math.max(-140 * dt2, Math.min(140 * dt2, target - m.vx));
-        m.fuse -= dt2;
-      }
-      m.y += m.vy * dt2 * (m.arm > 0 ? 0.25 : 1);
-      m.x += m.vx * dt2;
-      m.ttl -= dt2;
-      if (m.arm <= 0) {
-        for (const cell of world.barrier) {
-          if (m.x < cell.x + cell.w && m.x + 16 > cell.x && m.y < cell.y + cell.h && m.y + 16 > cell.y) {
-            damageShieldBlast(m.x + 8, m.y + 8, 40);
-            addWave(m.x + 8, m.y + 8, 30, "#62ffa1");
-            return false;
-          }
-        }
-      }
-      if (m.y >= H2 - 30 || m.ttl <= 0 || m.fuse <= 0) {
-        addWave(m.x + 8, m.y + 8, m.blast || 64, "#ff6b6b");
-        damageShieldBlast(m.x + 8, m.y + 8, (m.blast || 64) + 40);
-        return false;
-      }
-      return true;
-    });
-    world.pods = world.pods.filter((pod) => {
-      pod.vy += 300 * dt2;
-      pod.x += pod.vx * dt2;
-      pod.y += pod.vy * dt2;
-      const apex = pod.vy >= 0;
-      const landed = pod.y >= pod.targetY;
-      if (pod.kind === "seed" && apex || pod.kind === "mortar" && landed) {
-        addWave(pod.x, pod.y, 40, pod.color);
-        for (let i = 0; i < pod.burst; i += 1) {
-          addMine(pod.x - 24 + i * 24, pod.y - 8, (i - (pod.burst - 1) / 2) * 30);
-        }
-        return false;
-      }
-      return pod.y < H2 + 30;
-    });
-    world.minions = world.minions.filter((m) => {
-      m.t += dt2;
-      if (m.state === "drop") {
-        m.y += 150 * dt2;
-        if (m.y >= m.hoverY) m.state = "hover";
-      } else if (m.state === "hover") {
-        m.x += Math.sin(m.t * 2.2 + m.seed) * 34 * dt2;
-        m.diveT -= dt2;
-        if (m.diveT <= 0) {
-          m.state = "dive";
-          m.vy = 320;
-          m.vx = (shipCenter().x - m.x) * 0.8;
-        }
-      } else {
-        m.y += m.vy * dt2;
-        m.x += m.vx * dt2;
-      }
-      return m.y < H2 + 24;
-    });
-    world.waves = world.waves.filter((wv) => {
-      wv.ttl -= dt2;
-      wv.r += (wv.max - wv.r) * 6 * dt2;
-      return wv.ttl > 0;
-    });
-    world.tele = world.tele.filter((tl2) => {
-      tl2.ttl -= dt2;
-      return tl2.ttl > 0;
-    });
-    for (const cell of world.barrier) {
-      if (cell.flash > 0) cell.flash = Math.max(0, cell.flash - dt2);
-    }
-    world.bubble = Math.max(0, world.bubble - dt2);
-    updateLaser(dt2);
-    world.msgTtl = Math.max(0, world.msgTtl - dt2);
+  looks.push({ name: "Davy Jones", build: buildDavyJones });
+  var ground = new bh(
+    new Es().setFromPoints([
+      new Ci(-ARENA.w / 2, -ARENA.h / 2, 0),
+      new Ci(ARENA.w / 2, -ARENA.h / 2, 0)
+    ]),
+    new fh({ color: 2386724 })
+  );
+  scene.add(ground);
+  var starGeo = new Es();
+  var starPos = new Float32Array(140 * 3);
+  for (let i = 0; i < 140; i++) {
+    starPos[i * 3] = rnd(-ARENA.w / 2, ARENA.w / 2);
+    starPos[i * 3 + 1] = rnd(-ARENA.h / 2, ARENA.h / 2);
+    starPos[i * 3 + 2] = -3;
   }
-  function updateLaser(dt2) {
-    const L2 = world.laser;
-    if (!L2) return;
-    L2.ttl -= dt2;
-    const b = world.boss;
-    const ox = b.x + b.w / 2;
-    const oy = b.y + b.h;
-    if (L2.state === "aim") {
-      L2.endX += (shipCenter().x - L2.endX) * 1.3 * dt2;
-      L2.endY = shipCenter().y;
-      L2.angle = Math.atan2(L2.endY - oy, L2.endX - ox);
-      if (L2.ttl <= 0) {
-        L2.state = "fire";
-        L2.ttl = L2.fireTtl;
-        L2.pulseT = 0;
-        L2.on = true;
-        say(L2.say || "LASER");
+  starGeo.setAttribute("position", new cs(starPos, 3));
+  scene.add(new Dh(starGeo, new Ch({ color: 10151679, size: 0.05, transparent: true, opacity: 0.6 })));
+  var player = { x: 0, y: -3.2, r: 0.35, hp: 5, maxHp: 5, inv: 0, fire: 0, shieldHits: 2, keys: {} };
+  var ship = fitModel(MOBS2.player(RIG, GAME_COLOR.player), 0.85);
+  scene.add(ship);
+  var shieldRing = new Bs(new sd(0.55, 0.035, 8, 40), glowMat(6487969, 1.2));
+  scene.add(shieldRing);
+  var barriers = [];
+  (function buildBarriers() {
+    const cellW = 0.17, cellH = 0.11, gap = 0.02;
+    for (const bx of [-4.2, -1.4, 1.4, 4.2]) {
+      const cells = [];
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 6; col++) {
+          const m = new Bs(
+            new ks(cellW, cellH, 0.3),
+            new es({ color: 2648872, transparent: true })
+          );
+          const cx = bx + col * (cellW + gap) - 6 * (cellW + gap) / 2 + cellW / 2;
+          const cy = -2.15 + row * (cellH + gap);
+          m.position.set(cx, cy, 0);
+          scene.add(m);
+          cells.push({ x: cx, y: cy, w: cellW, h: cellH, hp: 3, m });
+        }
       }
+      barriers.push({ cells });
+    }
+  })();
+  function damageCell(c, dmg) {
+    c.hp -= dmg;
+    const frac = Math.max(0, c.hp / 3);
+    c.m.material.color.setHex(frac > 0.66 ? 2648872 : frac > 0.33 ? 1931818 : 1527831);
+    c.m.material.opacity = 0.35 + 0.65 * frac;
+    if (c.hp <= 0) {
+      scene.remove(c.m);
+      burst(c.x, c.y, 2648872, 6, 2);
+      const b = barriers.find((it) => it.cells.includes(c));
+      b.cells.splice(b.cells.indexOf(c), 1);
+    }
+  }
+  function hitBarrier(x, y2, dmg) {
+    for (const b of barriers) {
+      for (const c of b.cells) {
+        if (Math.abs(x - c.x) < c.w / 2 + 0.06 && Math.abs(y2 - c.y) < c.h / 2 + 0.06) {
+          damageCell(c, dmg);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  addEventListener("keydown", (e) => {
+    player.keys[e.key] = true;
+    if (e.key === " ") e.preventDefault();
+  });
+  addEventListener("keyup", (e) => {
+    player.keys[e.key] = false;
+  });
+  var bullets = [];
+  function addBullet(x, y2, vx, vy, r, color, opts = {}) {
+    const m = new Bs(new id(r, 10, 10), glowMat(color));
+    m.position.set(x, y2, 0);
+    scene.add(m);
+    const b = { x, y: y2, vx, vy, r, m, color, life: opts.life ?? 8, frozen: false, homing: opts.homing ?? 0, seek: 0, hp: opts.hp ?? 0 };
+    bullets.push(b);
+    return b;
+  }
+  function killBullet(b) {
+    scene.remove(b.m);
+    bullets.splice(bullets.indexOf(b), 1);
+  }
+  var shots = [];
+  function addShot(x, y2, vx, vy) {
+    const m = new Bs(new pu(0.06, 0.06, 0.34, 6), glowMat(P2.pale));
+    m.position.set(x, y2, 0);
+    scene.add(m);
+    shots.push({ x, y: y2, vx, vy, m });
+  }
+  function killShot(s) {
+    scene.remove(s.m);
+    shots.splice(shots.indexOf(s), 1);
+  }
+  var parts = [];
+  function burst(x, y2, color, n = 12, spd = 3) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = rnd(0.3, 1) * spd;
+      const m = new Bs(new id(rnd(0.04, 0.1), 6, 6), glowMat(color));
+      m.position.set(x, y2, 0);
+      scene.add(m);
+      parts.push({ x, y: y2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, m, life: rnd(0.3, 0.7) });
+    }
+  }
+  var floaters = [];
+  function say(x, y2, text, color = "#c9a7ff") {
+    const div = document.createElement("div");
+    div.className = "floater";
+    div.textContent = text;
+    div.style.color = color;
+    document.getElementById("fx").appendChild(div);
+    floaters.push({ el: div, x, y: y2, life: 1.2 });
+  }
+  function toScreen(x, y2) {
+    return { sx: (x / ARENA.w + 0.5) * 100, sy: (0.5 - y2 / ARENA.h) * 100 };
+  }
+  var minions = [];
+  var callingVariant = "b";
+  function spawnMinion(type, x, y2) {
+    const g = new jl();
+    let hp2 = 1, r = 0.4, extra = null;
+    if (type === "zealot") {
+      addSphere(g, 0.3, 0, 0, 0, toon(P2.ink));
+      addSphere(g, 0.14, 0, 0, 0.25, glowMat(P2.magenta));
+      const ring = new Bs(new sd(0.42, 0.04, 6, 20), glowMat(P2.gold, 1.2));
+      ring.rotation.x = Math.PI / 2.4;
+      g.add(ring);
+      hp2 = 4;
+      r = 0.5;
+    } else if (type === "idol") {
+      addSphere(g, 0.45, 0, 0.25, 0, toon(P2.ink), 1, 0.95, 1);
+      addCone(g, 0.3, 0.75, 0, 0.9, 0, toon(P2.ink), 0, 8);
+      addSphere(g, 0.15, -0.17, 0.32, 0.34, toon(P2.bone), 1, 1.15, 0.8);
+      addSphere(g, 0.15, 0.17, 0.32, 0.34, toon(P2.bone), 1, 1.15, 0.8);
+      addSphere(g, 0.06, -0.17, 0.32, 0.44, glowMat(P2.gold));
+      addSphere(g, 0.06, 0.17, 0.32, 0.44, glowMat(P2.gold));
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 5 - 0.5) * 2.2;
+        tentacle(g, {
+          x: Math.sin(a) * 0.3,
+          y: -0.08,
+          z: Math.cos(a) * 0.2,
+          len: 0.8,
+          r: 0.07,
+          segs: 4,
+          mat: toon(P2.flesh),
+          phase: i,
+          curl: 0.4
+        });
+      }
+      hp2 = 3;
+      r = 0.6;
+      g.scale.setScalar(0.7);
+      const aura = new Bs(new ed(1.95, 2.1, 48), glowMat(P2.gold, 0.8));
+      g.add(aura);
+      const disc = new Bs(new du(2, 48), new es({ color: P2.gold, transparent: true, opacity: 0.08 }));
+      g.add(disc);
+      extra = { aura };
+    }
+    g.position.set(x, y2, 0);
+    scene.add(g);
+    const mn = { type, x, y: y2, bx: x, by: y2, hp: hp2, maxHp: hp2, r, g, t: 0, fire: rnd(1, 2), latched: false, phase: Math.random() * 6, beam: null, dive: rnd(1, 2), diving: false, bites: 3, aura: extra && extra.aura };
+    if (type === "zealot" || type === "idol") {
+      const bg = new Bs(new ha(0.62, 0.09), new es({ color: 1116192 }));
+      const fill = new Bs(new ha(0.6, 0.07), new es({ color: 6487969 }));
+      scene.add(bg);
+      scene.add(fill);
+      mn.bar = { bg, fill, y: r + 0.45 };
+    }
+    minions.push(mn);
+    say(x, y2, type.toUpperCase(), type === "idol" ? "#ffd76a" : "#c9a7ff");
+    return mn;
+  }
+  function killMinion(mn) {
+    burst(mn.x, mn.y, mn.type === "idol" ? P2.gold : P2.violet, 16, 3.4);
+    if (mn.type === "zealot") {
+      const a0 = -Math.PI / 2;
+      for (let i = 0; i < 3; i++) {
+        const a = a0 + (i - 1) * 0.22;
+        addBullet(mn.x, mn.y, Math.cos(a) * 2.2, Math.sin(a) * 2.2, 0.12, P2.magenta, { life: 3, hp: 1 });
+      }
+      say(mn.x, mn.y, "DEATH HEX", "#c026d3");
+    }
+    if (mn.beam) scene.remove(mn.beam);
+    if (mn.bar) {
+      scene.remove(mn.bar.bg);
+      scene.remove(mn.bar.fill);
+    }
+    dropPowerup(mn.x, mn.y);
+    scene.remove(mn.g);
+    minions.splice(minions.indexOf(mn), 1);
+  }
+  var PU = {
+    rapid: { color: 16735370 },
+    double: { color: 4379622 },
+    shield: { color: 6487969 },
+    bomb: { color: 16766826 },
+    laser: { color: 16724838 },
+    slow: { color: 10151679 }
+  };
+  var weak = { rapid: 0, double: 0, laser: 0, slow: 0, shieldTtl: 0 };
+  var drops = [];
+  function dropPowerup(x, y2) {
+    const type = pick(Object.keys(PU));
+    const m = new Bs(new ks(0.28, 0.26, 0.12), toon(PU[type].color));
+    m.position.set(x, y2, 0.2);
+    scene.add(m);
+    drops.push({ type, x, y: y2, m, ttl: 8 });
+    say(x, y2, "WEAK " + type.toUpperCase(), "#ffd76a");
+  }
+  function applyWeak(type) {
+    if (type === "bomb") {
+      for (const bl2 of [...bullets]) killBullet(bl2);
+      say(player.x, player.y + 0.8, "BOMB: CLEARED", "#ffd76a");
       return;
     }
-    if (L2.state === "fire") {
-      if (L2.sweep) L2.angle += L2.sweep * dt2;
-      const len = 1400;
-      L2.endX = ox + Math.cos(L2.angle) * len;
-      L2.endY = oy + Math.sin(L2.angle) * len;
-      if (L2.pulses > 0) {
-        L2.pulseT += dt2;
-        const cycle = 0.55;
-        L2.on = L2.pulseT % cycle < 0.25;
-        L2.pulseCount = Math.floor(L2.pulseT / cycle);
-        if (L2.pulseCount >= L2.pulses) {
-          world.laser = null;
-          return;
-        }
+    if (type === "shield") {
+      player.shieldHits += 1;
+      weak.shieldTtl = 10;
+      say(player.x, player.y + 0.8, "SHIELD 10s", "#62ffa1");
+      return;
+    }
+    weak[type] = Math.max(weak[type], 10);
+    say(player.x, player.y + 0.8, type.toUpperCase() + " 10s", "#ffd76a");
+  }
+  function updateDrops(dt2) {
+    for (const key2 of ["rapid", "double", "laser", "slow"]) weak[key2] = Math.max(0, weak[key2] - dt2);
+    if (weak.shieldTtl > 0) {
+      weak.shieldTtl -= dt2;
+      if (weak.shieldTtl <= 0) player.shieldHits = 0;
+    }
+    for (const d2 of [...drops]) {
+      d2.y -= 1.3 * dt2;
+      d2.ttl -= dt2;
+      if (d2.y < -ARENA.h / 2 + 0.3) d2.y = -ARENA.h / 2 + 0.3;
+      d2.m.position.set(d2.x, d2.y, 0.2);
+      d2.m.rotation.y += dt2 * 2;
+      if (dist2(d2.x, d2.y, player.x, player.y) < 0.55) {
+        applyWeak(d2.type);
+        burst(d2.x, d2.y, PU[d2.type].color, 8, 2);
+        scene.remove(d2.m);
+        drops.splice(drops.indexOf(d2), 1);
+      } else if (d2.ttl <= 0) {
+        scene.remove(d2.m);
+        drops.splice(drops.indexOf(d2), 1);
       }
-      if (L2.heat) {
-        L2.width = 2 + 12 * (1 - Math.max(0, L2.ttl / L2.fireTtl));
-        L2.lethal = L2.ttl <= 0.4;
-      }
-      const hits = cellsOnBeam(ox, oy, L2.endX, L2.endY);
-      if (!L2.pierce && hits.length) {
-        L2.endX = hits[0].px;
-        L2.endY = hits[0].py;
-      }
-      L2.tick = (L2.tick || 0) + dt2;
-      if (L2.tick >= 0.1) {
-        L2.tick = 0;
-        const targets = L2.pierce ? hits : hits.slice(0, 1);
-        targets.forEach((h) => {
-          h.cell.hp -= 1;
-          h.cell.flash = 0.5;
-        });
-        world.barrier = world.barrier.filter((c) => c.hp > 0);
-      }
-      if (L2.ttl <= 0) world.laser = null;
     }
   }
-  function resetWorld(design) {
-    world.bullets = [];
-    world.bombs = [];
-    world.mines = [];
-    world.waves = [];
-    world.tele = [];
-    world.shots = [];
-    world.pods = [];
-    world.barrier = buildBarrier();
-    world.bubble = 0;
-    world.laser = null;
-    world.msgTtl = 0;
-    world.t = 0;
-    world.minions = [];
-    world.auraT = 0;
-    world.staggerT = 0;
-    world.boss = { x: W2 / 2 - 64, y: 70, w: 128, h: 64, vx: design.speed + LEVEL * 8, vy: 14 };
-    world.ship.x = W2 / 2 - 17;
-    world.ship.vx = 0;
-    world.ship.targetX = W2 / 2;
-  }
-  function swapBossModel(design) {
-    stage.scene.remove(bossModel);
-    bossModel = addModel(stage, design.model, design.color, 150);
-  }
-  function renderFx() {
-    fxctx.clearRect(0, 0, W2, H2);
-    const b = world.boss;
-    for (const cell of world.barrier) {
-      const frac = Math.max(0, cell.hp / cell.maxHp);
-      fxctx.globalAlpha = 0.35 + 0.65 * frac;
-      fxctx.fillStyle = frac > 0.95 ? "#2fc96f" : frac > 0.6 ? "#d8c94a" : "#c94a4a";
-      fxctx.fillRect(cell.x, cell.y, cell.w, cell.h);
-      if (cell.hp < cell.maxHp) {
-        fxctx.globalAlpha = 0.8;
-        fxctx.strokeStyle = "#0b0c14";
-        fxctx.beginPath();
-        fxctx.moveTo(cell.x + 2, cell.y + 1);
-        fxctx.lineTo(cell.x + cell.w - 3, cell.y + cell.h - 2);
-        if (cell.hp === 1) {
-          fxctx.moveTo(cell.x + cell.w - 2, cell.y + 1);
-          fxctx.lineTo(cell.x + 2, cell.y + cell.h - 2);
-        }
-        fxctx.stroke();
+  canvas.addEventListener("pointerdown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width - 0.5) * ARENA.w;
+    const my = -((e.clientY - rect.top) / rect.height - 0.5) * ARENA.h;
+    for (const mn of [...minions]) {
+      if (dist2(mx, my, mn.x, mn.y) < mn.r + 0.5) {
+        mn.hp -= 1;
+        burst(mn.x, mn.y, P2.bone, 5, 2);
+        if (mn.hp <= 0) killMinion(mn);
+        return;
       }
-      if (cell.flash > 0) {
-        fxctx.globalAlpha = Math.min(1, cell.flash * 2.2);
-        fxctx.fillStyle = "#ffffff";
-        fxctx.fillRect(cell.x - 1, cell.y - 1, cell.w + 2, cell.h + 2);
-      }
-      fxctx.globalAlpha = 1;
-    }
-    if (world.bubble > 0) {
-      fxctx.strokeStyle = "rgba(130, 255, 190, 0.85)";
-      fxctx.lineWidth = 4;
-      fxctx.beginPath();
-      fxctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + 14, 0, Math.PI * 2);
-      fxctx.stroke();
-      fxctx.lineWidth = 1;
-      fxctx.fillStyle = "#62ffa1";
-      fxctx.font = "12px 'Courier New', monospace";
-      fxctx.fillText("INVULNERABLE", b.x + b.w / 2 - 44, b.y - 16);
-    }
-    if (world.auraT > 0) {
-      const pulse = 0.6 + 0.4 * Math.sin(world.t * 7);
-      fxctx.strokeStyle = "rgba(200, 107, 255, 0.8)";
-      fxctx.lineWidth = 5;
-      fxctx.globalAlpha = pulse;
-      fxctx.beginPath();
-      fxctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + 22, 0, Math.PI * 2);
-      fxctx.stroke();
-      fxctx.globalAlpha = 0.25 * pulse;
-      fxctx.fillStyle = "#8a2be2";
-      fxctx.fill();
-      fxctx.globalAlpha = 1;
-      fxctx.lineWidth = 1;
-      fxctx.fillStyle = "#e0b3ff";
-      fxctx.font = "12px 'Courier New', monospace";
-      fxctx.fillText("PHASE 2 AURA", b.x + b.w / 2 - 42, b.y - 30);
-    }
-    if (world.staggerT > 0) {
-      const bw = 120;
-      fxctx.fillStyle = "#10060f";
-      fxctx.fillRect(b.x + b.w / 2 - bw / 2, b.y - 26, bw, 8);
-      fxctx.fillStyle = "#ff5050";
-      fxctx.fillRect(b.x + b.w / 2 - bw / 2 + 1, b.y - 25, (bw - 2) * (world.staggerT / 3), 6);
-      fxctx.fillStyle = "#ffb0c0";
-      fxctx.font = "10px 'Courier New', monospace";
-      fxctx.fillText("STAGGERED", b.x + b.w / 2 - 32, b.y - 32);
-    }
-    for (const m of world.minions) {
-      const glyph = MINION_GLYPHS[m.glyph];
-      const px = 3;
-      fxctx.fillStyle = m.color;
-      fxctx.shadowColor = m.color;
-      fxctx.shadowBlur = 8;
-      for (let row = 0; row < glyph.length; row += 1) {
-        for (let col = 0; col < 8; col += 1) {
-          if (glyph[row][col] === "1") fxctx.fillRect(m.x + col * px, m.y + row * px, px, px);
-        }
-      }
-      fxctx.shadowBlur = 0;
-    }
-    for (const tl2 of world.tele) {
-      if (tl2.kind === "reticle") {
-        fxctx.strokeStyle = "rgba(255, 224, 102, 0.75)";
-        fxctx.lineWidth = 2;
-        fxctx.beginPath();
-        fxctx.arc(tl2.x, H2 - 90, 22, 0, Math.PI * 2);
-        fxctx.stroke();
-        fxctx.beginPath();
-        fxctx.moveTo(tl2.x - 30, H2 - 90);
-        fxctx.lineTo(tl2.x + 30, H2 - 90);
-        fxctx.moveTo(tl2.x, H2 - 120);
-        fxctx.lineTo(tl2.x, H2 - 60);
-        fxctx.stroke();
-        fxctx.lineWidth = 1;
-      } else if (tl2.kind === "windup") {
-        fxctx.strokeStyle = "rgba(130, 255, 190, 0.6)";
-        fxctx.lineWidth = 3;
-        fxctx.strokeRect(b.x - 10, b.y + b.h - 6, b.w + 20, 12);
-        fxctx.fillStyle = "#62ffa1";
-        fxctx.font = "12px 'Courier New', monospace";
-        fxctx.fillText("WINDING UP", b.x + b.w / 2 - 40, b.y + b.h + 26);
-        fxctx.lineWidth = 1;
-      }
-    }
-    if (world.laser) {
-      const L2 = world.laser;
-      const ox = b.x + b.w / 2;
-      const oy = b.y + b.h;
-      if (L2.state === "aim") {
-        fxctx.strokeStyle = "rgba(255, 51, 102, 0.62)";
-        fxctx.lineWidth = 2;
-        fxctx.setLineDash([10, 9]);
-        fxctx.beginPath();
-        fxctx.moveTo(ox, oy);
-        fxctx.lineTo(L2.endX, L2.endY);
-        fxctx.stroke();
-        fxctx.setLineDash([]);
-        fxctx.strokeRect(L2.endX - 18, L2.endY - 18, 36, 36);
-        fxctx.lineWidth = 1;
-      } else if (L2.on !== false) {
-        const heatFlash = L2.heat && L2.lethal;
-        fxctx.strokeStyle = heatFlash ? "rgba(255, 90, 40, 0.30)" : "rgba(255, 51, 102, 0.24)";
-        fxctx.lineWidth = (L2.width || 11) * 2.4;
-        fxctx.beginPath();
-        fxctx.moveTo(ox, oy);
-        fxctx.lineTo(L2.endX, L2.endY);
-        fxctx.stroke();
-        fxctx.strokeStyle = heatFlash ? "#ff5a28" : "#ff3366";
-        fxctx.lineWidth = L2.width || 11;
-        fxctx.beginPath();
-        fxctx.moveTo(ox, oy);
-        fxctx.lineTo(L2.endX, L2.endY);
-        fxctx.stroke();
-        fxctx.strokeStyle = "#ffffff";
-        fxctx.lineWidth = 3;
-        fxctx.beginPath();
-        fxctx.moveTo(ox, oy);
-        fxctx.lineTo(L2.endX, L2.endY);
-        fxctx.stroke();
-        if (L2.pierce) {
-          fxctx.fillStyle = "#ffe066";
-          fxctx.font = "11px 'Courier New', monospace";
-          fxctx.fillText("PIERCING", ox - 26, oy + 18);
-        }
-      }
-    }
-    for (const pod of world.pods) {
-      fxctx.fillStyle = pod.color;
-      fxctx.shadowColor = pod.color;
-      fxctx.shadowBlur = 10;
-      fxctx.beginPath();
-      fxctx.arc(pod.x, pod.y, 8, 0, Math.PI * 2);
-      fxctx.fill();
-      fxctx.shadowBlur = 0;
-    }
-    for (const m of world.mines) {
-      const armed = (m.arm || 0) <= 0;
-      const lit = armed && m.fuse < 0.7;
-      fxctx.save();
-      fxctx.globalAlpha = (m.arm || 0) > 0 ? 0.5 + 0.3 * Math.sin(world.t * 10) : lit ? 0.6 + 0.4 * Math.sin(world.t * 40) : 1;
-      fxctx.translate(m.x + 8, m.y + 8);
-      fxctx.fillStyle = lit ? "#ff6b6b" : "#2fc96f";
-      fxctx.shadowColor = fxctx.fillStyle;
-      fxctx.shadowBlur = 8;
-      fxctx.beginPath();
-      for (let i = 0; i < 8; i += 1) {
-        const a = i * Math.PI / 4;
-        fxctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 9);
-        fxctx.lineTo(Math.cos(a + Math.PI / 8) * 4.5, Math.sin(a + Math.PI / 8) * 4.5);
-      }
-      fxctx.closePath();
-      fxctx.fill();
-      fxctx.shadowBlur = 0;
-      fxctx.restore();
-    }
-    for (const p2 of world.shots) {
-      fxctx.save();
-      fxctx.translate(p2.x, p2.y);
-      fxctx.rotate(Math.atan2(p2.vy, p2.vx));
-      fxctx.fillStyle = p2.color;
-      fxctx.shadowColor = p2.color;
-      fxctx.shadowBlur = 6;
-      fxctx.fillRect(-6, -2.5, 12, 5);
-      fxctx.shadowBlur = 0;
-      fxctx.restore();
-    }
-    for (const p2 of world.bullets) {
-      fxctx.save();
-      fxctx.translate(p2.x, p2.y + 7.5);
-      fxctx.rotate(Math.atan2(-(p2.vx || 0), p2.speed || 250));
-      fxctx.fillStyle = p2.color;
-      fxctx.shadowColor = p2.color;
-      fxctx.shadowBlur = 6;
-      fxctx.fillRect(-2.5, -7.5, 5, 15);
-      fxctx.shadowBlur = 0;
-      fxctx.restore();
-    }
-    for (const wv of world.waves) {
-      fxctx.strokeStyle = wv.color;
-      fxctx.globalAlpha = Math.max(0, wv.ttl / 0.7);
-      fxctx.lineWidth = 3;
-      fxctx.beginPath();
-      fxctx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2);
-      fxctx.stroke();
-      fxctx.globalAlpha = 1;
-      fxctx.lineWidth = 1;
-    }
-    if (world.msgTtl > 0) {
-      fxctx.fillStyle = "#ffe066";
-      fxctx.font = "16px 'Courier New', monospace";
-      fxctx.textAlign = "center";
-      fxctx.fillText(world.msg, W2 / 2, 40);
-      fxctx.textAlign = "left";
-    }
-  }
-  function laserStart(opts) {
-    const b = world.boss;
-    b.vx = 26;
-    b.vy = 0;
-    world.laser = Object.assign({
-      state: "aim",
-      ttl: 0.8,
-      fireTtl: 1.2,
-      endX: shipCenter().x,
-      endY: shipCenter().y,
-      angle: Math.PI / 2,
-      width: 11,
-      sweep: 0,
-      pierce: false,
-      pulses: 0,
-      heat: false,
-      on: true,
-      lethal: true,
-      say: "LASER"
-    }, opts);
-  }
-  var KIT = [
-    {
-      key: "1",
-      name: "VOID SPREAD",
-      dur: 7,
-      desc: "0.5s crown telegraph, then a 7-shot purple fan plus 2 aimed pods at your lane. Phase 2 doubles the fan. The opener of the kit.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 0.5;
-      },
-      step(d2, dt2) {
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "done";
-            const b = world.boss;
-            world.tele.push({ kind: "windup", ttl: 0.5 });
-            const n = world.auraT > 0 ? 11 : 7;
-            for (let i = 0; i < n; i += 1) {
-              addShot(b.x + b.w / 2, b.y + b.h, (i - (n - 1) / 2) * 46, 190, d2.accent);
-            }
-            addPod(b.x + b.w / 2, b.y + b.h, (shipCenter().x - b.x - b.w / 2) * 0.7, 60, { kind: "plain", color: d2.accent });
-            say("VOID SPREAD");
-          }
-        }
-      }
-    },
-    {
-      key: "2",
-      name: "MINION SUMMON",
-      dur: 9,
-      desc: "0.8s pentagram telegraph, then a 5-invader squad drops in formation, hovers, and dives at you one by one. The crowd mechanic the 2-boss stage used to give you.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 0.8;
-      },
-      step(d2, dt2) {
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "done";
-            addWave(bossCenter().x, bossCenter().y, 90, d2.accent);
-            spawnSquad(d2.accent);
-          }
-        }
-      }
-    },
-    {
-      key: "3",
-      name: "PIERCING BEAM",
-      dur: 8,
-      desc: "0.9s aim, 1.4s purple beam that BURNS THROUGH barrier blocks and keeps going to your ship. Same numbers as the skull's in-game piercing laser.",
-      start(d2) {
-        resetWorld(d2);
-        this.t = 0.3;
-        this.fired = false;
-      },
-      step(d2, dt2) {
-        this.t -= dt2;
-        if (!this.fired && this.t <= 0) {
-          this.fired = true;
-          laserStart({ ttl: 0.9, fireTtl: 1.4, pierce: true, width: 11, say: "PIERCING BEAM" });
-        }
-      }
-    },
-    {
-      key: "4",
-      name: "CARAPACE BARRAGE",
-      dur: 8,
-      desc: "Boss slows to a stop, braces, parks invulnerable and drops fused mines straight below: 3 first cast, 4 second, 5 after. Pure zone denial.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 0.5;
-        this.cast = (this.cast || 0) + 1;
-        this.count = Math.min(2 + this.cast, 5);
-        this.dropped = 0;
-      },
-      step(d2, dt2) {
-        const b = world.boss;
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "slow";
-            this.t = 0.8;
-            this.slowFrom = b.vx;
-          }
-        } else if (this.state === "slow") {
-          this.t -= dt2;
-          b.vx = this.slowFrom * Math.max(0, this.t / 0.8);
-          if (this.t <= 0) {
-            this.state = "windup";
-            this.t = 0.9;
-            b.vx = 0;
-            world.tele.push({ kind: "windup", ttl: 0.9 });
-            say("BRACED");
-          }
-        } else if (this.state === "windup") {
-          this.t -= dt2;
-          b.vx = 0;
-          if (this.t <= 0) {
-            this.state = "drop";
-            this.t = 1.6;
-            this.drop = 0.1;
-            world.bubble = 1.6;
-            say("CARAPACE BARRAGE");
-          }
-        } else if (this.state === "drop") {
-          this.t -= dt2;
-          b.vx = 0;
-          this.drop -= dt2;
-          if (this.drop <= 0 && this.dropped < this.count) {
-            this.dropped += 1;
-            this.drop = 0.22;
-            addMine(b.x + b.w / 2 - 8 + (this.dropped - (this.count + 1) / 2) * 26, b.y + b.h, 0);
-          }
-        }
-      }
-    },
-    {
-      key: "5",
-      name: "MINE MORTAR",
-      dur: 8,
-      desc: "3 reticle telegraphs land on your lane, 0.8s later a mortar volley arcs in and bursts into fused drifting mines. Aimed, readable, dodge by moving.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 0.8;
-        this.marked = false;
-      },
-      step(d2, dt2) {
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (!this.marked) {
-            this.marked = true;
-            const px = shipCenter().x;
-            [-90, 0, 90].forEach((o) => addTele("reticle", Math.max(40, Math.min(W2 - 40, px + o)), 0.8));
-            say("MINE MORTAR");
-          }
-          if (this.t <= 0) {
-            this.state = "done";
-            const b = world.boss;
-            const px = shipCenter().x;
-            [-90, 0, 90].forEach((o) => {
-              const tx = Math.max(40, Math.min(W2 - 40, px + o));
-              addPod(
-                b.x + b.w / 2,
-                b.y + b.h,
-                (tx - b.x - b.w / 2) * 0.55,
-                -160,
-                { kind: "mortar", targetY: H2 - 170, color: d2.accent, burst: 3 }
-              );
-            });
-          }
-        }
-      }
-    },
-    {
-      key: "6",
-      name: "OBSIDIAN DIVE",
-      dur: 8,
-      desc: "0.6s red telegraph over your lane, then the whole boss body swoops down to your row, sweeps across, and climbs back. Touching it hurts; the sweep is the dodge window.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 0.6;
-      },
-      step(d2, dt2) {
-        const b = world.boss;
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "dive";
-            this.t = 1.1;
-            b.vy = 340;
-            b.vx = Math.sign(shipCenter().x - bossCenter().x) * 150;
-            addTele("reticle", shipCenter().x, 0.6);
-            say("OBSIDIAN DIVE");
-          }
-        } else if (this.state === "dive") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "climb";
-            this.t = 1;
-            b.vy = -300;
-          }
-        } else if (this.state === "climb") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "done";
-            b.vy = 14;
-            b.vx = d2.speed + LEVEL * 8;
-          }
-        }
-      }
-    },
-    {
-      key: "7",
-      name: "PHASE 2 AURA",
-      dur: 9,
-      desc: "At 50% HP the boss cracks open: purple aura, +40% speed, VOID SPREAD doubles. Every remaining skill keeps its tell \u2014 the fight gets denser, not unfair.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 1.2;
-      },
-      step(d2, dt2) {
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "done";
-            world.auraT = 6;
-            world.boss.vx *= 1.4;
-            addWave(bossCenter().x, bossCenter().y, 220, d2.accent);
-            say("PHASE 2 \u2014 AURA");
-          }
-        }
-      }
-    },
-    {
-      key: "8",
-      name: "STAGGER",
-      dur: 7,
-      desc: "4 + 2\xD7wave bullet damage in a 3s window \u2192 3.0s stagger: boss at 22% speed, bar over the HP bar. The final boss keeps the same rule \u2014 no immunity.",
-      start(d2) {
-        resetWorld(d2);
-        this.state = "idle";
-        this.t = 1;
-      },
-      step(d2, dt2) {
-        if (this.state === "idle") {
-          this.t -= dt2;
-          if (this.t <= 0) {
-            this.state = "done";
-            world.staggerT = 3;
-            say("STAGGERED");
-          }
-        }
-      }
-    }
-  ];
-  var ABILITIES = { monarch: KIT, crawler: KIT, wyrm: KIT };
-  var tabsEl = document.getElementById("tabs");
-  var cardsEl = document.getElementById("cards");
-  var captionEl = document.getElementById("caption");
-  var badgeEl = document.getElementById("badge");
-  var BOSS_KEYS = ["monarch", "crawler", "wyrm"];
-  var curBoss = "monarch";
-  var curAbility = 0;
-  var abilityElapsed = 0;
-  function renderTabs() {
-    tabsEl.innerHTML = "";
-    BOSS_KEYS.forEach((key) => {
-      const tab = document.createElement("div");
-      tab.className = "tab" + (key === curBoss ? " on" : "");
-      tab.textContent = DESIGN[key].name;
-      tab.onclick = () => {
-        curBoss = key;
-        curAbility = 0;
-        selectAbility();
-      };
-      tabsEl.appendChild(tab);
-    });
-  }
-  function renderCards() {
-    cardsEl.innerHTML = "";
-    ABILITIES[curBoss].forEach((ab, i) => {
-      const card = document.createElement("div");
-      card.className = "card" + (i === curAbility ? " on" : "");
-      card.innerHTML = `<span class="key">${ab.key}</span><h3>${ab.name}</h3><p>${ab.desc}</p>`;
-      card.onclick = () => {
-        curAbility = i;
-        selectAbility();
-      };
-      cardsEl.appendChild(card);
-    });
-  }
-  function selectAbility() {
-    const design = DESIGN[curBoss];
-    swapBossModel(design);
-    const ab = ABILITIES[curBoss][curAbility];
-    ab.start(design);
-    abilityElapsed = 0;
-    badgeEl.textContent = design.name;
-    captionEl.textContent = `${ab.key} \u2014 ${ab.name}`;
-    renderTabs();
-    renderCards();
-  }
-  document.addEventListener("keydown", (event) => {
-    const n = Number(event.key);
-    if (n >= 1 && n <= ABILITIES[curBoss].length) {
-      curAbility = n - 1;
-      selectAbility();
     }
   });
-  var last = performance.now();
-  function frame(now) {
-    const dt2 = Math.min(0.05, (now - last) / 1e3);
-    last = now;
-    const design = DESIGN[curBoss];
-    const ab = ABILITIES[curBoss][curAbility];
-    abilityElapsed += dt2;
-    if (abilityElapsed > ab.dur) {
-      curAbility = (curAbility + 1) % ABILITIES[curBoss].length;
-      selectAbility();
+  var boss = { x: 0, y: 1.6, r: 1.6, hp: 100, maxHp: 100, t: 0, shot: 1.2, castTimer: 4, skill: null, regen: 0 };
+  var effects = { bell: null };
+  var castName = "";
+  var castTotal = 0;
+  var castTime = 0;
+  var ambient = scene.children.find((c) => c.isAmbientLight);
+  function hurtPlayer(n = 1) {
+    if (player.inv > 0) return;
+    if (player.shieldHits > 0) {
+      player.shieldHits -= 1;
+      player.inv = 0.6;
+      burst(player.x, player.y, 6487969, 12, 3);
+      say(player.x, player.y + 0.6, player.shieldHits > 0 ? "SHIELD ABSORBED HIT x" + player.shieldHits : "SHIELD GONE", "#62ffa1");
+      return;
+    }
+    player.hp -= n;
+    player.inv = 1.2;
+    burst(player.x, player.y, P2.magenta, 10, 3);
+    if (player.hp <= 0) {
+      player.hp = player.maxHp;
+      player.x = 0;
+      player.y = -3.2;
+      say(0, 0, "PLAYER RESET", "#8fff8f");
+    }
+  }
+  function fireHex(n, opts = {}) {
+    const a0 = Math.atan2(player.y - boss.y, player.x - boss.x);
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (i - (n - 1) / 2) * (opts.spread ?? 0.22);
+      const s = opts.speed ?? 2.4;
+      addBullet(boss.x, boss.y - 0.8, Math.cos(a) * s, Math.sin(a) * s, opts.r ?? 0.14, opts.color ?? P2.violet, { life: opts.life ?? 8 });
+    }
+  }
+  var callWindup = 0;
+  function castCalling() {
+    callWindup = 2.5;
+    say(boss.x, boss.y - 1.6, "THE CALLING", "#c9a7ff");
+  }
+  function doCallingSpawn() {
+    const type = callingVariant === "b" ? "zealot" : "idol";
+    if (type === "idol") {
+      if (minions.some((m) => m.type === "idol")) {
+        say(boss.x, boss.y - 1.6, "THE IDOL ENDURES", "#ffd76a");
+        return;
+      }
+      spawnMinion(type, rnd(-ARENA.w / 2 + 2.2, ARENA.w / 2 - 2.2), rnd(-1.2, 2.2));
     } else {
-      try {
-        ab.step(design, dt2);
-      } catch (err) {
-        console.error("ability step", ab.name, err);
+      const alive = minions.filter((m) => m.type === "zealot").length;
+      for (let i = 0; i < 2 && alive + i < 3; i++) spawnMinion(type, boss.x + (i === 0 ? -1 : 1) * 0.5, boss.y);
+    }
+  }
+  function updateCalling() {
+    if (callWindup <= 0) boss.skill = null;
+  }
+  function updateMinions(dt2) {
+    for (const mn of [...minions]) {
+      mn.t += dt2;
+      if (mn.bar) {
+        const frac = clamp(mn.hp / mn.maxHp, 0, 1);
+        mn.bar.bg.position.set(mn.x, mn.y + mn.bar.y, 0.5);
+        mn.bar.fill.scale.x = Math.max(1e-3, frac);
+        mn.bar.fill.position.set(mn.x - (1 - frac) * 0.3, mn.y + mn.bar.y, 0.51);
+        mn.bar.fill.material.color.setHex(frac > 0.6 ? 6487969 : frac > 0.3 ? 16766826 : 16734810);
+      }
+      if (mn.type === "zealot") {
+        if (mn.t < 1.6) {
+          mn.x += Math.sign(mn.x - boss.x) * 2.4 * dt2;
+          mn.y += (boss.y - 0.9 - mn.y) * dt2 * 2.2;
+        } else {
+          mn.x += Math.cos(mn.t * 1.1 + mn.phase) * 1.4 * dt2;
+          mn.y += Math.sin(mn.t * 1.9 + mn.phase) * 0.9 * dt2;
+        }
+        mn.g.position.set(mn.x, mn.y, 0);
+        mn.g.rotation.y += dt2 * 1.2;
+        mn.fire -= dt2;
+        if (mn.fire <= 0) {
+          mn.fire = rnd(1.5, 2.5);
+          const a = Math.atan2(player.y - mn.y, player.x - mn.x);
+          addBullet(mn.x, mn.y, Math.cos(a) * 1.6, Math.sin(a) * 1.6, 0.16, P2.magenta, { life: 6, hp: 1 });
+        }
+      } else if (mn.type === "idol") {
+        mn.x = clamp(mn.bx + Math.sin(mn.t * 0.6 + mn.phase) * 2.2, -ARENA.w / 2 + 2.2, ARENA.w / 2 - 2.2);
+        mn.y = clamp(mn.by + Math.sin(mn.t * 0.42 + mn.phase * 1.7) * 1.2, -1.2, 2.2);
+        mn.g.position.set(mn.x, mn.y, 0);
+        if (mn.aura) mn.aura.rotation.z += dt2 * 0.5;
+        for (const o of minions) {
+          if (o !== mn && dist2(o.x, o.y, mn.x, mn.y) < 2) o.hp = Math.min(o.maxHp, o.hp + dt2 * 0.5);
+        }
+        if (dist2(boss.x, boss.y, mn.x, mn.y) < 2) boss.hp = Math.min(boss.maxHp, boss.hp + dt2 * 0.5);
       }
     }
-    updateWorld(dt2);
-    const b = world.boss;
-    place3D(bossModel, b.x + b.w / 2, b.y + b.h / 2, Math.sin(world.t / 1.1) * 0.2, [0, 0, 0]);
-    place3D(shipModel, world.ship.x + world.ship.w / 2, world.ship.y + world.ship.h / 2, 0, [-Math.PI / 2, 0, 0]);
-    stage.renderer.render(stage.scene, stage.cam);
-    renderFx();
-    requestAnimationFrame(frame);
-  }
-  selectAbility();
-  requestAnimationFrame(frame);
-  window.__ba = {
-    world,
-    get stage() {
-      return stage;
-    },
-    get bossModel() {
-      return bossModel;
-    },
-    get shipModel() {
-      return shipModel;
-    },
-    get cap() {
-      return document.getElementById("caption").textContent;
-    },
-    get badge() {
-      return document.getElementById("badge").textContent;
+    for (let i = 0; i < minions.length; i++) {
+      const a = minions[i];
+      for (let j2 = i + 1; j2 < minions.length; j2++) {
+        const b = minions[j2];
+        const dx2 = b.x - a.x, dy2 = b.y - a.y;
+        const d3 = Math.hypot(dx2, dy2) || 1;
+        const minD2 = a.r + b.r + 0.15;
+        if (d3 < minD2) {
+          const p2 = (minD2 - d3) / 2;
+          const nx = dx2 / d3, ny = dy2 / d3;
+          if (a.type === "idol") {
+            a.bx -= nx * p2;
+            a.by -= ny * p2;
+          } else {
+            a.x -= nx * p2;
+            a.y -= ny * p2;
+          }
+          if (b.type === "idol") {
+            b.bx += nx * p2;
+            b.by += ny * p2;
+          } else {
+            b.x += nx * p2;
+            b.y += ny * p2;
+          }
+        }
+      }
+      const dx = a.x - boss.x, dy = a.y - boss.y;
+      const d2 = Math.hypot(dx, dy) || 1;
+      const minD = boss.r + a.r + 0.1;
+      if (d2 < minD) {
+        const p2 = minD - d2;
+        if (a.type === "idol") {
+          a.bx += dx / d2 * p2;
+          a.by += dy / d2 * p2;
+        } else {
+          a.x += dx / d2 * p2;
+          a.y += dy / d2 * p2;
+        }
+      }
     }
+    boss.regen = 0;
+  }
+  function castBell() {
+    effects.bell = { t: 0, phase: 0 };
+    say(boss.x, boss.y, "THE BELL TOLLS", "#ffd76a");
+  }
+  function updateBell(dt2) {
+    const b = effects.bell;
+    if (!b) {
+      boss.skill = null;
+      return;
+    }
+    b.t += dt2;
+    if (b.phase === 0) {
+      for (const bl2 of bullets) {
+        bl2.frozen = true;
+        bl2.m.material.color.setHex(P2.bone);
+      }
+      if (b.t > 1.6) {
+        b.phase = 1;
+        const volley = bullets.slice(0, 8);
+        for (const bl2 of bullets) {
+          bl2.frozen = false;
+          if (volley.indexOf(bl2) < 0) continue;
+          const a = Math.atan2(player.y - bl2.y, player.x - bl2.x);
+          bl2.vx = Math.cos(a) * 3.4;
+          bl2.vy = Math.sin(a) * 3.4;
+          bl2.seek = 1.2;
+          bl2.seekA0 = Math.atan2(bl2.vy, bl2.vx);
+          bl2.homing = 0;
+          bl2.hp = 1;
+          bl2.life = Math.min(bl2.life, 4.5);
+          bl2.m.material.color.setHex(P2.magenta);
+        }
+      }
+    } else if (b.t > 4.5) {
+      effects.bell = null;
+      boss.skill = null;
+    }
+  }
+  var kit = {
+    calling: { name: "THE CALLING", icon: "\u2042", cd: 10, cast: castCalling, update: updateCalling },
+    bell: { name: "SIREN BELL", icon: "\u2652", cd: 13, cast: castBell, update: updateBell }
+  };
+  var skillKeys = Object.keys(kit);
+  var forced = null;
+  function castSkill(key2) {
+    if (boss.skill) return;
+    const s = kit[key2];
+    boss.skill = key2;
+    castName = s.name;
+    castTotal = key2 === "calling" ? 2.5 : 0.9;
+    castTime = castTotal;
+    document.getElementById("castName").textContent = s.name;
+    setTimeout(() => {
+      document.getElementById("castName").textContent = "";
+    }, 1600);
+    s.cast();
+  }
+  function updatePlayer(dt2) {
+    player.inv = Math.max(0, player.inv - dt2);
+    const sp2 = 5.2;
+    const k2 = player.keys;
+    let dx = 0;
+    if (k2.ArrowLeft || k2.a) dx -= 1;
+    if (k2.ArrowRight || k2.d) dx += 1;
+    player.x += dx * sp2 * dt2;
+    player.x = clamp(player.x, -ARENA.w / 2 + player.r, ARENA.w / 2 - player.r);
+    player.y = -3.2;
+    ship.position.set(player.x, player.y, 0);
+    ship.visible = player.inv <= 0 || Math.floor(performance.now() / 90) % 2 === 0;
+    shieldRing.position.set(player.x, player.y, 0.1);
+    shieldRing.visible = player.shieldHits > 0;
+    player.fire -= dt2;
+    if ((k2[" "] || k2.j) && player.fire <= 0) {
+      player.fire = weak.rapid > 0 ? 0.09 : 0.18;
+      addShot(player.x, player.y + 0.4, 0, 9);
+      if (weak.double > 0) {
+        addShot(player.x - 0.25, player.y + 0.3, 0, 9);
+        addShot(player.x + 0.25, player.y + 0.3, 0, 9);
+      }
+    }
+  }
+  function updateBullets(dt2) {
+    for (const bl2 of [...bullets]) {
+      if (bl2.frozen) continue;
+      if (bl2.homing > 0) {
+        const a = Math.atan2(player.y - bl2.y, player.x - bl2.x);
+        const sp2 = Math.hypot(bl2.vx, bl2.vy);
+        const ca2 = Math.atan2(bl2.vy, bl2.vx);
+        let da2 = a - ca2;
+        while (da2 > Math.PI) da2 -= Math.PI * 2;
+        while (da2 < -Math.PI) da2 += Math.PI * 2;
+        const na2 = ca2 + clamp(da2, -bl2.homing * dt2, bl2.homing * dt2);
+        bl2.vx = Math.cos(na2) * sp2;
+        bl2.vy = Math.sin(na2) * sp2;
+      }
+      bl2.x += bl2.vx * dt2 * (weak.slow > 0 ? 0.55 : 1);
+      if (bl2.seek > 0) {
+        bl2.seek -= dt2;
+        const sp2 = Math.hypot(bl2.vx, bl2.vy) || 3.4;
+        const ta2 = Math.atan2(player.y - bl2.y, player.x - bl2.x);
+        const ca2 = Math.atan2(bl2.vy, bl2.vx);
+        let da2 = ta2 - ca2;
+        while (da2 > Math.PI) da2 -= Math.PI * 2;
+        while (da2 < -Math.PI) da2 += Math.PI * 2;
+        let na2 = ca2 + clamp(da2, -2.6 * dt2, 2.6 * dt2);
+        if (bl2.seekA0 !== void 0) {
+          let off = na2 - bl2.seekA0;
+          while (off > Math.PI) off -= Math.PI * 2;
+          while (off < -Math.PI) off += Math.PI * 2;
+          na2 = bl2.seekA0 + clamp(off, -1.05, 1.05);
+        }
+        bl2.vx = Math.cos(na2) * sp2;
+        bl2.vy = Math.sin(na2) * sp2;
+      }
+      bl2.y += bl2.vy * dt2 * (weak.slow > 0 ? 0.55 : 1);
+      bl2.m.position.set(bl2.x, bl2.y, 0);
+      bl2.life -= dt2;
+      if (bl2.life <= 0 || Math.abs(bl2.x) > ARENA.w / 2 + 0.5 || Math.abs(bl2.y) > ARENA.h / 2 + 0.5) {
+        if (bl2.hp > 0 && bl2.life <= 0) burst(bl2.x, bl2.y, P2.magenta, 4, 2);
+        killBullet(bl2);
+      } else if (hitBarrier(bl2.x, bl2.y, 1)) killBullet(bl2);
+      else if (dist2(bl2.x, bl2.y, player.x, player.y) < bl2.r + player.r) {
+        killBullet(bl2);
+        hurtPlayer();
+      }
+    }
+  }
+  function updateShots(dt2) {
+    for (const s of [...shots]) {
+      s.x += s.vx * dt2;
+      s.y += s.vy * dt2;
+      s.m.position.set(s.x, s.y, 0);
+      if (s.y > ARENA.h / 2) {
+        killShot(s);
+        continue;
+      }
+      let hit = hitBarrier(s.x, s.y, 1);
+      if (!hit) for (const bl2 of bullets) {
+        if (bl2.hp > 0 && dist2(s.x, s.y, bl2.x, bl2.y) < bl2.r + 0.15) {
+          bl2.hp -= 1;
+          burst(bl2.x, bl2.y, P2.magenta, 5, 2);
+          if (bl2.hp <= 0) killBullet(bl2);
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) for (const mn of minions) {
+        if (dist2(s.x, s.y, mn.x, mn.y) < mn.r + 0.15) {
+          mn.hp -= weak.laser > 0 ? 2 : 1;
+          burst(s.x, s.y, P2.bone, 4, 2);
+          if (mn.hp <= 0) killMinion(mn);
+          hit = true;
+          break;
+        }
+      }
+      if (!hit && dist2(s.x, s.y, boss.x, boss.y) < boss.r) {
+        boss.hp -= weak.laser > 0 ? 2 : 1;
+        burst(s.x, s.y, P2.glow, 4, 2);
+        if (boss.hp <= 0) {
+          say(boss.x, boss.y, "THE DROWNED ONE FALLS", "#8fff8f");
+          burst(boss.x, boss.y, P2.violet, 40, 5);
+          boss.hp = boss.maxHp;
+        }
+        hit = true;
+      }
+      if (hit) killShot(s);
+    }
+  }
+  function updateParts(dt2) {
+    for (const p2 of [...parts]) {
+      p2.x += p2.vx * dt2;
+      p2.y += p2.vy * dt2;
+      p2.life -= dt2;
+      p2.m.position.set(p2.x, p2.y, 0);
+      p2.m.material.opacity = clamp(p2.life * 2, 0, 1);
+      if (p2.life <= 0) {
+        scene.remove(p2.m);
+        parts.splice(parts.indexOf(p2), 1);
+      }
+    }
+  }
+  function updateFloaters(dt2) {
+    for (const f of [...floaters]) {
+      f.life -= dt2;
+      f.y += dt2 * 0.8;
+      const { sx, sy } = toScreen(f.x, f.y);
+      f.el.style.left = sx + "%";
+      f.el.style.top = sy + "%";
+      f.el.style.opacity = clamp(f.life, 0, 1);
+      if (f.life <= 0) {
+        f.el.remove();
+        floaters.splice(floaters.indexOf(f), 1);
+      }
+    }
+  }
+  function updateBoss(dt2) {
+    boss.t += dt2;
+    if (callWindup > 0) {
+      callWindup -= dt2;
+      if (callWindup <= 0) doCallingSpawn();
+    }
+    const wslow = callWindup > 0 ? 0.45 : 1;
+    const idol = minions.find((m) => m.type === "idol");
+    const side = Math.sin(boss.t * 0.45) >= 0 ? 1 : -1;
+    const tx = idol ? idol.x + side * (2.6 + Math.sin(boss.t * 1.7) * 0.5) : Math.sin(boss.t * 0.35) * 3.2;
+    const ty = idol ? Math.min(idol.y + 1.5 + Math.sin(boss.t * 0.7) * 0.6, ARENA.h / 2 - 1.4) : 1.6 + Math.sin(boss.t * 0.8) * 0.35;
+    boss.x += (tx - boss.x) * dt2 * (idol ? 1.6 : 0.8) * wslow;
+    boss.y += (ty - boss.y) * dt2 * (idol ? 1.6 : 0.8) * wslow;
+    if (idol && boss.y < idol.y + 0.9) boss.y = idol.y + 0.9;
+    bossModel.position.set(boss.x, boss.y, 0);
+    boss.shot -= dt2;
+    if (boss.shot <= 0 && (!boss.skill || callWindup > 0)) {
+      boss.shot = callWindup > 0 ? 3.1 : 1.4;
+      fireHex(3);
+    }
+    if (!boss.skill) {
+      boss.castTimer -= dt2;
+      if (boss.castTimer <= 0) {
+        const key2 = forced || (Math.random() < 0.65 ? "calling" : "bell");
+        forced = null;
+        castSkill(key2);
+        boss.castTimer = key2 === "calling" && callingVariant === "c" ? 13 : kit[key2].cd;
+      }
+    } else if (castTime > 0) {
+      castTime -= dt2;
+    } else {
+      kit[boss.skill].update(dt2);
+    }
+  }
+  function updateHud() {
+    document.getElementById("bossFill").style.width = boss.hp / boss.maxHp * 100 + "%";
+    document.getElementById("hpFill").style.width = player.hp / player.maxHp * 100 + "%";
+    document.getElementById("castFill").style.width = (castTime > 0 ? (1 - castTime / castTotal) * 100 : 100) + "%";
+    document.getElementById("skillNow").textContent = boss.skill ? kit[boss.skill].name : "\u2014";
+    document.getElementById("skillCd").textContent = boss.skill ? "casting" : "next in " + Math.max(0, boss.castTimer).toFixed(0) + "s";
+  }
+  var skillsEl = document.getElementById("skills");
+  for (const key2 of skillKeys) {
+    const b = document.createElement("button");
+    b.className = "skill";
+    b.innerHTML = `<b>${kit[key2].icon} ${kit[key2].name}</b><span>${kit[key2].cd}s cd</span>`;
+    b.onclick = () => {
+      forced = key2;
+      boss.castTimer = Math.min(boss.castTimer, 0.3);
+    };
+    skillsEl.appendChild(b);
+  }
+  var looksEl = document.getElementById("looks");
+  looks.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.textContent = l.name;
+    b.className = i === 0 ? "on" : "";
+    b.onclick = () => {
+      applyLook(i);
+      [...looksEl.children].forEach((c) => c.classList.remove("on"));
+      b.classList.add("on");
+    };
+    looksEl.appendChild(b);
+  });
+  var variantsEl = document.getElementById("variants");
+  for (const [v, label] of [["b", "b \xB7 Zealots (6 HP, spawn at boss, spread out)"], ["c", "c \xB7 Idol (3 HP, one at a time, squid-themed, heal-all aura)"]]) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.className = v === "b" ? "on" : "";
+    b.onclick = () => {
+      callingVariant = v;
+      [...variantsEl.children].forEach((c) => c.classList.remove("on"));
+      b.classList.add("on");
+    };
+    variantsEl.appendChild(b);
+  }
+  var last = 0;
+  function loop(ts2) {
+    const dt2 = Math.min(0.05, (ts2 - last) / 1e3 || 0.016);
+    last = ts2;
+    const t2 = ts2 / 1e3;
+    anim.forEach((f) => f(t2));
+    glowMats.forEach((m) => {
+      m.opacity = 0.55 + 0.35 * Math.sin(t2 * 3);
+    });
+    updateBoss(dt2);
+    updateMinions(dt2);
+    updateDrops(dt2);
+    updatePlayer(dt2);
+    updateBullets(dt2);
+    updateShots(dt2);
+    updateParts(dt2);
+    updateFloaters(dt2);
+    updateHud();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  fit();
+  applyLook(0);
+  requestAnimationFrame(loop);
+  window.__bossFinal = {
+    dbg: () => ({
+      canvasAttr: [canvas.width, canvas.height],
+      canvasCss: [canvas.clientWidth, canvas.clientHeight],
+      children: scene.children.length,
+      bossPos: bossModel ? bossModel.position.toArray() : null,
+      bossKids: bossModel ? bossModel.children.length : 0,
+      cam: camera.position.toArray(),
+      camOrtho: [camera.left, camera.right, camera.top, camera.bottom],
+      renderCalls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      ctxLost: renderer.getContext().isContextLost()
+    }),
+    state: () => ({
+      look: looks[lookIndex].name,
+      skill: boss.skill,
+      minions: minions.map((m) => m.type + ":" + m.hp),
+      bullets: bullets.length,
+      hp: Math.round(boss.hp),
+      shieldHits: player.shieldHits,
+      drops: drops.map((d2) => d2.type),
+      weak: Object.fromEntries(Object.entries(weak).map(([k2, v]) => [k2, Math.round(v)])),
+      barrierCells: barriers.reduce((n, b) => n + b.cells.length, 0),
+      effects: Object.fromEntries(Object.entries(effects).map(([k2, v]) => [k2, typeof v === "number" ? Math.round(v * 10) / 10 : !!v]))
+    }),
+    cast: castSkill,
+    setLook: applyLook,
+    setVariant: (v) => {
+      callingVariant = v;
+    },
+    kit: skillKeys,
+    looks: looks.map((l) => l.name)
   };
 })();
 /**

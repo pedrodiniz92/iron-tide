@@ -18,7 +18,8 @@ function updatePowerups(dt) {
   if (touched) collectPowerup(touched);
 }
 
-function effectivePowerupDuration(duration) {
+function effectivePowerupDuration(duration, weak = false) {
+  if (weak) return 10;
   return duration * (permanentLongPowerups ? 2 : 1);
 }
 
@@ -27,6 +28,15 @@ function updateEffects(dt) {
     if (key === "laser") return;
     effects[key] = Math.max(0, effects[key] - dt);
   });
+
+  if (shieldWeakTtl > 0) {
+    shieldWeakTtl = Math.max(0, shieldWeakTtl - dt);
+    if (shieldWeakTtl <= 0 && shieldHits > 0) {
+      shieldHits = 0;
+      syncShieldStack();
+      noteShieldBreak();
+    }
+  }
 
   if (effects.shield <= 0) {
     if (shieldHits > 0 && shieldRestoreTimer <= 0) {
@@ -57,16 +67,17 @@ function maybeDropPowerup(invader) {
     false, 6, invaderDirection * (26 + Math.random() * 10));
 }
 
-function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 6, vx = null) {
+function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 6, vx = null, weak = false) {
   const powerup = {
     type,
     x: Math.max(22, Math.min(W - 48, x - 13)),
     y: Math.max(52, Math.min(H - 90, y - 12)),
-    w: 26,
-    h: 24,
+    w: weak ? 20 : 26,
+    h: weak ? 18 : 24,
     vx: vx === null ? (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 22) : vx,
     vy: 34 + level * 2,
     fromUfo,
+    weak,
     ttl,
     persist: !Number.isFinite(ttl)
   };
@@ -110,13 +121,13 @@ function spawnUfoLootCrate(ufo) {
   return crate;
 }
 
-function applyTemporaryEffect(id, duration) {
+function applyTemporaryEffect(id, duration, weak = false) {
   if (id === "laser") {
     laserCharges += 1;
     return;
   }
-  const effective = effectivePowerupDuration(duration);
-  effects[id] = Math.min(effectivePowerupDuration(14), effects[id] + effective);
+  const effective = effectivePowerupDuration(duration, weak);
+  effects[id] = Math.min(effectivePowerupDuration(14, weak), effects[id] + effective);
 }
 
 function grantBomb(x, y) {
@@ -177,21 +188,23 @@ function collectPowerup(powerup) {
   }
 
   if (powerup.type.id === "shield") {
-    const shieldDuration = effectivePowerupDuration(powerup.type.duration);
+    const shieldDuration = effectivePowerupDuration(powerup.type.duration, powerup.weak);
     addShieldHit(shieldDuration);
-    showFloatingMessage(`SHIELD READY x${shieldHits}`, fx, fy, 1.0, "#62ffa1");
+    if (powerup.weak) shieldWeakTtl = shieldDuration;
+    showFloatingMessage(powerup.weak ? `WEAK SHIELD ${shieldDuration}s` : `SHIELD READY x${shieldHits}`,
+      fx, fy, 1.0, "#62ffa1");
     return;
   }
 
   if (powerup.type.id === "laser") {
-    applyTemporaryEffect(powerup.type.id, powerup.type.duration);
+    applyTemporaryEffect(powerup.type.id, powerup.type.duration, powerup.weak);
     showFloatingMessage(`LASER READY x${laserCharges}`, fx, fy, 1.0, powerup.type.color);
     return;
   }
 
-  const powerupDuration = effectivePowerupDuration(powerup.type.duration);
-  applyTemporaryEffect(powerup.type.id, powerup.type.duration);
-  showFloatingMessage(`${name} +${powerupDuration}s`, fx, fy, 1.0, powerup.type.color);
+  const powerupDuration = effectivePowerupDuration(powerup.type.duration, powerup.weak);
+  applyTemporaryEffect(powerup.type.id, powerup.type.duration, powerup.weak);
+  showFloatingMessage(`${powerup.weak ? "WEAK " : ""}${name} +${powerupDuration}s`, fx, fy, 1.0, powerup.type.color);
 }
 
 function useBomb() {

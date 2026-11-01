@@ -249,6 +249,217 @@ function shedScrapFragment(boss) {
   });
 }
 
+let minionSeq = 0;
+
+function spawnMinion(type, x, y) {
+  if (type === "idol" && minions.some((m) => m.type === "idol")) return null;
+  const hp = type === "zealot" ? 4 : 3;
+  const minion = {
+    id: ++minionSeq,
+    type,
+    x: clamp(x, 16, W - 50),
+    y: clamp(y, 60, H - 140),
+    bx: clamp(x, 16, W - 50),
+    by: clamp(y, 60, H - 140),
+    w: 34,
+    h: 34,
+    hp,
+    maxHp: hp,
+    vx: 0,
+    vy: 0,
+    t: 0,
+    fire: 1 + Math.random() * 1.5,
+    spread: type === "zealot" ? 0.22 : 0,
+    auraR: type === "idol" ? 150 : 0,
+    phase: Math.random() * Math.PI * 2
+  };
+  minions.push(minion);
+  return minion;
+}
+
+function killMinion(minion) {
+  const cx = minion.x + minion.w / 2;
+  const cy = minion.y + minion.h / 2;
+  comboAddKill();
+  addScore(minion.type === "idol" ? 60 : 40, cx, cy);
+  addExplosion(cx, cy, minion.type === "idol" ? "#ffd76a" : "#8b5cf6");
+  addExplosion(cx, cy, COLORS.explosion);
+  playHit();
+  if (minion.type === "zealot") {
+    const a0 = Math.PI / 2;
+    for (let i = 0; i < 3; i += 1) {
+      const a = a0 + (i - 1) * 0.22;
+      const speed = 130;
+      enemyBullets.push({
+        x: cx - 2,
+        y: cy - 2,
+        w: 5,
+        h: 12,
+        speed: Math.max(30, Math.sin(a) * speed),
+        vx: Math.cos(a) * speed,
+        hp: 1,
+        maxHp: 1,
+        color: "#c026d3",
+        fromBoss: true,
+        shooterId: -1
+      });
+    }
+    showGameMessage("DEATH HEX", 0.8, "#c026d3");
+  }
+  spawnPowerupAt(cx, cy, pickLootType(1), false, 8, null, true);
+  minions = minions.filter((m) => m !== minion);
+}
+
+function fireZealotShot(minion) {
+  if (enemyBullets.length >= 14) return;
+  const sx = minion.x + minion.w / 2;
+  const sy = minion.y + minion.h / 2;
+  const a = Math.atan2(player.y + player.h / 2 - sy, player.x + player.w / 2 - sx);
+  const speed = 110;
+  enemyBullets.push({
+    x: sx - 2,
+    y: sy - 2,
+    w: 5,
+    h: 12,
+    speed: Math.max(30, Math.sin(a) * speed),
+    vx: Math.cos(a) * speed,
+    hp: 1,
+    maxHp: 1,
+    color: "#c026d3",
+    fromBoss: true,
+    shooterId: -1
+  });
+}
+
+function updateMinions(dt) {
+  const unit = bosses[0] || null;
+  minions.forEach((minion) => {
+    minion.t += dt;
+    if (minion.type === "zealot") {
+      if (unit && minion.t < 1.6) {
+        const away = minion.x + minion.w / 2 >= unit.x + unit.w / 2 ? 1 : -1;
+        minion.x += away * 150 * dt;
+        minion.y += (unit.y + 50 - minion.y) * 2.2 * dt;
+      } else {
+        minion.x += Math.cos(minion.t * 1.1 + minion.phase) * 95 * dt;
+        minion.y += Math.sin(minion.t * 1.9 + minion.phase) * 65 * dt;
+      }
+      minion.fire -= dt;
+      if (minion.fire <= 0) {
+        minion.fire = 1.5 + Math.random() * 1.0;
+        fireZealotShot(minion);
+      }
+    } else if (minion.type === "idol") {
+      minion.x = clamp(minion.bx + Math.sin(minion.t * 0.6 + minion.phase) * 150, 16, W - 50);
+      minion.y = clamp(minion.by + Math.sin(minion.t * 0.42 + minion.phase * 1.7) * 85, 60, H - 140);
+      const cx = minion.x + minion.w / 2;
+      const cy = minion.y + minion.h / 2;
+      if (unit && Math.hypot(unit.x + unit.w / 2 - cx, unit.y + unit.h / 2 - cy) < minion.auraR + 60) {
+        unit.hp = Math.min(unit.maxHp, unit.hp + 0.5 * dt);
+      }
+      minions.forEach((other) => {
+        if (other === minion) return;
+        if (Math.hypot(other.x + other.w / 2 - cx, other.y + other.h / 2 - cy) < minion.auraR) {
+          other.hp = Math.min(other.maxHp, other.hp + 0.5 * dt);
+        }
+      });
+    }
+    minion.x = clamp(minion.x, 16, W - minion.w - 16);
+    minion.y = clamp(minion.y, 60, H - 140);
+  });
+  minions.forEach((a, i) => {
+    if (unit && a.type === "idol" && unit.y + unit.h > a.y - 4) unit.y = a.y - unit.h - 4;
+    const acx = a.x + a.w / 2;
+    const acy = a.y + a.h / 2;
+    minions.slice(i + 1).forEach((b) => {
+      const dx = b.x + b.w / 2 - acx;
+      const dy = b.y + b.h / 2 - acy;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d < 46) {
+        const p = (46 - d) / 2;
+        const nx = dx / d;
+        const ny = dy / d;
+        if (a.type === "idol") { a.bx -= nx * p; a.by -= ny * p; } else { a.x -= nx * p; a.y -= ny * p; }
+        if (b.type === "idol") { b.bx += nx * p; b.by += ny * p; } else { b.x += nx * p; b.y += ny * p; }
+      }
+    });
+    if (unit) {
+      const dx = acx - (unit.x + unit.w / 2);
+      const dy = acy - (unit.y + unit.h / 2);
+      const d = Math.hypot(dx, dy) || 1;
+      const minD = (unit.w + a.w) / 2 + 6;
+      if (d < minD) {
+        const p = minD - d;
+        if (a.type === "idol") { a.bx += (dx / d) * p; a.by += (dy / d) * p; }
+        else { a.x += (dx / d) * p; a.y += (dy / d) * p; }
+      }
+    }
+    a.x = clamp(a.x, 16, W - a.w - 16);
+    a.y = clamp(a.y, 60, H - 140);
+    a.bx = clamp(a.bx, 16, W - a.w - 16);
+    a.by = clamp(a.by, 60, H - 140);
+  });
+}
+
+function castCalling(boss) {
+  if (boss.callCount % 4 === 0 && !minions.some((m) => m.type === "idol")) {
+    spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
+    showGameMessage("THE IDOL RISES", 1.0, "#ffd76a");
+  } else if (boss.callCount % 4 === 1) {
+    const cx = boss.x + boss.w / 2;
+    let zealots = minions.filter((m) => m.type === "zealot").length;
+    let spawned = 0;
+    if (zealots + spawned < 3) {
+      spawnMinion("zealot", cx - 46, boss.y + boss.h / 2);
+      spawned += 1;
+    }
+    if (zealots + spawned < 3) {
+      spawnMinion("zealot", cx + 12, boss.y + boss.h / 2);
+      spawned += 1;
+    }
+    if (spawned > 0) {
+      addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#c9a7ff");
+    }
+  }
+}
+
+function castBell(boss) {
+  bellEffect = { t: 0, phase: 0 };
+  addScreenShake(4);
+  showGameMessage("THE BELL TOLLS", 1.1, "#ffd76a");
+}
+
+function updateBell(dt) {
+  if (!bellEffect) return;
+  bellEffect.t += dt;
+    if (bellEffect.phase === 0) {
+    enemyBullets.forEach((bullet) => {
+      bullet.frozen = true;
+    });
+    if (bellEffect.t > 1.6) {
+      bellEffect.phase = 1;
+      const volley = enemyBullets.slice(0, 8);
+      enemyBullets.forEach((bullet) => {
+        bullet.frozen = false;
+        if (volley.indexOf(bullet) < 0) return;
+        const bx = bullet.x + bullet.w / 2;
+        const by = bullet.y + bullet.h / 2;
+        const a = Math.atan2(player.x + player.w / 2 - bx, player.y + player.h / 2 - by);
+        bullet.speed = Math.cos(a) * 340;
+        bullet.vx = Math.sin(a) * 340;
+        bullet.seek = 1.2;
+        bullet.seekA0 = Math.atan2(bullet.speed, bullet.vx);
+        bullet.homingT = 0;
+        bullet.ttl = 4;
+        bullet.hp = 1;
+        bullet.maxHp = 1;
+      });
+    }
+  } else if (bellEffect.t > 4.5) {
+    bellEffect = null;
+  }
+}
+
 function explodeEnemyBomb(bomb, hitShield = null) {
   const centerBombX = bomb.x + bomb.w / 2;
   const centerBombY = bomb.y + bomb.h / 2;
@@ -362,6 +573,12 @@ function createBossFromDesign(design, mini, x, y) {
     rolling: false,
     mineArmDelay: design.mineArmDelay || 0.75,
     minePulseRadius: design.minePulseRadius || 116,
+    callTimer: design.callingInterval ? 4 : 999,
+    callCount: 0,
+    callWindup: 0,
+    callingInterval: design.callingInterval || 7,
+    bellTimer: design.bellInterval || 999,
+    bellInterval: design.bellInterval || 13,
     x,
     y,
     w: 128,
@@ -396,16 +613,14 @@ function spawnBoss() {
   bossSpawned = true;
 
   if (isFinalStage(level)) {
-    const left = BOSS_DESIGNS.find((d) => d.name === FINAL_BOSS_NAMES[0]) || BOSS_DESIGNS[0];
-    const right = BOSS_DESIGNS.find((d) => d.name === FINAL_BOSS_NAMES[1]) || BOSS_DESIGNS[1] || BOSS_DESIGNS[0];
-    createBossFromDesign(left, false, W / 2 - 150, 54);
-    createBossFromDesign(right, false, W / 2 + 22, 54);
-    boss = bosses[0];
-    addExplosion(W / 2, 90, "#ff3366");
-    addExplosion(W / 2, 90, "#ffe066");
+    const design = BOSS_DESIGNS.find((d) => d.name === FINAL_BOSS_NAMES[0]) || BOSS_DESIGNS[0];
+    const unit = createBossFromDesign(design, false, W / 2 - 17, 54);
+    boss = unit;
+    addExplosion(W / 2, 90, "#8b5cf6");
+    addExplosion(W / 2, 90, "#c9a7ff");
     addScreenShake(14);
     playBombExplosion();
-    showGameMessage("FINAL STAGE: SKULL CRUISER + WINGED VIPER", 1.6, "#ff3366");
+    showGameMessage("FINAL STAGE: THE ABYSSAL SQUID", 1.6, "#c9a7ff");
     return;
   }
 
@@ -424,8 +639,8 @@ function spawnBoss() {
 
 function updateBoss(dt) {
   boss = bosses[0] || null;
-  if (!bosses.length) return;
-  bosses.forEach((unit) => updateBossUnit(unit, dt));
+  if (bosses.length) bosses.forEach((unit) => updateBossUnit(unit, dt));
+  updateMinions(dt);
 }
 
 function updateBossUnit(boss, dt) {
@@ -438,8 +653,9 @@ function updateBossUnit(boss, dt) {
   }
 
   const bossSlow = (staggered ? 0.22 : 1) * getSlowFactor("boss");
-  boss.x += boss.vx * dt * bossSlow;
-  boss.y += boss.vy * dt * bossSlow;
+  const windupSlow = boss.callWindup > 0 ? 0.45 : 1;
+  boss.x += boss.vx * dt * bossSlow * windupSlow;
+  boss.y += boss.vy * dt * bossSlow * windupSlow;
 
   if (boss.x <= 18) {
     boss.x = 18;
@@ -611,6 +827,34 @@ function updateBossUnit(boss, dt) {
     }
   }
 
+  if (boss.ability === "ABYSSAL RITE") {
+    boss.hoverT = (boss.hoverT || 0) + dt;
+    const idol = minions.find((m) => m.type === "idol");
+    if (idol) {
+      const side = Math.sin(boss.hoverT * 0.45) >= 0 ? 1 : -1;
+      const off = side * (95 + Math.sin(boss.hoverT * 1.7) * 15);
+      boss.vx = clamp((idol.x + idol.w / 2 + off - (boss.x + boss.w / 2)) * 1.6, -170, 170);
+      boss.vy = clamp((idol.y - 90 + Math.sin(boss.hoverT * 0.7) * 40 - boss.y) * 1.6, -130, 130);
+    }
+    boss.callTimer -= dt * bossSlow;
+    if (boss.callTimer <= 0 && !boss.callWindup) {
+      boss.callCount += 1;
+      boss.callWindup = 2.5;
+      showGameMessage("THE CALLING", 1.2, "#c9a7ff");
+      boss.callTimer = boss.callingInterval;
+    }
+    if (boss.callWindup > 0) {
+      boss.callWindup -= dt * bossSlow;
+      if (boss.callWindup <= 0) castCalling(boss);
+    }
+    boss.bellTimer -= dt * bossSlow;
+    if (boss.bellTimer <= 0) {
+      castBell(boss);
+      boss.bellTimer = boss.bellInterval;
+    }
+    updateBell(dt);
+  }
+
   if (boss.shellMaxHp > 0 && boss.shellHp <= 0 && boss.shellTimer > 0) {
     boss.shellTimer = Math.max(0, boss.shellTimer - dt * bossSlow);
     if (boss.shellTimer <= 0) {
@@ -630,13 +874,17 @@ function updateBossUnit(boss, dt) {
   boss.timer -= dt * bossSlow;
   if (boss.timer <= 0) {
     fireBossBullet(boss);
-    boss.timer = Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
+    boss.timer = (boss.callWindup > 0 ? 2.2 : 1) * Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
   }
 
   boss.bombTimer -= dt * bossSlow;
   if (boss.bombTimer <= 0) {
-    fireBossBomb(boss);
-    boss.bombTimer = Math.max(1.8, 3.8 - level * 0.08 - (boss.phase - 1) * 0.22);
+    if (boss.callWindup > 0) {
+      boss.bombTimer = 0.5;
+    } else {
+      fireBossBomb(boss);
+      boss.bombTimer = Math.max(1.8, 3.8 - level * 0.08 - (boss.phase - 1) * 0.22);
+    }
   }
 
   if (boss.laserEnabled !== false) updateBossLaser(boss, dt);
@@ -1136,6 +1384,10 @@ function damageBoss(boss, amount, opts = {}) {
     const mini = boss.mini === true;
     bosses = bosses.filter((item) => item !== boss);
     boss = bosses[0] || null;
+    minions.forEach((m) => {
+      addExplosion(m.x + m.w / 2, m.y + m.h / 2, m.type === "idol" ? "#ffd76a" : "#8b5cf6");
+    });
+    minions = [];
     resetStagger();
     clearEnemyFire();
     spawnPowerupAt(bossX, bossY, POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0], true, Infinity);
@@ -1250,13 +1502,41 @@ function drawBossDesignShape(boss, design, tier, meshId) {
 
   const shapeName = design.name === "WINGED VIPER" ? "viper"
     : design.name === "TURTLE BULWARK" ? "turtle"
+    : design.name === "ABYSSAL SQUID" ? "squid"
     : design.name === "SCRAPLING" ? "scrap"
     : design.name === "SPINE SENTRY" ? "sentry" : "skull";
   const fitW = boss.h * (SIL[shapeName].bb.w / SIL[shapeName].bb.h);
   if (window.Iron3D) {
-    push3D({ id: meshId, key: shapeName, x: boss.x - 13, y: boss.y - 13,
+    push3D({ id: meshId, key: design.name === "ABYSSAL SQUID" ? "ABYSSAL SQUID" : shapeName,
+      x: boss.x - 13, y: boss.y - 13,
       w: boss.w + 26, h: boss.h + 26, color: design.color, phase: 1.1, tilt: 0.2 });
   } else {
+  if (design.name === "ABYSSAL SQUID") {
+    ctx.save();
+    ctx.fillStyle = design.color;
+    ctx.shadowColor = design.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - boss.h * 0.10, boss.w * 0.28, boss.h * 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - boss.w * 0.13, cy - boss.h * 0.36);
+    ctx.lineTo(cx, cy - boss.h * 0.62);
+    ctx.lineTo(cx + boss.w * 0.13, cy - boss.h * 0.36);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = design.accent;
+    ctx.lineWidth = 4;
+    for (let i = 0; i < 4; i += 1) {
+      const bx = cx - boss.w * 0.24 + i * boss.w * 0.16;
+      ctx.beginPath();
+      ctx.arc(bx, cy + boss.h * 0.28, boss.w * 0.09, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+    ctx.restore();
+  }
   if (design.name === "SKULL CRUISER") {
     ctx.save();
     ctx.translate(cx, cy);
@@ -1343,7 +1623,7 @@ function drawBossDesignShape(boss, design, tier, meshId) {
       ctx.fill();
     });
   }
-  if (tier >= 2) {
+  if (tier >= 2 && design.name !== "ABYSSAL SQUID") {
     ctx.strokeStyle = design.accent;
     ctx.lineWidth = 3;
     ctx.strokeRect(boss.x - 7, boss.y + 14, boss.w + 14, 40);

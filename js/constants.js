@@ -154,11 +154,18 @@ const BOSS_DESIGNS = [
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 18,
     shellHp: 1, shellMaxHp: 2, shellRegen: 15,
     carapaceInterval: 7.5, mineInterval: 0.72, mineShieldDamage: 18
+  },
+  {
+    name: "ABYSSAL SQUID",
+    hp: 46, hpScale: 6, speed: 70, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
+    laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
+    callingInterval: 7, bellInterval: 13
   }
 ];
 
 const FINAL_STAGE_LEVEL = 10;
-const FINAL_BOSS_NAMES = ["SKULL CRUISER", "WINGED VIPER"];
+const FINAL_BOSS_NAMES = ["ABYSSAL SQUID"];
 
 function isMinibossWave(level) {
   return level === 7 || level === 8;
@@ -251,6 +258,11 @@ function wipeLocalScoresOnce() {
       localStorage.removeItem(SCORES_KEY);
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.setItem("scoresResetV8", "1");
+    }
+    if (!localStorage.getItem("scoresResetV9")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV9", "1");
     }
   } catch (e) { /* private mode */ }
 }

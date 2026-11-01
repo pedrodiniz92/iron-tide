@@ -41,10 +41,13 @@ function startGame() {
   dashGhosts = [];
   shieldHits = 0;
   itemShieldHits = 0;
+  shieldWeakTtl = 0;
   explosions = [];
   ufo = null;
   boss = null;
   bosses = [];
+  minions = [];
+  bellEffect = null;
   bossSpawned = false;
   resetStagger();
   ufoTimer = 20;
@@ -165,6 +168,15 @@ function checkCollisions() {
       return false;
     }
 
+    const hitMinion = minions.find((item) => overlaps(bullet, item));
+    if (hitMinion) {
+      hitMinion.hp -= bullet.damage || 1;
+      addExplosion(bullet.x + bullet.w / 2, bullet.y, hitMinion.type === "idol" ? "#ffd76a" : "#c9a7ff");
+      playHit();
+      if (hitMinion.hp <= 0) killMinion(hitMinion);
+      return false;
+    }
+
     const hitUfo = ufo && overlapsPadded(bullet, ufo, 5);
     if (hitUfo) {
       const damage = bullet.damage || 1;
@@ -239,6 +251,8 @@ function checkCollisions() {
   });
 
   enemyBullets = enemyBullets.filter((bullet) => {
+    if (bullet.frozen) return true;
+
     if (spikeMines.some((mine) => overlaps(bullet, mine))) return false;
 
     const hitShield = shields.find((shield) => overlaps(bullet, shield));
