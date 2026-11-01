@@ -15,6 +15,11 @@ function resetPlayer(showMessage = true) {
   dashTimer = 0;
   dashGrace = 0;
   shieldHits = Math.min(shieldHits, maxShieldHits);
+  if (upgradeLevels.defense >= 1 && shieldHits < 1) {
+    shieldHits = 1;
+    effects.shield = Math.max(effects.shield, 30);
+    shieldRestoreTimer = 0;
+  }
   syncShieldStack();
   bombShots = [];
   dashGhosts = [];

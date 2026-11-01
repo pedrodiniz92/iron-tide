@@ -48,7 +48,8 @@ function newWave() {
           y: shield.y + row * 8,
           w: 11,
           h: 7,
-          hp: 1
+          hp: 3,
+          maxHp: 3
         });
       }
     }
@@ -149,7 +150,7 @@ function applyRowRoles() {
 }
 
 function fireEnemyBullet() {
-  const maxBullets = frenzyZones.some((zone) => zone.arm <= 0) ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
+  const maxBullets = frenzyZones.some((zone) => zone.arm <= 0 && !zone.fade) ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
   if (enemyBullets.length >= maxBullets) return false;
 
   const alive = invaders.filter((invader) => invader.alive);
@@ -157,7 +158,7 @@ function fireEnemyBullet() {
 
   const free = alive.filter((invader) => !enemyBullets.some((bullet) => bullet.shooterId === invader.id));
   const frenzied = frenzyZones.length ? free.filter((invader) => frenzyZones.some(
-    (zone) => Math.hypot(invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y) < zone.r
+    (zone) => !zone.fade && Math.hypot(invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y) < zone.r
   )) : [];
   const threatened = free.filter((invader) => invader.threatened > 0);
   const front = free.filter((invader) => invader.rowRole === "last");
@@ -189,15 +190,20 @@ function fireEnemyBullet() {
 
 function updateInvaders(dt) {
   const alive = invaders.filter((invader) => invader.alive);
+  frenzyZones.forEach((zone) => {
+    if (zone.b && !zone.b.alive) {
+      if (!zone.fade) zone.fade = true;
+      zone.t = Math.min(zone.t, 0.6);
+    }
+    zone.t -= dt * (zone.fade ? 3 : 1);
+    if (zone.arm > 0) zone.arm = Math.max(0, zone.arm - dt);
+  });
+  frenzyZones = frenzyZones.filter((zone) => zone.t > 0);
   if (!alive.length) return;
 
   ghostPhaseT = (ghostPhaseT + dt) % 4;
   const ghosted = ghostPhaseT >= 3;
-  frenzyZones.forEach((zone) => {
-    zone.t -= dt;
-    if (zone.arm > 0) zone.arm = Math.max(0, zone.arm - dt);
-  });
-  const armedZones = frenzyZones.filter((zone) => zone.arm <= 0);
+  const armedZones = frenzyZones.filter((zone) => zone.arm <= 0 && !zone.fade);
   frenzyZones.forEach((zone) => {
     if (zone.b && zone.b.alive) {
       zone.x = zone.b.x + zone.b.w / 2;
@@ -216,7 +222,7 @@ function updateInvaders(dt) {
         : ghostPhaseT < 3.75 ? 0.18
         : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
     }
-    invader.frenzied = frenzyZones.some((zone) => Math.hypot(
+    invader.frenzied = frenzyZones.some((zone) => !zone.fade && Math.hypot(
       invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y
     ) < zone.r);
     invader.frenzyLive = armedZones.some((zone) => Math.hypot(

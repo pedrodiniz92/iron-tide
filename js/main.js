@@ -264,6 +264,7 @@ function checkCollisions() {
       }
 
       if (isPlayerInvulnerable()) return false;
+      if (state !== "playing") return false;
 
       lives -= 1;
       addScreenShake(14);
@@ -528,7 +529,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if ((key === "enter" || key === " ") && (state === "ready" || state === "gameover")) {
+  if ((key === "enter" && (state === "ready" || state === "gameover")) || (key === " " && state === "ready")) {
     if (!effectiveName()) {
       updateStatus("TYPE YOUR NAME FIRST");
       return;

@@ -1,7 +1,7 @@
 const HEADERS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type"
+  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-headers": "content-type, x-wipe-token"
 };
 
 function json(obj, status) {
@@ -41,6 +41,13 @@ export default {
       const trimmed = list.slice(0, 100);
       await env.BOARD.put("scores", JSON.stringify(trimmed));
       return json({ rank: trimmed.indexOf(entry) + 1 });
+    }
+    if (url.pathname === "/scores" && req.method === "DELETE") {
+      if (!env.WIPE_TOKEN || req.headers.get("x-wipe-token") !== env.WIPE_TOKEN) {
+        return json({ error: "unauthorized" }, 401);
+      }
+      await env.BOARD.delete("scores");
+      return json({ wiped: true });
     }
     return json({ error: "not found" }, 404);
   }

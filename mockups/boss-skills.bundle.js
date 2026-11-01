@@ -10897,10 +10897,10 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       bombTimer: 3.25,
       bombMax: 1,
       bombRadius: 72,
-      bombShieldDamage: 30,
-      slamInterval: 5.4,
+      bombShieldDamage: 18,
+      carapaceInterval: 5.4,
       mineInterval: 0.72,
-      mineShieldDamage: 18,
+      mineShieldDamage: 10,
       shellHp: 2,
       shellRegen: 15
     }
@@ -11000,7 +11000,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     });
   }
   function addMine(sx, sy, vx) {
-    world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 2.2, blast: 64 });
+    world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 3, blast: 64 });
   }
   function addWave(x, y2, r) {
     world.waves.push({ x, y: y2, r, max: r, ttl: 0.7 });
@@ -11330,7 +11330,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       {
         key: "W",
         name: "LASER SWEEP",
-        desc: "Red reticle tracks you (laserFollow 0.95), then a 1.1s beam fires along the lock.",
+        desc: "Red reticle tracks you (laserFollow 0.95), then a 1.1s beam fires along the lock \u2014 PIERCES barrier blocks (laserPierce), burning cells as it travels.",
         dur: 6,
         start(d2) {
           resetWorld(d2);
@@ -11388,7 +11388,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       {
         key: "Q",
         name: "VENOM DIVE",
-        desc: "0.6s reticle telegraph on your lane, then a shallow swoop (stops above you) dripping 3 green venom bombs, then climbs.",
+        desc: "0.6s reticle telegraph on your lane, then a shallow swoop (stops above you) dripping 4 green venom bombs, then climbs.",
         dur: 9,
         start(d2) {
           resetWorld(d2);
@@ -11428,7 +11428,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
               });
               this.count += 1;
             }
-            if (b.y + b.h >= world.ship.y - 130 || this.count >= 3) {
+            if (b.y + b.h >= world.ship.y - 130 || this.count >= 4) {
               this.state = "climb";
               b.vy = -(300 + LEVEL * 10);
               addWave(b.x + b.w / 2, b.y + b.h, 70);
@@ -11503,33 +11503,56 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     turtle: [
       {
         key: "Q",
-        name: "SEISMIC SLAM",
-        desc: "0.7s WINDS UP, then a slam: shockwave + a fan of 3 fused spike mines erupts around your ship. Bomb breaks the windup.",
+        name: "CARAPACE BARRAGE",
+        desc: "Turtle slows to a stop, braces (WINDING UP), then parks invulnerable and drops 5 fused mines straight below. Bomb breaks the barrage.",
         dur: 9,
         start(d2) {
           resetWorld(d2);
           this.state = "idle";
           this.t = 0.8;
+          this.dropped = 0;
         },
         step(d2, dt2) {
           const b = world.boss;
           if (this.state === "idle") {
             this.t -= dt2;
             if (this.t <= 0) {
+              this.state = "slow";
+              this.t = 0.8;
+              this.v0 = b.vx;
+            }
+          } else if (this.state === "slow") {
+            this.t -= dt2;
+            b.vx = this.v0 * Math.max(0, this.t / 0.8);
+            if (this.t <= 0) {
               this.state = "tele";
-              this.t = 0.7;
-              world.tele.push({ kind: "charge", ttl: 0.7 });
-              say("TURTLE WINDS UP");
+              this.t = 0.9;
+              b.vx = 0;
+              world.tele.push({ kind: "charge", ttl: 0.9 });
+              say("TURTLE BRACED");
             }
           } else if (this.state === "tele") {
             this.t -= dt2;
+            b.vx = 0;
+            if (this.t <= 0) {
+              this.state = "drop";
+              this.t = 1.6;
+              this.drop = 0.1;
+              say("CARAPACE BARRAGE");
+            }
+          } else if (this.state === "drop") {
+            this.t -= dt2;
+            b.vx = 0;
+            this.drop -= dt2;
+            if (this.drop <= 0 && this.dropped < 5) {
+              this.dropped += 1;
+              this.drop = 0.22;
+              addMine(b.x + b.w / 2 - 64 + this.dropped * 26, b.y + b.h, 0);
+            }
             if (this.t <= 0) {
               this.state = "idle";
               this.t = 3.2;
-              addWave(b.x + b.w / 2, b.y + b.h, 140);
-              say("SEISMIC SLAM");
-              const px = shipCenter().x;
-              [-1, 0, 1].forEach((i) => addMine(px + i * 74 - 8, Math.max(80, world.ship.y - 110 - Math.abs(i) * 26), i * 30));
+              b.vx = Math.sign(this.v0 || 1) * (d2.speed + LEVEL * 8);
             }
           }
         }
@@ -11577,7 +11600,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       {
         key: "E",
         name: "SPIKE MINES",
-        desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 2.2s with a 64px blast.",
+        desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 3.0s with a 64px blast.",
         dur: 7,
         start(d2) {
           resetWorld(d2);

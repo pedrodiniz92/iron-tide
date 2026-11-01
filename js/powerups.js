@@ -4,8 +4,8 @@ function updatePowerups(dt) {
     powerup.y += powerup.vy * dt;
     if (powerup.x < 22 || powerup.x > W - 48) powerup.vx *= -1;
     if (Number.isFinite(powerup.ttl)) powerup.ttl = Math.max(0, powerup.ttl - dt);
-    if (powerup.y > H - 46 && powerup.persist) {
-      powerup.y = H - 46;
+    if (powerup.persist && player && powerup.y > player.y - powerup.h + 6) {
+      powerup.y = player.y - powerup.h + 6;
       powerup.vy = 0;
     }
   });
@@ -233,9 +233,8 @@ function updateBombShots(dt) {
     const hitInvader = invaders.find((invader) => invader.alive && !invader.ghosted && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
     const hitBoss = bosses.find((unit) => overlaps(shot, unit));
-    const hitShield = shields.find((shield) => overlaps(shot, shield));
 
-    if (hitInvader || hitUfo || hitBoss || hitShield) {
+    if (hitInvader || hitUfo || hitBoss) {
       explodeBombShot(shot);
       return false;
     }
@@ -282,17 +281,20 @@ function explodeBombShot(shot) {
     if (unit.diveState && unit.diveState !== "idle") {
       unit.diveState = "idle";
       unit.vy = 12 + level;
+      unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
       unit.diveTimer = Math.max(2.0, (unit.designData.diveInterval || 4.6) - (unit.phase - 1) * 0.8);
       showGameMessage("DIVE BROKEN!", 1.0, "#7dff66");
     }
 
-    if (unit.slamState === "windup") {
-      unit.slamState = "idle";
-      unit.slamTimer = Math.max(3.4, (unit.designData.slamInterval || 5.4) - (unit.phase - 1) * 0.6);
-      showGameMessage("SLAM BROKEN!", 1.0, "#ffe066");
-      damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09));
+    if (unit.carapaceState === "windup" || unit.carapaceState === "drop") {
+      unit.carapaceState = "idle";
+      unit.carapaceInvuln = 0;
+      unit.carapaceTimer = Math.max(3.4, (unit.designData.carapaceInterval || 5.4) - (unit.phase - 1) * 0.6);
+      unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
+      showGameMessage("BARRAGE BROKEN!", 1.0, "#ffe066");
+      damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09), { staggerMul: 0.5 });
     } else {
-      damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06));
+      damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });
     }
   });
 

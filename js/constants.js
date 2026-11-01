@@ -137,7 +137,7 @@ const BOSS_DESIGNS = [
     name: "SKULL CRUISER",
     hp: 22, hpScale: 5, speed: 95, bombTimer: 2.15, color: "#ff3366", accent: "#ffe066",
     ability: "SPREAD SHOTS", bulletCap: 6, bombMax: 2, bombRadius: 70, laserFollow: 0.95,
-    laser: true, bombsPerLaunch: 1, bombShieldDamage: 24
+    laser: true, laserPierce: true, bombsPerLaunch: 1, bombShieldDamage: 30
   },
   {
     name: "WINGED VIPER",
@@ -150,10 +150,10 @@ const BOSS_DESIGNS = [
   {
     name: "TURTLE BULWARK",
     hp: 26, hpScale: 6, speed: 62, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
-    ability: "SEISMIC SLAM", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
-    laser: false, bombsPerLaunch: 1, bombShieldDamage: 30,
+    ability: "CARAPACE BARRAGE", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
+    laser: false, bombsPerLaunch: 1, bombShieldDamage: 18,
     shellHp: 1, shellMaxHp: 2, shellRegen: 15,
-    slamInterval: 5.4, mineInterval: 0.72, mineShieldDamage: 18
+    carapaceInterval: 7.5, mineInterval: 0.72, mineShieldDamage: 18
   }
 ];
 
@@ -202,7 +202,7 @@ const UPGRADE_TREES = [
     id: "defense",
     name: "SHIELD",
     levels: [
-      { label: "RESTORE SHIELD", desc: "Broken shield returns after 15s" },
+      { label: "RESTORE SHIELD", desc: "Broken shield returns after 15s; respawn refills 1 charge" },
       { label: "QUICK REPAIR", desc: "Shield stack 2, restore 10s" },
       { label: "TWIN SHIELDS", desc: "Shield stack 2, restore 7s" }
     ]
@@ -236,6 +236,16 @@ function wipeLocalScoresOnce() {
       localStorage.removeItem(SCORES_KEY);
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.setItem("scoresResetV5", "1");
+    }
+    if (!localStorage.getItem("scoresResetV6")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV6", "1");
+    }
+    if (!localStorage.getItem("scoresResetV7")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV7", "1");
     }
   } catch (e) { /* private mode */ }
 }
@@ -405,7 +415,7 @@ const MUSIC_TRACKS = [
           60,64,67,72,69,65,60,57,65,69,72,77,81,77,72,69] }
 ];
 const STAGGER_WINDOW = 3.0;
-const STAGGER_COOLDOWN = 10;
+const STAGGER_COOLDOWN = 6;
 const STAGGER_DURATION = 3.0;
 const hudScoreEl = document.getElementById("score");
 const hudHiEl = document.getElementById("hi");

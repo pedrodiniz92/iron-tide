@@ -118,7 +118,7 @@ function explodeSpikeMine(mine) {
     const sdx = shield.x + shield.w / 2 - mx;
     const sdy = shield.y + shield.h / 2 - my;
     if (sdx * sdx + sdy * sdy <= (r + 40) * (r + 40)) {
-      damageShieldArea(shield, mx, my, mine.shieldDamage || 12);
+      damageShieldArea(shield, mx, my, r);
     }
   });
 }
@@ -137,6 +137,7 @@ function hitPlayerWithSpikeMine() {
     return;
   }
 
+  if (state !== "playing") return;
   lives -= 1;
   addScreenShake(12);
   playPlayerDeath();
@@ -153,16 +154,16 @@ function hitPlayerWithSpikeMine() {
   }
 }
 
-function fireSpikeMine(boss, arm = 1.2) {
+function fireSpikeMine(boss, arm = 1.2, offset = 0) {
   spikeMines.push({
-    x: boss.x + boss.w / 2 - 8,
+    x: boss.x + boss.w / 2 - 8 + offset,
     y: boss.y + boss.h,
     w: 16,
     h: 16,
     vx: 0,
     vy: 112,
     ttl: 6.2,
-    fuse: 2.2,
+    fuse: 3.0,
     blastRadius: 64,
     hp: 1,
     maxHp: 1,
@@ -303,7 +304,8 @@ function damageShieldArea(shield, x, y, radius) {
   shield.cells = shield.cells.filter((cell) => {
     const cx = cell.x + cell.w / 2;
     const cy = cell.y + cell.h / 2;
-    return Math.hypot(cx - x, cy - y) > radius;
+    if (Math.hypot(cx - x, cy - y) <= radius) cell.hp -= 1;
+    return cell.hp > 0;
   });
   if (shield.cells.length === 0) shields = shields.filter((item) => item !== shield);
 }
@@ -336,8 +338,14 @@ function createBossFromDesign(design, mini, x, y) {
     shellMaxHp: design.shellMaxHp || 0,
     shellRegen: design.shellRegen || 15,
     shellTimer: 0,
-    slamState: "idle",
-    slamTimer: design.slamInterval || 5.4,
+    carapaceState: "idle",
+    carapaceTimer: design.carapaceInterval || 5.4,
+    carapaceT: 0,
+    carapaceVx0: 0,
+    carapaceDropped: 0,
+    carapaceDropT: 0,
+    carapaceMines: 0,
+    carapaceInvuln: 0,
     mineTimer: design.mineInterval || 0.9,
     mineShieldDamage: design.mineShieldDamage || 12,
     mineInterval: design.mineInterval || 0.9,
@@ -364,6 +372,7 @@ function createBossFromDesign(design, mini, x, y) {
     hp,
     maxHp: hp,
     phase: 1,
+    carapaceCast: 0,
     timer: 1.1,
     bombTimer: design.bombTimer,
     laser: {
@@ -452,51 +461,59 @@ function updateBossUnit(boss, dt) {
   }
 
   const yMax = diving ? H - boss.h - 24 : Math.min(H - boss.h - 24, player.y - boss.h - 150);
-  boss.y = clamp(boss.y, 58, yMax);
+  if (boss.y > yMax) boss.y = Math.max(yMax, boss.y - 260 * dt);
+  else boss.y = clamp(boss.y, 58, yMax);
   boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
 
   if (staggered) return;
 
-  if (boss.ability === "SEISMIC SLAM") {
-    if (boss.slamState === "windup") {
-      boss.slamTimer -= dt * bossSlow;
-      screenShake = Math.max(screenShake, 3);
-      if (boss.slamTimer <= 0) {
-        boss.slamState = "idle";
-        boss.slamTimer = Math.max(3.4, (boss.designData.slamInterval || 5.4) - (boss.phase - 1) * 0.6);
-        addScreenShake(9);
-        addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 140);
-        playBombExplosion();
-        showGameMessage("SEISMIC SLAM", 0.8, "#62ffa1");
-        const px = playerCenterX();
-        [-1, 0, 1].forEach((i) => {
-          spikeMines.push({
-            x: clamp(px + i * 74 - 8, 20, W - 36),
-            y: Math.max(80, player.y - 110 - Math.abs(i) * 26),
-            w: 16,
-            h: 16,
-            vx: i * 30,
-            vy: 95,
-            ttl: 6.2,
-            fuse: 2.2,
-            blastRadius: 64,
-            hp: 1,
-            maxHp: 1,
-            arm: 1.2,
-            pulse: boss.phase >= 2,
-            pulseTimer: 0.45,
-            pulseRadius: boss.minePulseRadius || 116,
-            shieldDamage: boss.mineShieldDamage || 12
-          });
-        });
+  if (boss.ability === "CARAPACE BARRAGE") {
+    boss.carapaceInvuln = Math.max(0, boss.carapaceInvuln - dt);
+    if (boss.carapaceState === "idle") {
+      boss.carapaceTimer -= dt * bossSlow;
+      if (boss.carapaceTimer <= 0) {
+        boss.carapaceState = "slow";
+        boss.carapaceT = 0.8;
+        boss.carapaceVx0 = boss.vx;
       }
-    } else {
-      boss.slamTimer -= dt * bossSlow;
-      if (boss.slamTimer <= 0) {
-        boss.slamState = "windup";
-        boss.slamTimer = 0.7;
+    } else if (boss.carapaceState === "slow") {
+      boss.carapaceT -= dt * bossSlow;
+      boss.vx = boss.carapaceVx0 * Math.max(0, boss.carapaceT / 0.8);
+      if (boss.carapaceT <= 0) {
+        boss.carapaceState = "windup";
+        boss.carapaceT = 0.9;
+        boss.vx = 0;
         addScreenShake(4);
-        showGameMessage("TURTLE WINDS UP", 0.55, "#62ffa1");
+        showGameMessage("TURTLE BRACED", 0.55, "#62ffa1");
+      }
+    } else if (boss.carapaceState === "windup") {
+      boss.carapaceT -= dt * bossSlow;
+      boss.vx = 0;
+      screenShake = Math.max(screenShake, 3);
+      if (boss.carapaceT <= 0) {
+        boss.carapaceState = "drop";
+        boss.carapaceT = 1.6;
+        boss.carapaceDropT = 0.1;
+        boss.carapaceDropped = 0;
+        boss.carapaceCast = (boss.carapaceCast || 0) + 1;
+        boss.carapaceMines = Math.min(2 + boss.carapaceCast, 5);
+        boss.carapaceInvuln = 1.6;
+        addScreenShake(6);
+        showGameMessage("CARAPACE BARRAGE", 0.8, "#62ffa1");
+      }
+    } else if (boss.carapaceState === "drop") {
+      boss.carapaceT -= dt * bossSlow;
+      boss.carapaceDropT -= dt * bossSlow;
+      boss.vx = 0;
+      if (boss.carapaceDropT <= 0 && boss.carapaceDropped < boss.carapaceMines) {
+        boss.carapaceDropped += 1;
+        boss.carapaceDropT = 0.22;
+        fireSpikeMine(boss, 1.2, (boss.carapaceDropped - (boss.carapaceMines + 1) / 2) * 26);
+      }
+      if (boss.carapaceT <= 0) {
+        boss.carapaceState = "idle";
+        boss.carapaceTimer = Math.max(3.4, (boss.designData.carapaceInterval || 5.4) - (boss.phase - 1) * 0.6);
+        boss.vx = (boss.carapaceVx0 >= 0 ? 1 : -1) * (boss.designData.speed + level * 8);
       }
     }
   }
@@ -528,7 +545,7 @@ function updateBossUnit(boss, dt) {
         fireVenomBomb(boss);
         boss.diveCount += 1;
       }
-      if (boss.y + boss.h >= player.y - 130 || boss.diveCount >= 3) {
+      if (boss.y + boss.h >= player.y - 130 || boss.diveCount >= 4) {
         boss.diveState = "climb";
         boss.vy = -(300 + level * 10);
         addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 70);
@@ -666,20 +683,45 @@ function updateBossLaser(boss, dt) {
 
     if (laser.timer <= 0) {
       laser.state = "fire";
-      laser.timer = 0.38;
+      laser.timer = boss.designData.laserPierce ? 1.1 : 0.38;
+      laser.pierceTick = 0;
+      if (boss.designData.laserPierce) {
+        laser.strafeVx0 = boss.vx;
+        boss.vx *= 0.25;
+      }
       playBombExplosion();
       addScreenShake(3);
     }
   } else if (laser.state === "fire") {
-    const hit = firstShieldHitOnSegment(origin.x, origin.y, laser.aimX, laser.aimY);
-    laser.endX = hit ? hit.x : laser.aimX;
-    laser.endY = hit ? hit.y : laser.aimY;
+    if (boss.designData.laserPierce) {
+      laser.endX = laser.aimX;
+      laser.endY = laser.aimY;
+      laser.pierceTick = (laser.pierceTick || 0) + dt;
+      if (laser.pierceTick >= 0.1) {
+        laser.pierceTick = 0;
+        const burns = cellsOnBeam(origin.x, origin.y, laser.endX, laser.endY, laser.width);
+        burns.forEach((h) => {
+          h.cell.hp -= 2;
+          h.cell.flash = 0.5;
+          addExplosion(h.x, h.y, "#ff3366");
+        });
+        shields.forEach((shield) => {
+          shield.cells = shield.cells.filter((cell) => cell.hp > 0);
+        });
+        shields = shields.filter((shield) => shield.cells.length > 0);
+        if (burns.length) playShieldHit();
+      }
+    } else {
+      const hit = firstShieldHitOnSegment(origin.x, origin.y, laser.aimX, laser.aimY);
+      laser.endX = hit ? hit.x : laser.aimX;
+      laser.endY = hit ? hit.y : laser.aimY;
 
-    if (hit && !laser.hasHitShield) {
-      laser.hasHitShield = true;
-      damageShieldCell(hit.shield, hit.cell);
-      addExplosion(hit.x, hit.y, "#62ffa1");
-      playShieldHit();
+      if (hit && !laser.hasHitShield) {
+        laser.hasHitShield = true;
+        damageShieldCell(hit.shield, hit.cell);
+        addExplosion(hit.x, hit.y, "#62ffa1");
+        playShieldHit();
+      }
     }
 
     enemyBullets = enemyBullets.filter((bullet) => {
@@ -688,7 +730,7 @@ function updateBossLaser(boss, dt) {
       return pointToSegmentDistance(bx, by, origin.x, origin.y, laser.endX, laser.endY) > laser.width + 8;
     });
 
-    if (!hit && !laser.hasHitPlayer) {
+    if (!laser.hasHitPlayer) {
       let playerOnBeam = false;
       for (let s = 0; s <= 40; s += 1) {
         const t = s / 40;
@@ -707,6 +749,10 @@ function updateBossLaser(boss, dt) {
 
     if (laser.timer <= 0) {
       laser.state = "idle";
+      if (laser.strafeVx0 !== undefined) {
+        boss.vx = laser.strafeVx0;
+        laser.strafeVx0 = undefined;
+      }
       laser.timer = Math.max(2.6, 4.6 - level * 0.05 - phase * 0.18);
       laser.hasHitShield = false;
       laser.hasHitPlayer = false;
@@ -741,6 +787,33 @@ function firstShieldHitOnSegment(x1, y1, x2, y2) {
   return null;
 }
 
+function cellsOnBeam(x1, y1, x2, y2, width = 0) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.hypot(dx, dy);
+  const steps = Math.max(24, Math.ceil(dist / 8));
+  const nx = dist > 0 ? -dy / dist : 0;
+  const ny = dist > 0 ? dx / dist : 0;
+  const offsets = width > 0 ? [-width / 2, 0, width / 2] : [0];
+  const picked = new Set();
+  const seen = [];
+  for (const off of offsets) {
+    for (let i = 0; i <= steps; i += 1) {
+      const t = i / steps;
+      const x = x1 + dx * t + nx * off;
+      const y = y1 + dy * t + ny * off;
+      for (const shield of shields) {
+        const cell = shield.cells.find((item) => !picked.has(item) && pointInRect(x, y, item));
+        if (cell) {
+          picked.add(cell);
+          seen.push({ shield, cell, x, y });
+        }
+      }
+    }
+  }
+  return seen;
+}
+
 function pointInRect(x, y, rect) {
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 }
@@ -765,7 +838,7 @@ function firstShieldCellHit(rect) {
 }
 
 function damageShieldCell(shield, cell) {
-  cell.hp -= 1;
+  cell.hp -= 2;
   shield.cells = shield.cells.filter((item) => item !== cell && item.hp > 0);
   if (shield.cells.length === 0) shields = shields.filter((item) => item !== shield);
 }
@@ -784,6 +857,7 @@ function hitPlayerWithBossLaser() {
     return;
   }
 
+  if (state !== "playing") return;
   lives -= 1;
   addScreenShake(14);
   playPlayerDeath();
@@ -859,7 +933,7 @@ function fireBossBullet(boss) {
     return;
   }
 
-  if (design.ability === "SEISMIC SLAM") {
+  if (design.ability === "CARAPACE BARRAGE") {
     const pattern = Math.floor(Math.random() * 2);
     if (pattern === 0) {
       const sideAim = Math.abs(aim(22));
@@ -932,7 +1006,7 @@ function fireBossBomb(boss) {
   const originX = boss.x + boss.w / 2;
   const originY = boss.y + boss.h;
   const direct = boss.bombDirect === true;
-  const fanSpread = direct ? 116 : design.ability === "SEISMIC SLAM" ? 22 : 58;
+  const fanSpread = direct ? 116 : design.ability === "CARAPACE BARRAGE" ? 22 : 58;
 
   for (let i = 0; i < count; i += 1) {
     const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (fanSpread / count);
@@ -1003,8 +1077,13 @@ function bossHitReward(boss) {
   spawnPowerupAt(boss.x + boss.w / 2, boss.y + boss.h / 2, type, false, 5.5);
 }
 
-function damageBoss(boss, amount) {
+function damageBoss(boss, amount, opts = {}) {
   if (!boss) return;
+  if (boss.carapaceInvuln > 0) {
+    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
+    playShieldHit();
+    return;
+  }
   comboAddHit();
   const design = boss.designData || BOSS_DESIGNS[0];
   if (boss.shellHp > 0) {
@@ -1033,7 +1112,7 @@ function damageBoss(boss, amount) {
   boss.hp -= amount;
   if (boss.hp > 0) bossHitReward(boss);
   if (bossStagger <= 0) {
-    addStaggerDamage(boss, amount);
+    addStaggerDamage(boss, amount * (opts.staggerMul === undefined ? 1 : opts.staggerMul));
   }
   boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
   if (boss.phase > oldPhase) {
@@ -1101,9 +1180,9 @@ function updateStagger(dt) {
     if (bossStagger <= 0) staggerDamage = 0;
   }
 
-  if (staggerWindow > 0) {
-    staggerWindow = Math.max(0, staggerWindow - dt);
-    if (staggerWindow <= 0) staggerDamage = 0;
+  if (staggerDamage > 0 && bossStagger <= 0 && staggerCooldown <= 0) {
+    const threshold = Math.max(4, 4 + level * 2) * 1.2;
+    staggerDamage = Math.max(0, staggerDamage - dt * (threshold / 3));
   }
 
   if (staggerCooldown > 0) {
@@ -1115,11 +1194,10 @@ function addStaggerDamage(boss, amount) {
   if (!boss || bossStagger > 0 || staggerCooldown > 0) return;
 
   staggerDamage += amount;
-  staggerWindow = STAGGER_WINDOW;
 
-  const threshold = Math.max(8, 8 + level * 2);
+  const threshold = Math.max(4, 4 + level * 2) * 1.2;
   if (staggerDamage >= threshold) {
-    triggerBossStagger();
+    triggerBossStagger(boss);
   }
 }
 
@@ -1127,7 +1205,7 @@ function triggerBossStagger(boss) {
   if (!boss) return;
 
   bossStagger = STAGGER_DURATION;
-  staggerCooldown = STAGGER_COOLDOWN + Math.min(8, level);
+  staggerCooldown = STAGGER_COOLDOWN + Math.min(6, level);
   staggerDamage = 0;
   staggerWindow = 0;
 
@@ -1138,6 +1216,7 @@ function triggerBossStagger(boss) {
     unit.laser.timer = Math.max(3.2, unit.laser.timer + 2.4);
     unit.laser.hasHitShield = false;
     unit.laser.hasHitPlayer = false;
+    unit.carapaceInvuln = 0;
   });
 
   addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffe066");
@@ -1346,13 +1425,22 @@ function drawBossUnit(boss, index) {
     ctx.lineWidth = 1;
   }
 
-  if (boss.slamState === "windup") {
+  if (boss.carapaceState === "windup" || boss.carapaceState === "slow") {
     ctx.strokeStyle = "rgba(130, 255, 190, 0.55)";
     ctx.lineWidth = 3;
     ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, boss.w + 20, 12);
     ctx.fillStyle = "#62ffa1";
     ctx.font = "12px 'Courier New', monospace";
     ctx.fillText("WINDING UP", boss.x + boss.w / 2 - 40, boss.y + boss.h + 26);
+    ctx.lineWidth = 1;
+  }
+
+  if (boss.carapaceInvuln > 0) {
+    ctx.strokeStyle = "rgba(130, 255, 190, 0.85)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.w / 2 + 14, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.lineWidth = 1;
   }
 
@@ -1443,5 +1531,16 @@ function drawBossBar(boss, index) {
   ctx.fillStyle = "#ffffff";
   ctx.font = "13px 'Courier New', monospace";
   ctx.fillText(`${boss.mini ? "MINIBOSS" : "BOSS"} P${phase}`, x + 4, 54);
+  if (bossStagger > 0) {
+    ctx.fillStyle = "#ff5050";
+    ctx.fillRect(x, 70, width * (bossStagger / STAGGER_DURATION), 5);
+    ctx.fillStyle = "#ffb0c0";
+    ctx.font = "9px 'Press Start 2P'";
+    ctx.fillText("STAGGERED", x + 4, 86);
+  } else if (staggerDamage > 0 && staggerCooldown <= 0) {
+    const threshold = Math.max(4, 4 + level * 2) * 1.2;
+    ctx.fillStyle = "#ff9a3c";
+    ctx.fillRect(x, 70, width * Math.min(1, staggerDamage / threshold), 5);
+  }
 }
 

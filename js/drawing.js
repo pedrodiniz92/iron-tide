@@ -733,8 +733,11 @@ function drawBullets() {
 function drawShields() {
   shields.forEach((shield) => {
     shield.cells.forEach((cell) => {
-      ctx.fillStyle = cell.hp > 1 ? COLORS.shield : "#175017";
+      const frac = Math.max(0, (cell.hp || 1) / (cell.maxHp || 1));
+      ctx.globalAlpha = 0.35 + 0.65 * frac;
+      ctx.fillStyle = frac > 0.66 ? COLORS.shield : frac > 0.33 ? "#1d7a2a" : "#175017";
       ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+      ctx.globalAlpha = 1;
     });
   });
 }

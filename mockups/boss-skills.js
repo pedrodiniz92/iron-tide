@@ -24,8 +24,8 @@ const DESIGN = {
   turtle: {
     name: "TURTLE BULWARK", color: "#2fc96f", accent: "#ffe066", model: "turtle",
     speed: 62, bulletCap: 5, bombTimer: 3.25, bombMax: 1, bombRadius: 72,
-    bombShieldDamage: 30, slamInterval: 5.4, mineInterval: 0.72,
-    mineShieldDamage: 18, shellHp: 2, shellRegen: 15
+    bombShieldDamage: 18, carapaceInterval: 5.4, mineInterval: 0.72,
+    mineShieldDamage: 10, shellHp: 2, shellRegen: 15
   }
 };
 
@@ -121,7 +121,7 @@ function addBomb(sx, sy, opts) {
 }
 
 function addMine(sx, sy, vx) {
-  world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 2.2, blast: 64 });
+  world.mines.push({ x: sx, y: sy, vx: vx || 0, vy: 112, ttl: 6, arm: 1.2, fuse: 3.0, blast: 64 });
 }
 
 function addWave(x, y, r) { world.waves.push({ x, y, r, max: r, ttl: 0.7 }); }
@@ -417,7 +417,7 @@ const ABILITIES = {
     { key: "Q", name: "SPREAD SHOTS", desc: "3-shot fans aimed at your predicted position. bulletCap 6.",
       dur: 7, start(d) { resetWorld(d); this.t = 0; },
       step(d, dt) { this.t -= dt; if (this.t <= 0) { fireSpread(d); this.t = 1.1; } } },
-    { key: "W", name: "LASER SWEEP", desc: "Red reticle tracks you (laserFollow 0.95), then a 1.1s beam fires along the lock.",
+    { key: "W", name: "LASER SWEEP", desc: "Red reticle tracks you (laserFollow 0.95), then a 1.1s beam fires along the lock — PIERCES barrier blocks (laserPierce), burning cells as it travels.",
       dur: 6, start(d) { resetWorld(d);
         world.laser = { state: "aim", ttl: 1.8, endX: shipCenter().x, endY: H - 60 };
         say("LASER LOCK"); },
@@ -438,7 +438,7 @@ const ABILITIES = {
         if (this.t <= 0) { addBullet(cx, cy, bossAim(cx, cy, 250, 120), 250, d.accent); this.t = 0.9; } } }
   ],
   viper: [
-    { key: "Q", name: "VENOM DIVE", desc: "0.6s reticle telegraph on your lane, then a shallow swoop (stops above you) dripping 3 green venom bombs, then climbs.",
+    { key: "Q", name: "VENOM DIVE", desc: "0.6s reticle telegraph on your lane, then a shallow swoop (stops above you) dripping 4 green venom bombs, then climbs.",
       dur: 9, start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; },
       step(d, dt) {
         const b = world.boss;
@@ -457,7 +457,7 @@ const ABILITIES = {
             addBomb(b.x + b.w / 2, b.y + b.h, { color: d.accent, radius: 18, direct: true,
               targetX: shipCenter().x });
             this.count += 1; }
-          if (b.y + b.h >= world.ship.y - 130 || this.count >= 3) {
+          if (b.y + b.h >= world.ship.y - 130 || this.count >= 4) {
             this.state = "climb"; b.vy = -(300 + LEVEL * 10);
             addWave(b.x + b.w / 2, b.y + b.h, 70); } }
         else if (this.state === "climb" && b.y <= 58) { b.y = 58; this.state = "idle";
@@ -483,20 +483,25 @@ const ABILITIES = {
         if (this.t <= 0) { addBullet(cx, cy, bossAim(cx, cy, 280, 140), 280, d.accent); this.t = 0.8; } } }
   ],
   turtle: [
-    { key: "Q", name: "SEISMIC SLAM", desc: "0.7s WINDS UP, then a slam: shockwave + a fan of 3 fused spike mines erupts around your ship. Bomb breaks the windup.",
-      dur: 9, start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; },
+    { key: "Q", name: "CARAPACE BARRAGE", desc: "Turtle slows to a stop, braces (WINDING UP), then parks invulnerable and drops 5 fused mines straight below. Bomb breaks the barrage.",
+      dur: 9, start(d) { resetWorld(d); this.state = "idle"; this.t = 0.8; this.dropped = 0; },
       step(d, dt) {
         const b = world.boss;
         if (this.state === "idle") { this.t -= dt;
-          if (this.t <= 0) { this.state = "tele"; this.t = 0.7;
-            world.tele.push({ kind: "charge", ttl: 0.7 });
-            say("TURTLE WINDS UP"); } }
-        else if (this.state === "tele") { this.t -= dt;
+          if (this.t <= 0) { this.state = "slow"; this.t = 0.8; this.v0 = b.vx; } }
+        else if (this.state === "slow") { this.t -= dt;
+          b.vx = this.v0 * Math.max(0, this.t / 0.8);
+          if (this.t <= 0) { this.state = "tele"; this.t = 0.9; b.vx = 0;
+            world.tele.push({ kind: "charge", ttl: 0.9 });
+            say("TURTLE BRACED"); } }
+        else if (this.state === "tele") { this.t -= dt; b.vx = 0;
+          if (this.t <= 0) { this.state = "drop"; this.t = 1.6; this.drop = 0.1;
+            say("CARAPACE BARRAGE"); } }
+        else if (this.state === "drop") { this.t -= dt; b.vx = 0; this.drop -= dt;
+          if (this.drop <= 0 && this.dropped < 5) { this.dropped += 1; this.drop = 0.22;
+            addMine(b.x + b.w / 2 - 64 + this.dropped * 26, b.y + b.h, 0); }
           if (this.t <= 0) { this.state = "idle"; this.t = 3.2;
-            addWave(b.x + b.w / 2, b.y + b.h, 140);
-            say("SEISMIC SLAM");
-            const px = shipCenter().x;
-            [-1, 0, 1].forEach((i) => addMine(px + i * 74 - 8, Math.max(80, world.ship.y - 110 - Math.abs(i) * 26), i * 30)); } }
+            b.vx = Math.sign(this.v0 || 1) * (d.speed + LEVEL * 8); } }
       } },
     { key: "W", name: "SHELL ARMOR", desc: "2 shell hits absorb damage; shell regenerates after 15s (ring shows progress).",
       dur: 8, start(d) { resetWorld(d); world.shell = 2; this.t = 0; },
@@ -516,7 +521,7 @@ const ABILITIES = {
         if (world.shell <= 0 && !this.regen) { this.regen = true; this.rt = 3; }
         if (this.regen) { this.rt -= dt;
           if (this.rt <= 0) { world.shell = 2; this.regen = false; say("TURTLE SHELL RESTORED"); } } } },
-    { key: "E", name: "SPIKE MINES", desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 2.2s with a 64px blast.",
+    { key: "E", name: "SPIKE MINES", desc: "Drop on a 0.72s cadence. 1.2s arm (slow fall), then drift toward you (capped curve) and explode after 3.0s with a 64px blast.",
       dur: 7, start(d) { resetWorld(d); this.t = 0.2; },
       step(d, dt) { this.t -= dt; if (this.t <= 0) {
         const cx = world.boss.x + world.boss.w / 2;
