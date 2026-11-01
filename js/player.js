@@ -25,7 +25,7 @@ function resetPlayer(showMessage = true) {
   dashGhosts = [];
   clearEnemyFire();
   playerBullets = [];
-  if (showMessage) showGameMessage("RESPAWN: INVULNERABLE", 1.2, "#78ff78");
+  if (showMessage) showGameMessage(t("RESPAWN: INVULNERABLE"), 1.2, "#78ff78");
 }
 
 function mobilityLevel() {
@@ -115,7 +115,7 @@ function useLaser() {
   if (laserCharges <= 0) return;
   laserCharges -= 1;
   fireLaserBeam();
-  showGameMessage(`LASER FIRED x${laserCharges} LEFT`, 0.85, "#6fdcff");
+  showGameMessage(t("LASER FIRED x{n} LEFT", { n: laserCharges }), 0.85, "#6fdcff");
 }
 
 function fireLaserBeam() {
@@ -225,7 +225,7 @@ function damageLaserTarget(target) {
       const crate = spawnUfoLootCrate(ref);
       ufo = null;
         playUfoKill();
-        showGameMessage(`UFO DOWN! ${powerupName(crate.lootType)} CRATE`, 1.25, COLORS.ufo);
+        showGameMessage(t("UFO DOWN! {name} CRATE", { name: powerupName(crate.lootType) }), 1.25, COLORS.ufo);
       }
       return;
     }

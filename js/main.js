@@ -86,9 +86,9 @@ function startGame() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
-  upgradePrompt = "CHOOSE A STARTING UPGRADE";
-  showGameMessage("CHOOSE A STARTING UPGRADE", 2.2, "#ffe066");
-  updateStatus("Click a card, up/down + Enter, or press 1, 2, 3.");
+  upgradePrompt = t("CHOOSE A STARTING UPGRADE");
+  showGameMessage(t("CHOOSE A STARTING UPGRADE"), 2.2, "#ffe066");
+  updateStatus(t("Click a card, up/down + Enter, or press 1, 2, 3."));
 }
 
 function frame(now) {
@@ -109,7 +109,7 @@ function winGame() {
   gameMessages = [];
   victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
   playLevelClear();
-  updateStatus("THE IRON TIDE IS BROKEN.");
+  updateStatus(t("THE IRON TIDE IS BROKEN."));
 }
 
 function update(dt) {
@@ -273,7 +273,7 @@ function checkCollisions() {
         addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
         playShieldHit();
         if (shieldHits < maxShieldHits) noteShieldBreak();
-        showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED HIT x${shieldHits}` : "SHIELD GONE", 1.05, "#62ffa1");
+        showGameMessage(shieldHits > 0 ? t("SHIELD ABSORBED HIT x{n}", { n: shieldHits }) : t("SHIELD GONE"), 1.05, "#62ffa1");
         return false;
       }
 
@@ -339,7 +339,7 @@ function checkWaveClear() {
   nextWaveIsBoss = isFullBossWave(level);
   state = "waveBreak";
   waveBreakTimer = 2.4;
-  showGameMessage(`WAVE ${level}${nextWaveIsBoss ? " - BOSS" : ""}`, waveBreakTimer, "#ff3366");
+  showGameMessage(t("WAVE {n}", { n: level }) + (nextWaveIsBoss ? t(" - BOSS") : ""), waveBreakTimer, "#ff3366");
 }
 
 function updateWaveBreak(dt) {
@@ -376,7 +376,7 @@ function addScore(points, x, y) {
     lives += 1;
     extraLivesAwarded += 1;
     playExtraLife();
-    showGameMessage(`+1 life\n${gained} POINTS`, 1.75, "#78ff78");
+    showGameMessage(t("+1 life\n{n} POINTS", { n: gained }), 1.75, "#78ff78");
   }
 }
 
@@ -391,7 +391,7 @@ function gameOver() {
   }
   stopMusic();
   playGameOver();
-  updateStatus(victoryRank ? `RANK #${victoryRank} - Press Enter to play again.` : "Press Enter to play again.");
+  updateStatus(victoryRank ? t("RANK #{n} - Press Enter to play again.", { n: victoryRank }) : t("Press Enter to play again."));
 }
 
 function finishBossFight() {
@@ -408,9 +408,9 @@ function finishBossFight() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
-  upgradePrompt = "CHOOSE A PERMANENT UPGRADE";
-  showGameMessage("CHOOSE A PERMANENT UPGRADE", 2.2, "#ffe066");
-  updateStatus("Click a card, up/down + Enter, or press 1, 2, 3.");
+  upgradePrompt = t("CHOOSE A PERMANENT UPGRADE");
+  showGameMessage(t("CHOOSE A PERMANENT UPGRADE"), 2.2, "#ffe066");
+  updateStatus(t("Click a card, up/down + Enter, or press 1, 2, 3."));
 }
 
 function buildUpgradeChoices() {
@@ -419,11 +419,11 @@ function buildUpgradeChoices() {
     const def = tree.levels[level - 1];
     return {
       treeId: tree.id,
-      treeName: tree.name,
+      treeName: t(tree.name),
       level,
-      label: def.label,
-      desc: def.desc,
-      text: `${tree.name} ${level}: ${def.label}`
+      label: t(def.label),
+      desc: t(def.desc),
+      text: `${t(tree.name)} ${level}: ${t(def.label)}`
     };
   });
 }
@@ -438,8 +438,8 @@ function chooseUpgrade(index) {
   nextWaveIsBoss = isFullBossWave(level);
   state = "waveBreak";
   waveBreakTimer = 1.7;
-  showGameMessage(`UPGRADE: ${choice.text}`, 1.25, "#ffe066");
-  updateStatus(`Permanent upgrade: ${choice.text}`);
+  showGameMessage(t("UPGRADE: {text}", { text: choice.text }), 1.25, "#ffe066");
+  updateStatus(t("Permanent upgrade: {text}", { text: choice.text }));
 }
 
 function applyUpgrade(choice) {
@@ -485,7 +485,7 @@ function tryStart() {
     refreshNameWidgets();
     const input = document.getElementById("nameInput");
     if (input) input.focus();
-    updateStatus("TYPE YOUR NAME FIRST");
+    updateStatus(t("TYPE YOUR NAME FIRST"));
     return;
   }
   startGame();
@@ -545,7 +545,7 @@ document.addEventListener("keydown", (event) => {
 
   if ((key === "enter" && (state === "ready" || state === "gameover")) || (key === " " && state === "ready")) {
     if (!effectiveName()) {
-      updateStatus("TYPE YOUR NAME FIRST");
+      updateStatus(t("TYPE YOUR NAME FIRST"));
       return;
     }
     tryStart();

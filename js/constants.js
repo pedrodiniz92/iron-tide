@@ -317,10 +317,9 @@ const CONTROLS_HTML = "<kbd>←</kbd>/<kbd>→</kbd> move · <kbd>Space</kbd> fi
   "<kbd>P</kbd> pause · <kbd>M</kbd> SFX · <kbd>N</kbd> music";
 function controlsText() {
   const dash = (typeof upgradeLevels !== "undefined" && upgradeLevels.mobility >= 1)
-    ? "<kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> dash · "
+    ? t("CONTROLS_DASH")
     : "";
-  return "<kbd>←</kbd>/<kbd>→</kbd> move · <kbd>Space</kbd> fire · <kbd>Q</kbd> bomb · " + dash +
-    "<kbd>P</kbd> pause · <kbd>M</kbd> SFX · <kbd>N</kbd> music";
+  return t("CONTROLS_HTML").replace("<kbd>P</kbd> pause", dash + "<kbd>P</kbd> pause");
 }
 const btnMusic = document.getElementById("btnMusic");
 const btnBoth = document.getElementById("btnBoth");

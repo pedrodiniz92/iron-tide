@@ -46,18 +46,18 @@ function draw() {
     hideOverlay();
     resetStartExtras();
   } else if (state === "ready") {
-    showOverlay("IRON TIDE", "Press Enter, click to start");
+    showOverlay("IRON TIDE", t("Press Enter, click to start"));
     showStartExtras();
   } else if (state === "victory") {
-    showOverlay("YOU BEAT IT", "");
-    overlaySub.innerHTML = "The Iron Tide is broken.<br>SCORE " + score +
-      " &middot; TIME " + formatTime(runTime) + " &middot; RANK #" + victoryRank +
-      "<br><br>Press <kbd>Enter</kbd> for the leaderboard";
+    showOverlay(t("YOU BEAT IT"), "");
+    overlaySub.innerHTML = t("The Iron Tide is broken.") + "<br>" + t("SCORE") + " " + score +
+      " &middot; " + t("TIME") + " " + formatTime(runTime) + " &middot; " + t("RANK #") + victoryRank +
+      "<br><br>" + t("Press <kbd>Enter</kbd> for the leaderboard");
   } else if (state === "gameover") {
-    showOverlay("GAME OVER", `Score ${score} · Press Enter`);
+    showOverlay(t("GAME OVER"), t("Score {n} · Press Enter", { n: score }));
   } else if (state === "paused") {
-    showOverlay("PAUSED", "");
-    overlaySub.innerHTML = controlsText() + "<br><br>Press <kbd>P</kbd> to continue";
+    showOverlay(t("PAUSED"), "");
+    overlaySub.innerHTML = controlsText() + "<br><br>" + t("Press <kbd>P</kbd> to continue");
     if (pauseToggles) pauseToggles.style.display = "flex";
   } else if (state === "choices") {
     hideOverlay();
@@ -71,32 +71,32 @@ function drawHud() {
   ctx.fillStyle = COLORS.hud;
   ctx.font = "16px 'Courier New', monospace";
 
-  if (hudScoreEl) hudScoreEl.textContent = `SCORE ${score}`;
-  if (hudHiEl) hudHiEl.textContent = `HI ${highScore}`;
-  if (hudWaveEl) hudWaveEl.textContent = `WAVE ${level}`;
-  if (hudLivesEl) hudLivesEl.textContent = `LIVES ${lives}`;
+  if (hudScoreEl) hudScoreEl.textContent = t("SCORE {n}", { n: score });
+  if (hudHiEl) hudHiEl.textContent = t("HI {n}", { n: highScore });
+  if (hudWaveEl) hudWaveEl.textContent = t("WAVE {n}", { n: level });
+  if (hudLivesEl) hudLivesEl.textContent = t("LIVES {n}", { n: lives });
 
   const active = [];
-  if (effects.rapid > 0) active.push(Number.isFinite(effects.rapid) ? `RAPID FIRE ${Math.ceil(effects.rapid)}s` : "RAPID FIRE UNTIL DEATH");
-  if (effects.double > 0) active.push(Number.isFinite(effects.double) ? `DOUBLE SHOT ${Math.ceil(effects.double)}s` : "DOUBLE SHOT UNTIL DEATH");
-  if (laserCharges > 0) active.push(`LASER x${laserCharges}`);
+  if (effects.rapid > 0) active.push(Number.isFinite(effects.rapid) ? t("RAPID FIRE {n}s", { n: Math.ceil(effects.rapid) }) : t("RAPID FIRE UNTIL DEATH"));
+  if (effects.double > 0) active.push(Number.isFinite(effects.double) ? t("DOUBLE SHOT {n}s", { n: Math.ceil(effects.double) }) : t("DOUBLE SHOT UNTIL DEATH"));
+  if (laserCharges > 0) active.push(t("LASER x{n}", { n: laserCharges }));
   if (effects.shield > 0) {
     active.push(Number.isFinite(effects.shield)
-      ? `SHIELD ${Math.ceil(effects.shield)}s x${shieldHits}`
-      : `SHIELD x${shieldHits}`);
+      ? t("SHIELD {n}s x{m}", { n: Math.ceil(effects.shield), m: shieldHits })
+      : t("SHIELD x{n}", { n: shieldHits }));
   }
-  if (effects.slow > 0) active.push(Number.isFinite(effects.slow) ? `TIME WARP ${Math.ceil(effects.slow)}s` : "TIME WARP UNTIL DEATH");
-  if (active.length) ctx.fillText(`POWER ${active.join(" ")}`, 16, 44);
+  if (effects.slow > 0) active.push(Number.isFinite(effects.slow) ? t("TIME WARP {n}s", { n: Math.ceil(effects.slow) }) : t("TIME WARP UNTIL DEATH"));
+  if (active.length) ctx.fillText(t("POWER") + " " + active.join(" "), 16, 44);
 
   const upgrades = [];
-  if (upgradeLevels.offense > 0) upgrades.push(`OFF ${upgradeLevels.offense}`);
-  if (upgradeLevels.defense > 0) upgrades.push(`SHIELD ${upgradeLevels.defense}`);
+  if (upgradeLevels.offense > 0) upgrades.push(t("OFF") + " " + upgradeLevels.offense);
+  if (upgradeLevels.defense > 0) upgrades.push(t("SHIELD") + " " + upgradeLevels.defense);
   if (upgradeLevels.mobility > 0) {
-    upgrades.push(`MOB ${upgradeLevels.mobility}`);
-    upgrades.push(dashCooldown <= 0 ? "DASH READY" : `DASH ${Math.ceil(dashCooldown * 10) / 10}s`);
+    upgrades.push(t("MOB") + " " + upgradeLevels.mobility);
+    upgrades.push(dashCooldown <= 0 ? t("DASH READY") : t("DASH {n}s", { n: Math.ceil(dashCooldown * 10) / 10 }));
   }
-  if (shieldRestoreTimer > 0) upgrades.push(`RESTORE ${Math.ceil(shieldRestoreTimer)}s`);
-  if (invulnerabilityTimer > 0) upgrades.push(`RESPAWN ${Math.ceil(invulnerabilityTimer * 10) / 10}s`);
+  if (shieldRestoreTimer > 0) upgrades.push(t("RESTORE {n}s", { n: Math.ceil(shieldRestoreTimer) }));
+  if (invulnerabilityTimer > 0) upgrades.push(t("RESPAWN {n}s", { n: Math.ceil(invulnerabilityTimer * 10) / 10 }));
   if (upgrades.length) {
     ctx.fillStyle = "#cfe8d4";
     ctx.font = "13px 'Courier New', monospace";
@@ -892,7 +892,7 @@ function renderStartBoard() {
   });
   if (!board.children.length) {
     const li = document.createElement("li");
-    li.textContent = "no runs yet - beat the TURTLE BULWARK on wave 9";
+    li.textContent = t("no runs yet - beat the TURTLE BULWARK on wave 9");
     board.appendChild(li);
   }
 }
@@ -985,7 +985,7 @@ function drawUpgradeChoices() {
   ctx.fillStyle = "#ffe066";
   ctx.font = "bold 15px 'Courier New', monospace";
   ctx.globalAlpha = 0.65 + Math.sin(Date.now() / 300) * 0.35;
-  ctx.fillText("UP/DOWN TO MOVE - PRESS ENTER TO CONFIRM", W / 2, 452);
+  ctx.fillText(t("UP/DOWN TO MOVE - PRESS ENTER TO CONFIRM"), W / 2, 452);
   ctx.globalAlpha = 1;
 
   ctx.restore();

@@ -227,7 +227,7 @@ function fireScrapBurst(boss) {
   }
   boss.scrapShield = boss.scrapShieldDuration;
   addExplosion(cx, cy, boss.designData.accent);
-  showGameMessage("SCRAP SHIELD", 0.55, boss.designData.accent);
+  showGameMessage(t("SCRAP SHIELD"), 0.55, boss.designData.accent);
 }
 
 function shedScrapFragment(boss) {
@@ -304,7 +304,7 @@ function killMinion(minion) {
         shooterId: -1
       });
     }
-    showGameMessage("DEATH HEX", 0.8, "#c026d3");
+    showGameMessage(t("DEATH HEX"), 0.8, "#c026d3");
   }
   spawnPowerupAt(cx, cy, pickLootType(1), false, 8, null, true);
   minions = minions.filter((m) => m !== minion);
@@ -404,7 +404,7 @@ function updateMinions(dt) {
 function castCalling(boss) {
   if (boss.callCount % 4 === 0 && !minions.some((m) => m.type === "idol")) {
     spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
-    showGameMessage("THE IDOL RISES", 1.0, "#ffd76a");
+    showGameMessage(t("THE IDOL RISES"), 1.0, "#ffd76a");
   } else if (boss.callCount % 4 === 1) {
     const cx = boss.x + boss.w / 2;
     let zealots = minions.filter((m) => m.type === "zealot").length;
@@ -426,7 +426,7 @@ function castCalling(boss) {
 function castBell(boss) {
   bellEffect = { t: 0, phase: 0 };
   addScreenShake(4);
-  showGameMessage("THE BELL TOLLS", 1.1, "#ffd76a");
+  showGameMessage(t("THE BELL TOLLS"), 1.1, "#ffd76a");
 }
 
 function updateBell(dt) {
@@ -620,7 +620,7 @@ function spawnBoss() {
     addExplosion(W / 2, 90, "#c9a7ff");
     addScreenShake(14);
     playBombExplosion();
-    showGameMessage("FINAL STAGE: THE ABYSSAL SQUID", 1.6, "#c9a7ff");
+    showGameMessage(t("FINAL STAGE: THE ABYSSAL SQUID"), 1.6, "#c9a7ff");
     return;
   }
 
@@ -634,7 +634,7 @@ function spawnBoss() {
   addExplosion(W / 2, 90, "#ffe066");
   addScreenShake(10);
   playBombExplosion();
-  showGameMessage(`${mini ? "MINIBOSS" : "BOSS"} INCOMING: ${design.name}`, 1.35, design.color);
+  showGameMessage(t("{kind} INCOMING: {name}", { kind: t(mini ? "MINIBOSS" : "BOSS"), name: t(design.name) }), 1.35, design.color);
 }
 
 function updateBoss(dt) {
@@ -700,7 +700,7 @@ function updateBossUnit(boss, dt) {
         boss.carapaceT = 0.9;
         boss.vx = 0;
         addScreenShake(4);
-        showGameMessage("TURTLE BRACED", 0.55, "#62ffa1");
+        showGameMessage(t("TURTLE BRACED"), 0.55, "#62ffa1");
       }
     } else if (boss.carapaceState === "windup") {
       boss.carapaceT -= dt * bossSlow;
@@ -715,7 +715,7 @@ function updateBossUnit(boss, dt) {
         boss.carapaceMines = Math.min(2 + boss.carapaceCast, 5);
         boss.carapaceInvuln = 1.6;
         addScreenShake(6);
-        showGameMessage("CARAPACE BARRAGE", 0.8, "#62ffa1");
+        showGameMessage(t("CARAPACE BARRAGE"), 0.8, "#62ffa1");
       }
     } else if (boss.carapaceState === "drop") {
       boss.carapaceT -= dt * bossSlow;
@@ -743,7 +743,7 @@ function updateBossUnit(boss, dt) {
         boss.diveTele = 0.6;
         boss.diveTargetX = clamp(playerCenterX(), 60, W - 60);
         addScreenShake(3);
-        showGameMessage("VENOM DIVE", 0.6, "#7dff66");
+        showGameMessage(t("VENOM DIVE"), 0.6, "#7dff66");
       }
     } else if (boss.diveState === "telegraph") {
       boss.diveTele -= dt * bossSlow;
@@ -822,7 +822,7 @@ function updateBossUnit(boss, dt) {
         boss.rollTimer = Math.max(2.8, boss.rollInterval - (boss.phase - 1) * 0.7);
         boss.vx = (boss.x + boss.w / 2 < W / 2 ? 1 : -1) * baseSpeed * 2.15;
         addScreenShake(4);
-        showGameMessage("ARMORED ROLL", 0.55, boss.designData.accent);
+        showGameMessage(t("ARMORED ROLL"), 0.55, boss.designData.accent);
       }
     }
   }
@@ -840,7 +840,7 @@ function updateBossUnit(boss, dt) {
     if (boss.callTimer <= 0 && !boss.callWindup) {
       boss.callCount += 1;
       boss.callWindup = 2.5;
-      showGameMessage("THE CALLING", 1.2, "#c9a7ff");
+      showGameMessage(t("THE CALLING"), 1.2, "#c9a7ff");
       boss.callTimer = boss.callingInterval;
     }
     if (boss.callWindup > 0) {
@@ -860,7 +860,7 @@ function updateBossUnit(boss, dt) {
     if (boss.shellTimer <= 0) {
       boss.shellHp = boss.shellMaxHp;
       addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
-      showGameMessage("TURTLE SHELL RESTORED", 1.05, "#62ffa1");
+      showGameMessage(t("TURTLE SHELL RESTORED"), 1.05, "#62ffa1");
     }
   }
 
@@ -1366,7 +1366,7 @@ function damageBoss(boss, amount, opts = {}) {
   if (boss.phase > oldPhase) {
     addScreenShake(6);
     playBombExplosion();
-    showGameMessage(`BOSS PHASE ${boss.phase}`, 1.15, design.color);
+    showGameMessage(t("BOSS PHASE {n}", { n: boss.phase }), 1.15, design.color);
   } else {
     addScreenShake(Math.min(1, amount));
   }
@@ -1483,7 +1483,7 @@ function triggerBossStagger(boss) {
   addScreenShake(8);
   playBombExplosion();
   spawnPowerupAt(boss.x + boss.w / 2, boss.y + boss.h + 8, POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0], true, Infinity);
-  showGameMessage(`BOSS STAGGERED! ${Math.ceil(bossStagger)}s`, 1.15, "#ffe066");
+  showGameMessage(t("BOSS STAGGERED! {n}s", { n: Math.ceil(bossStagger) }), 1.15, "#ffe066");
 }
 
 function drawBossAccessoryRing(x, y, radius, color) {

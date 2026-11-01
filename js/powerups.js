@@ -133,8 +133,8 @@ function applyTemporaryEffect(id, duration, weak = false) {
 function grantBomb(x, y) {
   const isFirstBomb = bombInventory === 0;
   bombInventory += 1;
-  showFloatingMessage(`BOMB READY x${bombInventory}`, x, y, 1.2, "#ffe66a");
-  if (isFirstBomb) showGameMessage("PRESS Q TO LAUNCH", 1.8, "#ffe66a", H * 0.68);
+  showFloatingMessage(t("BOMB READY x{n}", { n: bombInventory }), x, y, 1.2, "#ffe66a");
+  if (isFirstBomb) showGameMessage(t("PRESS Q TO LAUNCH"), 1.8, "#ffe66a", H * 0.68);
 }
 
 function openLootCrate(powerup) {
@@ -152,13 +152,13 @@ function openLootCrate(powerup) {
   if (loot.id === "shield") {
     const shieldDuration = effectivePowerupDuration(loot.duration);
     addShieldHit(shieldDuration);
-    showFloatingMessage(`SHIELD x${shieldHits}`, fx, fy, 1.2, "#62ffa1");
+    showFloatingMessage(t("SHIELD x{n}", { n: shieldHits }), fx, fy, 1.2, "#62ffa1");
     return;
   }
 
   if (loot.id === "laser") {
     applyTemporaryEffect(loot.id, loot.duration);
-    showFloatingMessage(`LASER x${laserCharges}`, fx, fy, 1.2, loot.color);
+    showFloatingMessage(t("LASER x{n}", { n: laserCharges }), fx, fy, 1.2, loot.color);
     return;
   }
 
@@ -191,20 +191,20 @@ function collectPowerup(powerup) {
     const shieldDuration = effectivePowerupDuration(powerup.type.duration, powerup.weak);
     addShieldHit(shieldDuration);
     if (powerup.weak) shieldWeakTtl = shieldDuration;
-    showFloatingMessage(powerup.weak ? `WEAK SHIELD ${shieldDuration}s` : `SHIELD READY x${shieldHits}`,
+    showFloatingMessage(powerup.weak ? t("WEAK SHIELD {n}s", { n: shieldDuration }) : t("SHIELD READY x{n}", { n: shieldHits }),
       fx, fy, 1.0, "#62ffa1");
     return;
   }
 
   if (powerup.type.id === "laser") {
     applyTemporaryEffect(powerup.type.id, powerup.type.duration, powerup.weak);
-    showFloatingMessage(`LASER READY x${laserCharges}`, fx, fy, 1.0, powerup.type.color);
+    showFloatingMessage(t("LASER READY x{n}", { n: laserCharges }), fx, fy, 1.0, powerup.type.color);
     return;
   }
 
   const powerupDuration = effectivePowerupDuration(powerup.type.duration, powerup.weak);
   applyTemporaryEffect(powerup.type.id, powerup.type.duration, powerup.weak);
-  showFloatingMessage(`${powerup.weak ? "WEAK " : ""}${name} +${powerupDuration}s`, fx, fy, 1.0, powerup.type.color);
+  showFloatingMessage(t(powerup.weak ? "WEAK {name} +{n}s" : "{name} +{n}s", { name, n: powerupDuration }), fx, fy, 1.0, powerup.type.color);
 }
 
 function useBomb() {
@@ -223,7 +223,7 @@ function useBomb() {
   });
   playBombLaunch();
   addScreenShake(2);
-  showGameMessage(`BOMB FIRED x${bombInventory} LEFT`, 0.85, "#ffe66a");
+  showGameMessage(t("BOMB FIRED x{n} LEFT", { n: bombInventory }), 0.85, "#ffe66a");
 }
 
 function updateBombShots(dt) {
@@ -296,7 +296,7 @@ function explodeBombShot(shot) {
       unit.vy = 12 + level;
       unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
       unit.diveTimer = Math.max(2.0, (unit.designData.diveInterval || 4.6) - (unit.phase - 1) * 0.8);
-      showGameMessage("DIVE BROKEN!", 1.0, "#7dff66");
+      showGameMessage(t("DIVE BROKEN!"), 1.0, "#7dff66");
     }
 
     if (unit.carapaceState === "windup" || unit.carapaceState === "drop") {
@@ -304,7 +304,7 @@ function explodeBombShot(shot) {
       unit.carapaceInvuln = 0;
       unit.carapaceTimer = Math.max(3.4, (unit.designData.carapaceInterval || 5.4) - (unit.phase - 1) * 0.6);
       unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
-      showGameMessage("BARRAGE BROKEN!", 1.0, "#ffe066");
+      showGameMessage(t("BARRAGE BROKEN!"), 1.0, "#ffe066");
       damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09), { staggerMul: 0.5 });
     } else {
       damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });

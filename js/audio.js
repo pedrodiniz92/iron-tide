@@ -239,7 +239,7 @@ function toggleSfx() {
   sfxOn = !sfxOn;
   if (sfxGain) sfxGain.gain.value = sfxOn ? 1 : 0;
   updateAudioUI();
-  updateStatus(`SFX ${sfxOn ? "on" : "off"}`);
+  updateStatus(t("SFX {s}", { s: t(sfxOn ? "on" : "off") }));
 }
 
 function toggleMusic() {
@@ -247,7 +247,7 @@ function toggleMusic() {
   if (musicGain) musicGain.gain.value = musicOn ? 0.58 : 0;
   if (musicOn && state === "playing") startMusic();
   updateAudioUI();
-  updateStatus(`Music ${musicOn ? "on" : "off"}`);
+  updateStatus(t("Music {s}", { s: t(musicOn ? "on" : "off") }));
 }
 
 function toggleBoth() {
@@ -258,29 +258,31 @@ function toggleBoth() {
   if (musicGain) musicGain.gain.value = target ? 0.58 : 0;
   if (musicOn && state === "playing") startMusic();
   updateAudioUI();
-  updateStatus(`Audio ${target ? "on" : "off"}`);
+  updateStatus(t("Audio {s}", { s: t(target ? "on" : "off") }));
 }
+
+function refreshAudioButtons() { updateAudioUI(); }
 
 function updateAudioUI() {
   if (btnSound) {
-    btnSound.textContent = `SFX: ${sfxOn ? "on" : "off"}`;
+    btnSound.textContent = t("SFX: {s}", { s: t(sfxOn ? "on" : "off") });
     btnSound.setAttribute("aria-pressed", String(sfxOn));
   }
   if (btnMusic) {
-    btnMusic.textContent = `Music: ${musicOn ? "on" : "off"}`;
+    btnMusic.textContent = t("Music: {s}", { s: t(musicOn ? "on" : "off") });
     btnMusic.setAttribute("aria-pressed", String(musicOn));
   }
   if (btnBoth) {
     const on = sfxOn && musicOn;
-    btnBoth.textContent = `Audio: ${on ? "on" : "off"}`;
+    btnBoth.textContent = t("Audio: {s}", { s: t(on ? "on" : "off") });
     btnBoth.setAttribute("aria-pressed", String(on));
   }
   if (btnPauseSfx) {
-    btnPauseSfx.textContent = `SFX: ${sfxOn ? "on" : "off"}`;
+    btnPauseSfx.textContent = t("SFX: {s}", { s: t(sfxOn ? "on" : "off") });
     btnPauseSfx.setAttribute("aria-pressed", String(sfxOn));
   }
   if (btnPauseMusic) {
-    btnPauseMusic.textContent = `Music: ${musicOn ? "on" : "off"}`;
+    btnPauseMusic.textContent = t("Music: {s}", { s: t(musicOn ? "on" : "off") });
     btnPauseMusic.setAttribute("aria-pressed", String(musicOn));
   }
 }

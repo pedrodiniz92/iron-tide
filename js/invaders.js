@@ -360,7 +360,7 @@ function descendInvaders() {
     playPlayerDeath();
     clearWeaponUpgrades();
     clearEnemyFire();
-    showGameMessage("BASE OVERRUN", 1.6, "#ff3366");
+    showGameMessage(t("BASE OVERRUN"), 1.6, "#ff3366");
     gameOver();
   }
 }

@@ -61,12 +61,12 @@ function comboAddKill() {
 
 function refreshCombo() {
   const next = Math.min(8, 1 + Math.floor(comboMeter * 8));
-  if (next > comboMultiplier) updateStatus(`COMBO x${next}`);
+  if (next > comboMultiplier) updateStatus(t("COMBO x{n}", { n: next }));
   comboMultiplier = next;
 }
 
 function powerupName(type) {
-  return type?.name || POWERUP_NAMES[type?.id] || type?.label || "POWER";
+  return t(type?.name || POWERUP_NAMES[type?.id] || type?.label || "POWER");
 }
 
 function isPlayerInvulnerable() {
@@ -89,7 +89,7 @@ function noteShieldBreak() {
   if (shieldRestoreDelay <= 0 || shieldRestoreTimer > 0) return;
   if (shieldHits >= maxShieldHits) return;
   shieldRestoreTimer = shieldRestoreDelay;
-  showGameMessage(`SHIELD BROKEN - RESTORES IN ${shieldRestoreDelay}s`, 1.35, "#ff8844");
+  showGameMessage(t("SHIELD BROKEN - RESTORES IN {n}s", { n: shieldRestoreDelay }), 1.35, "#ff8844");
 }
 
 function syncShieldStack() {
@@ -163,7 +163,7 @@ function updateFeedback(dt) {
       shieldHits = maxShieldHits + itemShieldHits;
       effects.shield = Math.max(effects.shield, 30);
       playShieldCharge();
-      showGameMessage("SHIELD RESTORED", 1.15, "#62ffa1");
+      showGameMessage(t("SHIELD RESTORED"), 1.15, "#62ffa1");
     }
   }
 

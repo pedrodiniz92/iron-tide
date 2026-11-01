@@ -23,12 +23,12 @@
   const btns = document.createElement("div");
   btns.id = "touchBtns";
   btns.innerHTML =
-    '<button id="tbDash" type="button">DASH</button>' +
+    '<button id="tbDash" type="button" data-i18n="DASH">' + t("DASH") + '</button>' +
     '<button id="tbPause" type="button">II</button>' +
-    '<button id="tbFire" type="button">FIRE</button>' +
-    '<button id="tbBomb" type="button">BOMB</button>' +
-    '<button id="tbLaser" type="button">LASER</button>' +
-    '<button id="tbDetonate" type="button">DETONATE</button>';
+    '<button id="tbFire" type="button" data-i18n="FIRE">' + t("FIRE") + '</button>' +
+    '<button id="tbBomb" type="button" data-i18n="BOMB">' + t("BOMB") + '</button>' +
+    '<button id="tbLaser" type="button" data-i18n="LASER">' + t("LASER") + '</button>' +
+    '<button id="tbDetonate" type="button" data-i18n="DETONATE">' + t("DETONATE") + '</button>';
   frame.appendChild(btns);
 
   function aimFromEvent(e) {

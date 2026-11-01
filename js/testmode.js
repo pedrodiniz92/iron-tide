@@ -64,14 +64,14 @@ function jumpToWave(target) {
     spawnBoss();
     nextWaveIsBoss = false;
   }
-  updateStatus("Jumped to wave " + level);
+  updateStatus(t("Jumped to wave {n}", { n: level }));
 }
 
 function showUpgradePrompt(target, earned) {
   const box = document.getElementById("testUpgradePrompt");
   box.innerHTML = "";
   const title = document.createElement("div");
-  title.textContent = `WAVE ${target}: you'd have ${earned} upgrade${earned > 1 ? "s" : ""} from killed bosses. Pick them:`;
+  title.textContent = t("WAVE {n}: you'd have {m} upgrade{s} from killed bosses. Pick them:", { n: target, m: earned, s: earned > 1 ? "s" : "" });
   title.style.cssText = "color:#ffe066;margin-bottom:6px;";
   box.appendChild(title);
 
@@ -82,18 +82,18 @@ function showUpgradePrompt(target, earned) {
     const row = document.createElement("div");
     row.style.cssText = "margin:4px 0;";
     const name = document.createElement("span");
-    name.textContent = tree.name + " ";
+    name.textContent = t(tree.name) + " ";
     name.style.cssText = "display:inline-block;width:80px;color:#9ae6ff;";
     const lvlSel = document.createElement("select");
     lvlSel.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
     const none = document.createElement("option");
     none.value = "0";
-    none.textContent = "none";
+    none.textContent = t("none");
     lvlSel.appendChild(none);
     for (let l = 1; l <= tree.levels.length; l += 1) {
       const opt = document.createElement("option");
       opt.value = String(l);
-      opt.textContent = "lvl " + l + " " + tree.levels[l - 1].label;
+      opt.textContent = t("lvl {n} {label}", { n: l, label: t(tree.levels[l - 1].label) });
       lvlSel.appendChild(opt);
     }
     lvlSel.value = "1";
@@ -108,7 +108,7 @@ function showUpgradePrompt(target, earned) {
   });
 
   const startBtn = document.createElement("button");
-  startBtn.textContent = `START WAVE ${target}`;
+  startBtn.textContent = t("START WAVE {n}", { n: target });
   startBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#ffe066;border:1px solid #ffe066;cursor:pointer;";
   startBtn.addEventListener("click", () => {
     upgradeLevels = { offense: 0, defense: 0, mobility: 0 };
@@ -123,7 +123,7 @@ function showUpgradePrompt(target, earned) {
   box.appendChild(startBtn);
 
   const cancelBtn = document.createElement("button");
-  cancelBtn.textContent = "CANCEL";
+  cancelBtn.textContent = t("CANCEL");
   cancelBtn.style.cssText = "display:block;margin-top:4px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   cancelBtn.addEventListener("click", () => { box.style.display = "none"; });
   box.appendChild(cancelBtn);
@@ -134,7 +134,7 @@ function showUpgradePrompt(target, earned) {
 function buildTestPanel() {
   const button = document.createElement("button");
   button.id = "testModeButton";
-  button.textContent = "TEST";
+  button.setAttribute("data-i18n", "TEST"); button.textContent = t("TEST");
   button.style.cssText = "position:fixed;top:8px;right:8px;z-index:20;padding:4px 10px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   button.addEventListener("click", toggleTestPanel);
 
@@ -143,7 +143,7 @@ function buildTestPanel() {
   panel.style.cssText = "position:fixed;top:36px;right:8px;z-index:20;display:none;padding:10px 12px;font:12px monospace;background:rgba(8,12,18,0.92);color:#cfefff;border:1px solid #2c5f7a;";
 
   const title = document.createElement("div");
-  title.textContent = "TEST FEATURES";
+  title.setAttribute("data-i18n", "TEST FEATURES"); title.textContent = t("TEST FEATURES");
   title.style.cssText = "margin-bottom:8px;color:#9ae6ff;";
   panel.appendChild(title);
 
@@ -162,7 +162,7 @@ function buildTestPanel() {
   const bossRow = document.createElement("div");
   bossRow.style.cssText = "margin-top:10px;";
   const bossLabel = document.createElement("div");
-  bossLabel.textContent = "BOSS SPAWNER";
+  bossLabel.setAttribute("data-i18n", "BOSS SPAWNER"); bossLabel.textContent = t("BOSS SPAWNER");
   bossLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
   const select = document.createElement("select");
   select.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
@@ -174,7 +174,7 @@ function buildTestPanel() {
   });
   select.addEventListener("change", () => { testBossName = select.value === "None" ? null : select.value; });
   const spawnBtn = document.createElement("button");
-  spawnBtn.textContent = "SPAWN BOSS";
+  spawnBtn.setAttribute("data-i18n", "SPAWN BOSS"); spawnBtn.textContent = t("SPAWN BOSS");
   spawnBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   spawnBtn.addEventListener("click", spawnTestBoss);
   bossRow.appendChild(bossLabel);
@@ -185,7 +185,7 @@ function buildTestPanel() {
   const waveRow = document.createElement("div");
   waveRow.style.cssText = "margin-top:10px;";
   const waveLabel = document.createElement("div");
-  waveLabel.textContent = "WAVE JUMP";
+  waveLabel.setAttribute("data-i18n", "WAVE JUMP"); waveLabel.textContent = t("WAVE JUMP");
   waveLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
   const waveSelect = document.createElement("select");
   waveSelect.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
@@ -196,7 +196,7 @@ function buildTestPanel() {
     waveSelect.appendChild(opt);
   }
   const waveBtn = document.createElement("button");
-  waveBtn.textContent = "JUMP TO WAVE";
+  waveBtn.setAttribute("data-i18n", "JUMP TO WAVE"); waveBtn.textContent = t("JUMP TO WAVE");
   waveBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
   waveBtn.addEventListener("click", () => {
     const target = Number(waveSelect.value) || 1;
@@ -217,23 +217,23 @@ function buildTestPanel() {
   const bombRow = document.createElement("div");
   bombRow.style.cssText = "margin-top:10px;";
   const bombLabel = document.createElement("div");
-  bombLabel.textContent = "GIVE YOURSELF";
+  bombLabel.setAttribute("data-i18n", "GIVE YOURSELF"); bombLabel.textContent = t("GIVE YOURSELF");
   bombLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
   const bombBtn = document.createElement("button");
-  bombBtn.textContent = "+1 BOMB";
+  bombBtn.setAttribute("data-i18n", "+1 BOMB"); bombBtn.textContent = t("+1 BOMB");
   bombBtn.style.cssText = "display:inline-block;margin-right:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
-  bombBtn.addEventListener("click", () => { bombInventory += 1; updateStatus("+1 bomb"); });
+  bombBtn.addEventListener("click", () => { bombInventory += 1; updateStatus(t("+1 bomb")); });
   const laserBtn = document.createElement("button");
-  laserBtn.textContent = "+1 LASER";
+  laserBtn.setAttribute("data-i18n", "+1 LASER"); laserBtn.textContent = t("+1 LASER");
   laserBtn.style.cssText = "display:inline-block;padding:3px 8px;font:12px monospace;background:#101820;color:#6fdcff;border:1px solid #2c5f7a;cursor:pointer;";
-  laserBtn.addEventListener("click", () => { laserCharges += 1; updateStatus("+1 laser"); });
+  laserBtn.addEventListener("click", () => { laserCharges += 1; updateStatus(t("+1 laser")); });
   bombRow.appendChild(bombLabel);
   bombRow.appendChild(bombBtn);
   bombRow.appendChild(laserBtn);
   panel.appendChild(bombRow);
 
   const hint = document.createElement("div");
-  hint.textContent = "toggle panel: `";
+  hint.textContent = t("toggle panel: `");
   hint.style.cssText = "margin-top:8px;color:#6a8fa5;";
   panel.appendChild(hint);
 
