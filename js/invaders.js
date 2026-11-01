@@ -150,7 +150,7 @@ function applyRowRoles() {
 }
 
 function fireEnemyBullet() {
-  const maxBullets = frenzyZones.some((zone) => zone.arm <= 0 && !zone.fade) ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
+  const maxBullets = frenzyZones.some((zone) => zone.arm <= 0 && !zone.fade) ? 4 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
   if (enemyBullets.length >= maxBullets) return false;
 
   const alive = invaders.filter((invader) => invader.alive);
@@ -229,12 +229,12 @@ function updateInvaders(dt) {
       invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y
     ) < zone.r);
   });
-  const frenzyCap = armedZones.length ? 6 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
+  const frenzyCap = armedZones.length ? 4 : (boss ? 2 : Math.min(3, 2 + Math.floor(level / 3)));
   alive.forEach((invader) => {
     if (!invader.frenzyLive) return;
     invader.frenzyShotT = (invader.frenzyShotT === undefined ? 0.3 + Math.random() * 1.1 : invader.frenzyShotT) - dt;
     if (invader.frenzyShotT > 0) return;
-    invader.frenzyShotT = 0.95 + Math.random() * 0.8;
+    invader.frenzyShotT = 1.5 + Math.random() * 1.0;
     if (enemyBullets.length >= frenzyCap) return;
     const fx = invader.x + invader.w / 2;
     const fy = invader.y + invader.h;

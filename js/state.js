@@ -52,6 +52,7 @@ let waveTime = 0;
 let scorePopups = [];
 let staggerDamage = 0;
 let staggerWindow = 0;
+let staggerGrace = 0;
 let staggerCooldown = 0;
 let bossStagger = 0;
 let lastTime = performance.now();

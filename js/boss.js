@@ -683,7 +683,7 @@ function updateBossLaser(boss, dt) {
 
     if (laser.timer <= 0) {
       laser.state = "fire";
-      laser.timer = boss.designData.laserPierce ? 1.1 : 0.38;
+      laser.timer = boss.designData.laserPierce ? 0.5 : 0.38;
       laser.pierceTick = 0;
       if (boss.designData.laserPierce) {
         laser.strafeVx0 = boss.vx;
@@ -1162,6 +1162,7 @@ function damageBoss(boss, amount, opts = {}) {
 function resetStagger() {
   staggerDamage = 0;
   staggerWindow = 0;
+  staggerGrace = 0;
   staggerCooldown = 0;
   bossStagger = 0;
 }
@@ -1180,9 +1181,11 @@ function updateStagger(dt) {
     if (bossStagger <= 0) staggerDamage = 0;
   }
 
-  if (staggerDamage > 0 && bossStagger <= 0 && staggerCooldown <= 0) {
+  if (staggerGrace > 0) {
+    staggerGrace = Math.max(0, staggerGrace - dt);
+  } else if (staggerDamage > 0 && bossStagger <= 0 && staggerCooldown <= 0) {
     const threshold = Math.max(4, 4 + level * 2) * 1.2;
-    staggerDamage = Math.max(0, staggerDamage - dt * (threshold / 3));
+    staggerDamage = Math.max(0, staggerDamage - dt * (threshold / 6));
   }
 
   if (staggerCooldown > 0) {
@@ -1194,6 +1197,7 @@ function addStaggerDamage(boss, amount) {
   if (!boss || bossStagger > 0 || staggerCooldown > 0) return;
 
   staggerDamage += amount;
+  staggerGrace = 1.5;
 
   const threshold = Math.max(4, 4 + level * 2) * 1.2;
   if (staggerDamage >= threshold) {
