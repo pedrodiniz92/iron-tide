@@ -321,7 +321,7 @@ function controlsText() {
   const dash = (typeof upgradeLevels !== "undefined" && upgradeLevels.mobility >= 1)
     ? t("CONTROLS_DASH")
     : "";
-  return t("CONTROLS_HTML").replace("<kbd>P</kbd> pause", dash + "<kbd>P</kbd> pause");
+  return t("CONTROLS_HTML").replace("<kbd>P</kbd>", dash + "<kbd>P</kbd>");
 }
 const btnMusic = document.getElementById("btnMusic");
 const btnBoth = document.getElementById("btnBoth");
