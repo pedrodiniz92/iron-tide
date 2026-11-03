@@ -18,9 +18,14 @@
 - Upgrade choice: `1`, `2`, `3`, arrows, Enter, click, or touch.
 
 ## Player
-- The player has 3 lives.
-- Death clears enemy fire and weapon powerups, then respawns with short invulnerability.
+- The player has 2 lives, each with 2 HP.
+- A hit costs 1 HP and grants a short invulnerability; enemy fire and weapon powerups survive it.
+- Losing the last HP costs a life: enemy fire and weapon powerups clear, and after a 1s pause you respawn with HP refilled and 1.5s of invulnerability.
+- A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
+- The hull knits itself back to full HP after 10s at 1 HP (or on any HP gain); the crack fades out over 0.55s and the speed returns with it.
+- The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
 - Losing all lives ends the run.
+- An extra life is awarded every 8,000 points.
 - Dash is a short horizontal burst with cooldown.
 
 ## Shooting
@@ -30,6 +35,7 @@
 - Bomb powerups add stored bombs. Bombs fly upward, stick to targets, explode, and can be detonated early after Offense II.
 - Laser powerups add stored laser charges. Laser charges stack, show as `LASER xN`, and fire only with `E`.
 - Shield powerups absorb hits. Defense upgrades can restore shields after a delay.
+- A shield is its own layer: picking one up never restores HP. HP comes back only from the hull knitting at 1 HP (see Player) or from respawning on a new life.
 
 ## Enemies
 - Basic invaders march in formation and shoot downward.

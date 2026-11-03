@@ -137,21 +137,7 @@ function hitPlayerWithSpikeMine() {
     return;
   }
 
-  if (state !== "playing") return;
-  lives -= 1;
-  addScreenShake(12);
-  playPlayerDeath();
-  addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
-  clearWeaponUpgrades();
-  clearEnemyFire();
-  playerBullets = [];
-  clearPlayerBulletsPending = true;
-
-  if (lives <= 0) {
-    gameOver();
-  } else {
-    resetPlayer();
-  }
+  damagePlayer();
 }
 
 function fireSpikeMine(boss, arm = 1.2, offset = 0) {
@@ -443,7 +429,8 @@ function updateBell(dt) {
         const a = Math.atan2(player.x + player.w / 2 - bx, player.y + player.h / 2 - by);
         bullet.speed = Math.cos(a) * 340;
         bullet.vx = Math.sin(a) * 340;
-        bullet.seek = 1.2;
+        bullet.seek = 0.6;
+        bullet.seekMax = 0.7;
         bullet.seekA0 = Math.atan2(bullet.speed, bullet.vx);
         bullet.homingT = 0;
         bullet.ttl = 4;
@@ -491,20 +478,7 @@ function hitPlayerWithEnemyBomb(damage = 1) {
     return;
   }
 
-  lives -= Math.max(1, damage);
-  addScreenShake(14);
-  playPlayerDeath();
-  addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
-  clearWeaponUpgrades();
-  clearEnemyFire();
-  playerBullets = [];
-  clearPlayerBulletsPending = true;
-
-  if (lives <= 0) {
-    gameOver();
-  } else {
-    resetPlayer();
-  }
+  damagePlayer(Math.max(1, damage));
 }
 
 function damageShieldArea(shield, x, y, radius) {
@@ -714,7 +688,7 @@ function updateBossUnit(boss, dt) {
     } else if (boss.carapaceState === "drop") {
       boss.carapaceT -= dt * bossSlow;
       boss.carapaceDropT -= dt * bossSlow;
-      boss.vx = 0;
+      boss.vx = boss.carapaceVx0 * 0.5;
       if (boss.carapaceDropT <= 0 && boss.carapaceDropped < boss.carapaceMines) {
         boss.carapaceDropped += 1;
         boss.carapaceDropT = 0.22;
@@ -1095,21 +1069,7 @@ function hitPlayerWithBossLaser() {
     return;
   }
 
-  if (state !== "playing") return;
-  lives -= 1;
-  addScreenShake(14);
-  playPlayerDeath();
-  addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
-  clearWeaponUpgrades();
-  clearEnemyFire();
-  playerBullets = [];
-  clearPlayerBulletsPending = true;
-
-  if (lives <= 0) {
-    gameOver();
-  } else {
-    resetPlayer();
-  }
+  damagePlayer();
 }
 
 function bossAimVx(boss, sx, sy, speed, limit) {
@@ -1442,10 +1402,10 @@ function addStaggerDamage(boss, amount) {
   const design = boss.designData || BOSS_DESIGNS[0];
   const ease = design.staggerEase || 1;
   const venom = boss.ability === "VENOM DIVE";
-  const forgiving = venom || ease < 1;
-  staggerGrace = venom ? 2.0 : forgiving ? 1.5 : 0.4;
-  staggerDecayDiv = venom ? 8 : forgiving ? 7 : 5;
-  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1) * ease;
+  const resist = (boss.designData && boss.designData.staggerMul) || 1;
+  staggerGrace = venom ? 2.0 : 0.4;
+  staggerDecayDiv = venom ? 8 : 5;
+  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1) * resist;
 
   if (staggerDamage >= staggerThresholdEff) {
     triggerBossStagger(boss);

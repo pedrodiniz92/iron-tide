@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iron Tide mockup — HP display options (2.5D)</title>
+    <link rel="stylesheet" href="../style.css" />
+    <style>
+      .verdict { max-width: 900px; margin: 14px auto 0; font-size: 12px; color: #93a0bd; }
+      .verdict b { color: #9ae6ff; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>HP DISPLAY<span class="ver">mockup</span></h1>
+        <p>2.5D: the ship and mobs are the real Three.js toon models on <code>#stage3d</code>, driven through
+          the shipping <code>Iron3D.sync()/render()</code> entry point; HUD text, bullets, pips and shield
+          rings stay on the 2D <code>#game</code> canvas, exactly as <code>js/drawing.js</code> splits them.
+          Two reads, on the shipping models: <b>A</b> the HUD text, <b>D</b> the damage crack on the
+          ship's own hull - the crab's impact star at hull scale - with the shipping cycle running
+          live below it (hit, hull chips, slow, knit at 10 s, crack fading out).</p>
+      </header>
+
+      <div class="frame">
+        <div class="stage">
+          <canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+          <canvas id="game" width="900" height="600" aria-label="HP display options, 2.5D"></canvas>
+        </div>
+
+        <div id="hud" class="hud">
+          <span id="score">SCORE 41250</span>
+          <span id="hi">HI 95046</span>
+          <span id="wave">WAVE 7</span>
+          <span id="lives">LIVES 2 · HP 2/2</span>
+        </div>
+
+        <div id="overlay" class="overlay" style="display:none">
+          <div class="panel"><h2 id="overlayTitle"></h2><p id="overlaySub"></p></div>
+        </div>
+      </div>
+
+      <p class="verdict" id="verdict"></p>
+    </main>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/assets3d.bundle.js"></script>
+    <script src="hp-display.js"></script>
+  </body>
+</html>

@@ -107,12 +107,28 @@ export function buildSaucer(cfg, hex) {
 }
 
 // PLAYER A — wide gunship hauler (the game's classic-cannon silhouette widened into a hull).
-export function buildPlayerC(cfg, hex) {
+export function buildPlayerC(cfg, hex, opts) {
+  const o = opts || {};
   const g = new THREE.Group();
   const green = hex || GAME_COLOR.player;
   const hull = new THREE.Mesh(new THREE.BoxGeometry(30, 12, 16), surfMaterial(green, cfg));
   addHull(g, hull, hull.geometry, 0.020, cfg, green);
   g.add(hull);
+  // Damage crack, the crab's trick (userData.shell + uMap swap in js/assets3d.js). A plane laid
+  // just in front of the hull side the camera sees (model -y, since the game rotates the ship
+  // -90 deg on x), with uv 0..1 straight onto the screen box. With the blank map plus the
+  // 1/1.25 tint that cancels the shader's map gain it paints exactly the hull colour, so a clean
+  // ship is untouched; crackTexture() then draws the crack over the hull.
+  const plateMat = surfMaterial(green,
+    o.map ? Object.assign({}, cfg, { map: o.map, mapS: o.mapS, mapO: o.mapO }) : cfg);
+  if (o.map) plateMat.uniforms.uTintMul.value.multiplyScalar(1 / 1.25);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(30, 16), plateMat);
+  plateMat.side = THREE.DoubleSide;
+  plate.rotation.x = Math.PI / 2;
+  plate.position.y = -6.4;
+  g.add(plate);
+  g.userData.shell = plate;
+  plate.userData.crackSkin = "ship";
   const strip = new THREE.Mesh(new THREE.BoxGeometry(14, 5, 7), surfMaterial("#dff6ff", cfg));
   strip.position.set(0, 6.5, 5);
   addHull(g, strip, strip.geometry, 0.012, cfg, "#dff6ff");

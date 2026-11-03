@@ -11,7 +11,9 @@ function resetPlayer(showMessage = true) {
     h: 22,
     speed: 290
   };
-  invulnerabilityTimer = 3.0;
+  invulnerabilityTimer = RESPAWN_INVULN;
+  playerHp = maxPlayerHp;
+  hpSlowTimer = 0;
   dashTimer = 0;
   dashGrace = 0;
   shieldHits = Math.min(shieldHits, maxShieldHits);
@@ -70,17 +72,26 @@ function updateDash(dt) {
   dashGhosts = dashGhosts.filter((ghost) => ghost.ttl > 0);
 }
 
+// A cracked hull (1 HP) drags the ship: -30% on the spot, easing to -15% over HP_SLOW_EASE_TIME.
+// The speed comes back when the hull knits (see updateHpRegen).
+function playerSpeedMul() {
+  if (playerHp >= maxPlayerHp) return 1;
+  const t = clamp(hpSlowTimer / HP_SLOW_EASE_TIME, 0, 1);
+  return HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
+}
+
 function movePlayer(dt) {
   const left = keys.has("arrowleft") || keys.has("a");
   const right = keys.has("arrowright") || keys.has("d");
+  const speed = player.speed * playerSpeedMul();
 
-  if (left) player.x -= player.speed * dt;
-  if (right) player.x += player.speed * dt;
+  if (left) player.x -= speed * dt;
+  if (right) player.x += speed * dt;
 
   if (window.IS_TOUCH && window.touchAimX !== null && window.touchAimX !== undefined) {
     const target = clamp(window.touchAimX - player.w / 2, 10, W - player.w - 10);
     const d = target - player.x;
-    const step = player.speed * 2.2 * dt;
+    const step = speed * 2.2 * dt;
     player.x = Math.abs(d) <= step ? target : player.x + Math.sign(d) * step;
   }
 

@@ -22,6 +22,63 @@ function addExplosion(x, y, color, squash = null) {
   explosions.push({ x, y, color, squash, ttl: 0.38 });
 }
 
+// Green hull chips thrown off the ship when a hit cracks it. 2D layer, like the explosions.
+function addHullChips(x, y, count = 14) {
+  for (let i = 0; i < count; i += 1) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+    const sp = 90 + Math.random() * 190;
+    const ttl = HULL_CHIP_TIME * (0.7 + Math.random() * 0.5);
+    hullChips.push({
+      x: x + (Math.random() - 0.5) * 26,
+      y: y + (Math.random() - 0.5) * 10,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp * 0.7 + 40,
+      size: 2 + Math.random() * 3.5,
+      rot: Math.random() * Math.PI,
+      spin: (Math.random() - 0.5) * 9,
+      ttl,
+      maxTtl: ttl
+    });
+  }
+}
+
+function updateHullChips(dt) {
+  hullChips.forEach((chip) => {
+    chip.ttl -= dt;
+    chip.vy += 520 * dt;
+    chip.vx *= 1 - 1.6 * dt;
+    chip.x += chip.vx * dt;
+    chip.y += chip.vy * dt;
+    chip.rot += chip.spin * dt;
+  });
+  hullChips = hullChips.filter((chip) => chip.ttl > 0);
+}
+
+// The only HP recovery outside a respawn: the hull knitting itself back at 1 HP (see
+// updateHpRegen), or a heal a future powerup may call. Shields never call this - shield is
+// its own layer and never touches playerHp.
+function healPlayer(to = maxPlayerHp) {
+  const next = clamp(to, 0, maxPlayerHp);
+  if (next <= playerHp) return false;
+  playerHp = next;
+  hpSlowTimer = 0;
+  return true;
+}
+
+// Ticks the cracked-hull state: crack in, slow ease, and the 10 s knit back to full HP.
+// Runs in "playing" and "waveBreak", like the death pause, so a hit at the end of a wave
+// still heals on time.
+function updateHpRegen(dt) {
+  if (playerHp >= maxPlayerHp) {
+    hpSlowTimer = 0;
+    crackFade = Math.max(0, crackFade - dt / CRACK_FADE_TIME);
+    return;
+  }
+  hpSlowTimer += dt;
+  crackFade = Math.min(1, crackFade + dt / CRACK_SHOW_TIME);
+  if (hpSlowTimer >= HP_REGEN_TIME) healPlayer(maxPlayerHp);
+}
+
 function addScreenShake(power) {
   screenShake = Math.min(18, screenShake + power);
 }
@@ -70,7 +127,49 @@ function powerupName(type) {
 }
 
 function isPlayerInvulnerable() {
-  return invulnerabilityTimer > 0 || dashGrace > 0;
+  return invulnerabilityTimer > 0 || dashGrace > 0 || respawnTimer > 0;
+}
+
+// Single entry point for player damage: HP first, lives second.
+// A non-lethal hit costs no reset, so it buys a short grace to reposition.
+function damagePlayer(hits = 1) {
+  if (state !== "playing" || isPlayerInvulnerable()) return false;
+
+  if (playerHp > hits) {
+    playerHp -= hits;
+    invulnerabilityTimer = 0.8;
+    hpSlowTimer = 0;
+    addScreenShake(7);
+    addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
+    addHullChips(player.x + player.w / 2, player.y + player.h / 2);
+    playShieldHit();
+    showGameMessage(t("HIT! {n} HP LEFT", { n: playerHp }), 0.9, "#ffb04c");
+    return false;
+  }
+
+  lives -= 1;
+  addScreenShake(14);
+  playPlayerDeath();
+  addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
+  clearWeaponUpgrades();
+  clearEnemyFire();
+  playerBullets = [];
+  clearPlayerBulletsPending = true;
+
+  if (lives <= 0) {
+    gameOver();
+  } else {
+    respawnTimer = RESPAWN_PAUSE;
+  }
+  return false;
+}
+
+// Ticks the death pause. Called from both "playing" and "waveBreak" so a death at the
+// end of a wave still respawns on time instead of leaving a ghost ship for the whole break.
+function updateRespawn(dt) {
+  if (respawnTimer <= 0) return;
+  respawnTimer = Math.max(0, respawnTimer - dt);
+  if (respawnTimer <= 0) resetPlayer(state !== "choices");
 }
 
 function getSlowFactor(target) {
@@ -96,6 +195,8 @@ function syncShieldStack() {
   itemShieldHits = Math.max(0, shieldHits - maxShieldHits);
 }
 
+// Shield is a separate layer: it never touches playerHp.
+// Only a respawn (a lost life) refills HP, see resetPlayer().
 function addShieldHit(duration = 30) {
   shieldHits += 1;
   syncShieldStack();

@@ -12,7 +12,9 @@ function startGame() {
   initAudio();
   state = "playing";
   score = 0;
-  lives = 3;
+  lives = 2;
+  playerHp = maxPlayerHp;
+  respawnTimer = 0;
   level = testJumpLevel || 1;
   testJumpLevel = 0;
   extraLivesAwarded = 0;
@@ -43,6 +45,9 @@ function startGame() {
   itemShieldHits = 0;
   shieldWeakTtl = 0;
   explosions = [];
+  hullChips = [];
+  hpSlowTimer = 0;
+  crackFade = 0;
   ufo = null;
   boss = null;
   bosses = [];
@@ -98,7 +103,10 @@ function frame(now) {
 
   if (state === "playing") update(dt);
   if (state === "waveBreak") updateWaveBreak(dt);
-  if (state === "choices") updateMusic(dt);
+  if (state === "choices") {
+    updateRespawn(dt);
+    updateMusic(dt);
+  }
   draw();
   requestAnimationFrame(frame);
 }
@@ -116,9 +124,12 @@ function winGame() {
 
 function update(dt) {
   runTime += dt;
-  movePlayer(dt);
-  updateDash(dt);
-  updateFire(dt);
+  updateRespawn(dt);
+  if (respawnTimer <= 0) {
+    movePlayer(dt);
+    updateDash(dt);
+    updateFire(dt);
+  }
   updatePlayerBullets(dt);
   updateLaserBeams(dt);
   updateBombShots(dt);
@@ -126,6 +137,7 @@ function update(dt) {
   updateSpikeMines(dt);
   updatePowerups(dt);
   updateEffects(dt);
+  updateHpRegen(dt);
   updateEnemyBullets(dt);
   updateInvaders(dt);
   updateMinibossSpawn();
@@ -133,6 +145,7 @@ function update(dt) {
   updateStagger(dt);
   updateUfo(dt);
   updateExplosions(dt);
+  updateHullChips(dt);
   updateShockwaves(dt);
   updateFeedback(dt);
   updateMusic(dt);
@@ -279,22 +292,7 @@ function checkCollisions() {
         return false;
       }
 
-      if (isPlayerInvulnerable()) return false;
-      if (state !== "playing") return false;
-
-      lives -= 1;
-      addScreenShake(14);
-      playPlayerDeath();
-      clearWeaponUpgrades();
-      clearEnemyFire();
-      playerBullets = [];
-      clearPlayerBulletsPending = true;
-
-      if (lives <= 0) {
-        gameOver();
-      } else {
-        resetPlayer();
-      }
+      damagePlayer();
       return false;
     }
 
@@ -348,6 +346,9 @@ function checkWaveClear() {
 
 function updateWaveBreak(dt) {
   waveBreakTimer -= dt;
+  updateRespawn(dt);
+  updateHpRegen(dt);
+  updateHullChips(dt);
   updateMusic(dt);
   updateGameMessages(dt);
   updateExplosions(dt);
@@ -376,7 +377,7 @@ function addScore(points, x, y) {
     playComboScore(gained);
   }
 
-  while (score >= (extraLivesAwarded + 1) * 6000) {
+  while (score >= (extraLivesAwarded + 1) * 8000) {
     lives += 1;
     extraLivesAwarded += 1;
     playExtraLife();

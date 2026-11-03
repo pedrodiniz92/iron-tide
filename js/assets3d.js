@@ -86,6 +86,71 @@ function blankTexture() {
   return blankTex;
 }
 
+// The ship's own damage pattern. The crab gets a radial impact star (one hit, starburst, arc
+// ring); a hull that took a hit gets a running fracture that runs the length of the ship, with
+// en-echelon cracks ahead of it and spall chips - thinner lines, wider reach, no ring.
+// uv here is the plate's screen box (u right, v up), so the pattern is laid out in screen space.
+// Hull-plate crack skins. Each is drawn on a small canvas with the mip chain off (the plate is
+// only ~32 px on screen, and mipmapping filters a thin crack back to plain white). "ship" is the
+// one in play; ship2..ship4 are the extra patterns to pick from. All of them, like the crab's
+// shell crack, start at an impact core with the lines thickest there and tapering outward.
+let shipCrackTex = null;
+function shipCrackTexture() {
+  if (shipCrackTex) return shipCrackTex;
+  // The crab's crack, on the ship's hull: same impact core, same five rays, same taper (85 -> 55
+  // -> 30 of a 1024-wide shell = 21 -> 14 -> 7.5 here), same arc ring. The star is drawn in the
+  // shell's uv space (u right, v up) and centred on the hull; the canvas is small with the mip
+  // chain off because the plate is only ~32 px on screen.
+  const cv = document.createElement("canvas");
+  cv.width = 256; cv.height = 128;
+  const g2 = cv.getContext("2d");
+  g2.fillStyle = "#ffffff";
+  g2.fillRect(0, 0, 256, 128);
+  g2.strokeStyle = "rgba(10,6,2,0.92)";
+  g2.lineCap = "round";
+  const SX = 10 / 36;
+  const SY = 10 / 18;
+  const ix = 0.52, iy = 0.05;
+  const ux = (x) => x * SX + 0.5;
+  const uy = (y) => y * SY + 0.5;
+  const X = (u) => u * 256;
+  const Y = (v) => (1 - v) * 128;
+  const chain = (x, y, ang, segs) => {
+    segs.forEach(([len, bend, w], i) => {
+      const nx = x + Math.cos(ang) * len;
+      const ny = y + Math.sin(ang) * len;
+      g2.lineWidth = w / 4;
+      g2.beginPath();
+      g2.moveTo(X(ux(x)), Y(uy(y)));
+      if (i > 0) g2.lineTo(X(ux(x)), Y(uy(y)));
+      g2.lineTo(X(ux(nx)), Y(uy(ny)));
+      g2.stroke();
+      x = nx; y = ny; ang += bend;
+    });
+  };
+  chain(ix, iy, -2.35, [[0.42, -0.25, 85], [0.5, 0.2, 55], [0.42, 0.05, 30]]);
+  chain(ix, iy, -1.5, [[0.36, 0.3, 85], [0.45, 0.15, 55], [0.4, 0.05, 30]]);
+  chain(ix, iy, -0.4, [[0.42, -0.15, 85], [0.36, 0.25, 55], [0.3, 0.1, 30]]);
+  chain(ix, iy, 2.6, [[0.4, 0.18, 85], [0.36, -0.22, 55], [0.3, -0.1, 30]]);
+  chain(ix, iy, 1.75, [[0.24, -0.3, 85], [0.2, 0.3, 55]]);
+  g2.lineWidth = 16;
+  g2.beginPath();
+  g2.arc(X(ux(ix)), Y(uy(iy)), 0.42 * SX * 256, -2.5, -1.25, false);
+  g2.stroke();
+  shipCrackTex = new THREE.CanvasTexture(cv);
+  shipCrackTex.wrapS = THREE.ClampToEdgeWrapping;
+  shipCrackTex.wrapT = THREE.ClampToEdgeWrapping;
+  shipCrackTex.generateMipmaps = false;
+  shipCrackTex.minFilter = THREE.LinearFilter;
+  return shipCrackTex;
+}
+
+// which crack a shell mesh wears: the hull plate wears the ship's copy of the crab's star,
+// every other shell (crab, carapaces) wears the star itself
+function crackSkin(shellMesh) {
+  return shellMesh.userData.crackSkin === "ship" ? shipCrackTexture() : crackTexture();
+}
+
 function build(key, color, quality) {
   if (key === "banshee") return buildBanshee("wail", RIG, color);
   if (key === "ghost") return buildBanshee("ghost", RIG, color);
@@ -93,6 +158,9 @@ function build(key, color, quality) {
   const mesh = key === "crab"
     ? BUILDERS.crab_b(RIG, color, { map: blankTexture(),
       mapS: new THREE.Vector2(1 / 36, 1 / 18), mapO: new THREE.Vector2(0.5, 0.5) })
+    : key === "player"
+    ? BUILDERS.player(RIG, color, { map: blankTexture(),
+      mapS: new THREE.Vector2(1, 1), mapO: new THREE.Vector2(0, 0) })
     : BUILDERS[KEY[key] || key](RIG, color, quality);
   return mesh;
 }
@@ -120,6 +188,7 @@ function sync(list) {
     item.alphaT = e.alpha === undefined ? 1 : e.alpha;
     item.glow = e.glow ? 1 : 0;
     item.crack = e.crack ? 1 : 0;
+    item.crackFade = e.crackFade === undefined ? item.crack : Math.max(0, Math.min(1, e.crackFade));
     item.tilt = e.tilt === undefined ? 0.34 : e.tilt;
   }
   for (const [id, item] of pool) {
@@ -149,12 +218,19 @@ function render(t) {
         if (i % 2 === 0) mesh.rotation.y = t / 200;
       });
     });
+    const shF = m.userData.shell || (m.children[0] && m.children[0].userData && m.children[0].userData.shell);
+    if (item.crackFade !== item.wasCrackFade) {
+      if (shF && shF.material.uniforms && shF.material.uniforms.uMapMix) {
+        shF.material.uniforms.uMapMix.value = item.crackFade;
+      }
+      item.wasCrackFade = item.crackFade;
+    }
     if (item.glow !== item.wasGlow || item.crack !== item.wasCrack) {
       item.fadeT = 0.3;
       item.wasGlow = item.glow;
       item.wasCrack = item.crack;
       const shM = m.userData.shell || (m.children[0] && m.children[0].userData && m.children[0].userData.shell);
-      if (shM) shM.material.uniforms.uMap.value = item.crack ? crackTexture() : blankTexture();
+      if (shM) shM.material.uniforms.uMap.value = item.crack ? crackSkin(shM) : blankTexture();
       m.traverse((o) => {
         if (o.isMesh && o.material.uniforms && o.material.uniforms.uRim) {
           if (!o.material.userData.rim0) o.material.userData.rim0 = o.material.uniforms.uRim.value.clone();
@@ -245,8 +321,12 @@ window.Iron3D = { sync, render, count: () => pool.size, ready: true, keys: KEY, 
       shell: Boolean(sh),
       useMap: Boolean(sh && sh.material.vertexShader.indexOf("USE_MAP") >= 0),
       map: sh && sh.material.uniforms && sh.material.uniforms.uMap
-        ? (sh.material.uniforms.uMap.value === crackTexture() ? "crack" : sh.material.uniforms.uMap.value === blankTexture() ? "blank" : "other")
+        ? (sh.material.uniforms.uMap.value === blankTexture() ? "blank"
+          : sh.material.uniforms.uMap.value === shipCrackTexture() ? "star-ship"
+            : sh.material.uniforms.uMap.value === crackTexture() ? "star" : "other")
         : "none",
+      mapMix: sh && sh.material.uniforms && sh.material.uniforms.uMapMix
+        ? Math.round(sh.material.uniforms.uMapMix.value * 100) / 100 : null,
       mapS: sh && sh.material.uniforms.uMapS ? sh.material.uniforms.uMapS.value.toArray() : null,
       mapO: sh && sh.material.uniforms.uMapO ? sh.material.uniforms.uMapO.value.toArray() : null,
       uv0: sh ? sh.geometry.attributes.uv.array.slice(0, 4) : null,

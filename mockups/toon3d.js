@@ -72,6 +72,7 @@ varying vec2 vUv;
 uniform sampler2D uMap;
 uniform vec2 uMapS;
 uniform vec2 uMapO;
+uniform float uMapMix;
 #endif
 void main() {
   vec3 N = normalize(vN);
@@ -88,7 +89,7 @@ void main() {
   c = mix(uDeep, c, d);
   c *= uTintMul;
   #ifdef USE_MAP
-  c *= texture2D(uMap, vUv * uMapS + uMapO).rgb * 1.25;
+  c *= mix(vec3(1.0), texture2D(uMap, vUv * uMapS + uMapO).rgb, uMapMix) * 1.25;
   #endif
   float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
   c += uRim * fres * uRimW * (0.30 + 0.70 * max(N.y, 0.0));
@@ -227,6 +228,7 @@ function surfMaterial(color, cfg) {
       uMap: { value: cfg.map || new THREE.Texture() },
       uMapS: { value: cfg.mapS || new THREE.Vector2(1, 1) },
       uMapO: { value: cfg.mapO || new THREE.Vector2(0, 0) },
+      uMapMix: { value: cfg.mapMix === undefined ? 1 : cfg.mapMix },
       uTintMul: { value: new THREE.Vector3(1, 1, 1) },
       uLit: { value: r.lit }, uMid: { value: r.mid }, uShadow: { value: r.shadow }, uDeep: { value: r.deep },
       uKey: { value: new THREE.Vector3(-0.55, 0.72, 0.62) },

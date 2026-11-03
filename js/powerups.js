@@ -14,7 +14,7 @@ function updatePowerups(dt) {
     return (powerup.persist || powerup.y < H - 46) && (!Number.isFinite(powerup.ttl) || powerup.ttl > 0);
   });
 
-  const touched = powerups.find((powerup) => overlaps(powerup, player));
+  const touched = respawnTimer > 0 ? null : powerups.find((powerup) => overlaps(powerup, player));
   if (touched) collectPowerup(touched);
 }
 
@@ -256,6 +256,11 @@ function updateBombShots(dt) {
   });
 }
 
+function bombShotDamage(unit, base) {
+  const mul = (unit.designData && unit.designData.bombMul) || 1;
+  return Math.max(1, Math.round(base * mul));
+}
+
 function explodeBombShot(shot) {
   const centerShotX = shot.x + shot.w / 2;
   const centerShotY = shot.y + shot.h / 2;
@@ -305,9 +310,9 @@ function explodeBombShot(shot) {
       unit.carapaceTimer = Math.max(3.4, (unit.designData.carapaceInterval || 5.4) - (unit.phase - 1) * 0.6);
       unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
       showGameMessage(t("BARRAGE BROKEN!"), 1.0, "#ffe066");
-      damageBoss(unit, Math.round(18 + level * 1.5 + unit.maxHp * 0.09), { staggerMul: 0.5 });
+      damageBoss(unit, bombShotDamage(unit, 18 + level * 1.5 + unit.maxHp * 0.09), { staggerMul: 0.5 });
     } else {
-      damageBoss(unit, Math.round(12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });
+      damageBoss(unit, bombShotDamage(unit, 12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });
     }
   });
 

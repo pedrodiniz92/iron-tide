@@ -121,7 +121,7 @@ const MINIBOSS_DESIGNS = [
     ability: "SWARM PRINTER", bulletCap: 4, bombMax: 0, bombRadius: 34, laserFollow: 0,
     laser: false, bombsPerLaunch: 0, bombShieldDamage: 0,
     droneInterval: 1.25, burstInterval: 2.4, scrapShieldDuration: 1.1,
-    staggerEase: 0.6
+    staggerEase: 0.6, bombMul: 0.5
   },
   {
     name: "SPINE SENTRY",
@@ -150,19 +150,18 @@ const BOSS_DESIGNS = [
   },
   {
     name: "TURTLE BULWARK",
-    hp: 26, hpScale: 6, speed: 62, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
+    hp: 26, hpScale: 6, speed: 76, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
     ability: "CARAPACE BARRAGE", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 18,
     shellHp: 1, shellMaxHp: 2, shellRegen: 15,
-    carapaceInterval: 7.5, mineInterval: 0.72, mineShieldDamage: 18
+    carapaceInterval: 9, mineInterval: 0.72, mineShieldDamage: 18
   },
   {
     name: "ABYSSAL SQUID",
-    hp: 46, hpScale: 6, speed: 70, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    hp: 56, hpScale: 7, speed: 70, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
-    callingInterval: 7, bellInterval: 13,
-    staggerEase: 0.6
+    callingInterval: 7, bellInterval: 13, staggerEase: 1.125
   }
 ];
 
@@ -265,6 +264,11 @@ function wipeLocalScoresOnce() {
       localStorage.removeItem(SCORES_KEY);
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.setItem("scoresResetV9", "1");
+    }
+    if (!localStorage.getItem("scoresResetV10")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV10", "1");
     }
   } catch (e) { /* private mode */ }
 }
@@ -435,6 +439,20 @@ const MUSIC_TRACKS = [
 const STAGGER_WINDOW = 3.0;
 const STAGGER_COOLDOWN = 6;
 const STAGGER_DURATION = 3.0;
+const RESPAWN_PAUSE = 1.0;
+const RESPAWN_INVULN = 1.5;
+
+// Hull damage. A hit that leaves the ship at 1 HP cracks the hull, throws green hull chips off
+// it, and slows the ship 30% on the spot, easing back to 15% over HP_SLOW_EASE_TIME. The hull
+// knits itself back to full HP after HP_REGEN_TIME at 1 HP (or on any HP gain), the crack fading
+// out as it does, and the speed goes with it.
+const HP_REGEN_TIME = 10;
+const HP_SLOW_START = 0.70;
+const HP_SLOW_EASE = 0.85;
+const HP_SLOW_EASE_TIME = 2;
+const CRACK_SHOW_TIME = 0.2;
+const CRACK_FADE_TIME = 0.55;
+const HULL_CHIP_TIME = 0.85;
 const hudScoreEl = document.getElementById("score");
 const hudHiEl = document.getElementById("hi");
 const hudWaveEl = document.getElementById("wave");

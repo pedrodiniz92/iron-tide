@@ -33,6 +33,7 @@ function draw() {
   drawPlayer();
   drawShockwaves();
   drawExplosions();
+  drawHullChips();
   drawScorePopups();
   drawGameMessages();
   ctx.restore();
@@ -74,7 +75,7 @@ function drawHud() {
   if (hudScoreEl) hudScoreEl.textContent = t("SCORE {n}", { n: score });
   if (hudHiEl) hudHiEl.textContent = t("HI {n}", { n: highScore });
   if (hudWaveEl) hudWaveEl.textContent = t("WAVE {n}", { n: level });
-  if (hudLivesEl) hudLivesEl.textContent = t("LIVES {n}", { n: lives });
+  if (hudLivesEl) hudLivesEl.textContent = t("LIVES {n} · HP {h}/{m}", { n: lives, h: playerHp, m: maxPlayerHp });
 
   const active = [];
   if (effects.rapid > 0) active.push(Number.isFinite(effects.rapid) ? t("RAPID FIRE {n}s", { n: Math.ceil(effects.rapid) }) : t("RAPID FIRE UNTIL DEATH"));
@@ -233,6 +234,17 @@ function drawGround() {
 }
 
 function drawPlayer() {
+  if (respawnTimer > 0) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(120, 255, 120, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = COLORS.hud;
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText(t("RESPAWNING"), player.x + player.w / 2 - 36, player.y - 10);
+    ctx.restore();
+    return;
+  }
   const invulnBlink = invulnerabilityTimer > 0 && Math.floor(invulnerabilityTimer * 14) % 2 === 0;
   ctx.save();
   dashGhosts.forEach((ghost) => {
@@ -247,7 +259,8 @@ function drawPlayer() {
       `rgba(102, 136, 170, ${0.3 + heat * 0.7})`);
   }
   if (!push3D({ id: "player", key: "player", x: player.x, y: player.y, w: player.w, h: player.h,
-    color: COLORS.player, rot: [-Math.PI / 2, 0, 0], tilt: 0 })) {
+    color: COLORS.player, rot: [-Math.PI / 2, 0, 0], tilt: 0,
+    crack: crackFade > 0.02, crackFade })) {
     neon("classic", player.x + player.w / 2, player.y + player.h / 2, player.w, COLORS.player);
   }
   if (mobilityLevel() >= 1 && dashCooldown <= 0) {
@@ -817,6 +830,21 @@ function drawShockwaves() {
     ctx.arc(wave.x, wave.y, radius * 0.78, 0, Math.PI * 2);
     ctx.stroke();
     ctx.lineWidth = 1;
+  });
+}
+
+function drawHullChips() {
+  hullChips.forEach((chip) => {
+    const life = chip.ttl / chip.maxTtl;
+    ctx.save();
+    ctx.translate(chip.x, chip.y);
+    ctx.rotate(chip.rot);
+    ctx.globalAlpha = Math.min(1, life * 1.4);
+    ctx.fillStyle = COLORS.player;
+    ctx.fillRect(-chip.size / 2, -chip.size / 2, chip.size, chip.size);
+    ctx.fillStyle = "rgba(8, 42, 14, 0.6)";
+    ctx.fillRect(-chip.size / 2, chip.size * 0.12, chip.size, chip.size * 0.38);
+    ctx.restore();
   });
 }
 

@@ -114,9 +114,10 @@ function updateEnemyBullets(dt) {
       let na = ca + clamp(d, -2.6 * dt, 2.6 * dt);
       if (bullet.seekA0 !== undefined) {
         let off = na - bullet.seekA0;
+        const seekMax = bullet.seekMax === undefined ? 1.05 : bullet.seekMax;
         while (off > Math.PI) off -= Math.PI * 2;
         while (off < -Math.PI) off += Math.PI * 2;
-        na = bullet.seekA0 + clamp(off, -1.05, 1.05);
+        na = bullet.seekA0 + clamp(off, -seekMax, seekMax);
       }
       bullet.vx = Math.cos(na) * sp;
       bullet.speed = Math.sin(na) * sp;
