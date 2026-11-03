@@ -1402,10 +1402,10 @@ function addStaggerDamage(boss, amount) {
   const design = boss.designData || BOSS_DESIGNS[0];
   const ease = design.staggerEase || 1;
   const venom = boss.ability === "VENOM DIVE";
-  const resist = (boss.designData && boss.designData.staggerMul) || 1;
-  staggerGrace = venom ? 2.0 : 0.4;
-  staggerDecayDiv = venom ? 8 : 5;
-  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1) * resist;
+  const forgiving = venom || ease < 1;
+  staggerGrace = venom ? 2.0 : forgiving ? 1.5 : 0.4;
+  staggerDecayDiv = venom ? 8 : forgiving ? 7 : 5;
+  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1) * ease;
 
   if (staggerDamage >= staggerThresholdEff) {
     triggerBossStagger(boss);

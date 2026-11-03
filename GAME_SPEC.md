@@ -22,10 +22,10 @@
 - A hit costs 1 HP and grants a short invulnerability; enemy fire and weapon powerups survive it.
 - Losing the last HP costs a life: enemy fire and weapon powerups clear, and after a 1s pause you respawn with HP refilled and 1.5s of invulnerability.
 - A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
-- The hull knits itself back to full HP after 10s at 1 HP (or on any HP gain); the crack fades out over 0.55s and the speed returns with it.
+- The hull knits itself back to full HP after 15s at 1 HP (or on any HP gain); the crack fades out over 0.55s and the speed returns with it.
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
 - Losing all lives ends the run.
-- An extra life is awarded every 8,000 points.
+- An extra life is awarded every 10,000 points.
 - Dash is a short horizontal burst with cooldown.
 
 ## Shooting

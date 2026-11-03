@@ -270,6 +270,11 @@ function wipeLocalScoresOnce() {
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.setItem("scoresResetV10", "1");
     }
+    if (!localStorage.getItem("scoresResetV11")) {
+      localStorage.removeItem(SCORES_KEY);
+      localStorage.removeItem("invadersIronTideHighScore");
+      localStorage.setItem("scoresResetV11", "1");
+    }
   } catch (e) { /* private mode */ }
 }
 wipeLocalScoresOnce();
@@ -446,13 +451,16 @@ const RESPAWN_INVULN = 1.5;
 // it, and slows the ship 30% on the spot, easing back to 15% over HP_SLOW_EASE_TIME. The hull
 // knits itself back to full HP after HP_REGEN_TIME at 1 HP (or on any HP gain), the crack fading
 // out as it does, and the speed goes with it.
-const HP_REGEN_TIME = 10;
+const HP_REGEN_TIME = 15;
 const HP_SLOW_START = 0.70;
 const HP_SLOW_EASE = 0.85;
 const HP_SLOW_EASE_TIME = 2;
 const CRACK_SHOW_TIME = 0.2;
 const CRACK_FADE_TIME = 0.55;
 const HULL_CHIP_TIME = 0.85;
+
+// Points per bonus life.
+const EXTRA_LIFE_INTERVAL = 10000;
 const hudScoreEl = document.getElementById("score");
 const hudHiEl = document.getElementById("hi");
 const hudWaveEl = document.getElementById("wave");

@@ -377,7 +377,7 @@ function addScore(points, x, y) {
     playComboScore(gained);
   }
 
-  while (score >= (extraLivesAwarded + 1) * 8000) {
+  while (score >= (extraLivesAwarded + 1) * EXTRA_LIFE_INTERVAL) {
     lives += 1;
     extraLivesAwarded += 1;
     playExtraLife();
