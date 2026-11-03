@@ -892,7 +892,7 @@ function renderStartBoard() {
   });
   if (!board.children.length) {
     const li = document.createElement("li");
-    li.textContent = t("no runs yet - beat the TURTLE BULWARK on wave 9");
+    li.textContent = t("no runs yet - beat the ABYSSAL SQUID on wave 10");
     board.appendChild(li);
   }
 }

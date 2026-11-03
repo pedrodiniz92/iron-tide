@@ -30,7 +30,7 @@ function handleTestKeys(key, event) {
 
   if (key === "l" && !repeat && state === "playing" && testFeatureOn("laserKey")) {
     laserCharges += 1;
-    showFloatingMessage(`LASER x${laserCharges}`, player.x + player.w / 2, player.y - 18, 1.0, "#6fdcff");
+    showFloatingMessage(t("LASER x{n}", { n: laserCharges }), player.x + player.w / 2, player.y - 18, 1.0, "#6fdcff");
     return true;
   }
 
@@ -115,7 +115,7 @@ function showUpgradePrompt(target, earned) {
     rows.forEach(({ tree, lvlSel }) => {
       const level = Math.min(Number(lvlSel.value), tree.levels.length);
       if (level < 1) return;
-      applyUpgrade({ treeId: tree.id, level, text: `${tree.name} ${level}: ${tree.levels[level - 1].label}` });
+      applyUpgrade({ treeId: tree.id, level, text: `${t(tree.name)} ${level}: ${t(tree.levels[level - 1].label)}` });
     });
     if (testPanelOpen) toggleTestPanel();
     jumpToWave(target);
@@ -155,7 +155,7 @@ function buildTestPanel() {
     box.checked = feature.on;
     box.addEventListener("change", () => { feature.on = box.checked; });
     row.appendChild(box);
-    row.appendChild(document.createTextNode(" " + feature.label));
+    row.appendChild(document.createTextNode(" " + t(feature.label)));
     panel.appendChild(row);
   });
 
@@ -169,7 +169,8 @@ function buildTestPanel() {
   ["None"].concat(MINIBOSS_DESIGNS.map((d) => d.name), BOSS_DESIGNS.map((d) => d.name)).forEach((name) => {
     const opt = document.createElement("option");
     opt.value = name;
-    opt.textContent = name;
+    opt.setAttribute("data-i18n", name);
+    opt.textContent = t(name);
     select.appendChild(opt);
   });
   select.addEventListener("change", () => { testBossName = select.value === "None" ? null : select.value; });
@@ -192,7 +193,7 @@ function buildTestPanel() {
   for (let w = 1; w <= 10; w += 1) {
     const opt = document.createElement("option");
     opt.value = String(w);
-    opt.textContent = "WAVE " + w;
+    opt.textContent = t("WAVE {n}", { n: w });
     waveSelect.appendChild(opt);
   }
   const waveBtn = document.createElement("button");

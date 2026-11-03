@@ -104,7 +104,9 @@ function frame(now) {
 }
 
 function winGame() {
+  if (state === "victory") return;
   state = "victory";
+  waveClearing = true;
   clearEnemyFire();
   gameMessages = [];
   victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
@@ -323,7 +325,9 @@ function updateMinibossSpawn() {
 }
 
 function checkWaveClear() {
-  if (waveClearing || state === "waveBreak" || state === "choices") return;
+  if (state !== "playing") return;
+  if (waveClearing) return;
+  if (isFinalStage(level)) return;
   if (bosses.length) return;
   if (isMinibossWave(level) && !bossSpawned) return;
   if (invaders.some((invader) => invader.alive)) return;
@@ -395,6 +399,10 @@ function gameOver() {
 }
 
 function finishBossFight() {
+  if (isFinalStage(level)) {
+    winGame();
+    return;
+  }
   waveClearing = true;
   level += 1;
   addScore(150);

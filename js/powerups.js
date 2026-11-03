@@ -243,7 +243,7 @@ function updateBombShots(dt) {
       return false;
     }
 
-    const hitInvader = invaders.find((invader) => invader.alive && !invader.ghosted && overlaps(shot, invader));
+    const hitInvader = invaders.find((invader) => invader.alive && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
     const hitBoss = bosses.find((unit) => overlaps(shot, unit));
 
@@ -267,7 +267,7 @@ function explodeBombShot(shot) {
   playBombExplosion();
 
   invaders.forEach((invader) => {
-    if (!invader.alive || invader.ghosted) return;
+    if (!invader.alive) return;
     const dx = invader.x + invader.w / 2 - centerShotX;
     const dy = invader.y + invader.h / 2 - centerShotY;
     if (dx * dx + dy * dy <= shot.radius * shot.radius) {

@@ -120,7 +120,8 @@ const MINIBOSS_DESIGNS = [
     hp: 8, hpScale: 2, speed: 76, bombTimer: 999, color: "#99d4ff", accent: "#ffe066",
     ability: "SWARM PRINTER", bulletCap: 4, bombMax: 0, bombRadius: 34, laserFollow: 0,
     laser: false, bombsPerLaunch: 0, bombShieldDamage: 0,
-    droneInterval: 1.25, burstInterval: 2.4, scrapShieldDuration: 1.1
+    droneInterval: 1.25, burstInterval: 2.4, scrapShieldDuration: 1.1,
+    staggerEase: 0.6
   },
   {
     name: "SPINE SENTRY",
@@ -160,7 +161,8 @@ const BOSS_DESIGNS = [
     hp: 46, hpScale: 6, speed: 70, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
-    callingInterval: 7, bellInterval: 13
+    callingInterval: 7, bellInterval: 13,
+    staggerEase: 0.6
   }
 ];
 

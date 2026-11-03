@@ -145,7 +145,7 @@ function findLaserTarget(x, y) {
   };
 
   invaders.forEach((invader) => {
-    if (invader.alive && !invader.ghosted) add("invader", invader);
+    if (invader.alive) add("invader", invader);
   });
   bosses.forEach((unit) => add("boss", unit));
   add("ufo", ufo);

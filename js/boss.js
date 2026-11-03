@@ -133,7 +133,7 @@ function hitPlayerWithSpikeMine() {
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
     if (shieldHits < maxShieldHits) noteShieldBreak();
-    showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED SPIKE x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
+    showGameMessage(shieldHits > 0 ? t("SHIELD ABSORBED SPIKE x{n}", { n: shieldHits }) : t("SHIELD GONE"), 1.1, "#62ffa1");
     return;
   }
 
@@ -227,7 +227,6 @@ function fireScrapBurst(boss) {
   }
   boss.scrapShield = boss.scrapShieldDuration;
   addExplosion(cx, cy, boss.designData.accent);
-  showGameMessage(t("SCRAP SHIELD"), 0.55, boss.designData.accent);
 }
 
 function shedScrapFragment(boss) {
@@ -491,7 +490,7 @@ function hitPlayerWithEnemyBomb(damage = 1) {
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
     if (shieldHits < maxShieldHits) noteShieldBreak();
-    showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED BOMB x${shieldHits}` : "SHIELD GONE", 1.1, "#62ffa1");
+    showGameMessage(shieldHits > 0 ? t("SHIELD ABSORBED BOMB x{n}", { n: shieldHits }) : t("SHIELD GONE"), 1.1, "#62ffa1");
     return;
   }
 
@@ -1101,7 +1100,7 @@ function hitPlayerWithBossLaser() {
     addExplosion(player.x + player.w / 2, player.y + player.h / 2, "#62ffa1");
     playShieldHit();
     if (shieldHits < maxShieldHits) noteShieldBreak();
-    showGameMessage(shieldHits > 0 ? `SHIELD ABSORBED LASER x${shieldHits}` : "SHIELD GONE", 1.05, "#62ffa1");
+    showGameMessage(shieldHits > 0 ? t("SHIELD ABSORBED LASER x{n}", { n: shieldHits }) : t("SHIELD GONE"), 1.05, "#62ffa1");
     return;
   }
 
@@ -1325,64 +1324,65 @@ function bossHitReward(boss) {
   spawnPowerupAt(boss.x + boss.w / 2, boss.y + boss.h / 2, type, false, 5.5);
 }
 
-function damageBoss(boss, amount, opts = {}) {
-  if (!boss) return;
-  if (boss.carapaceInvuln > 0) {
-    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
+function damageBoss(unit, amount, opts = {}) {
+  if (!unit) return;
+  if (unit.hp <= 0) return;
+  if (unit.carapaceInvuln > 0) {
+    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#62ffa1");
     playShieldHit();
     return;
   }
   comboAddHit();
-  const design = boss.designData || BOSS_DESIGNS[0];
-  if (boss.shellHp > 0) {
-    boss.shellHp = Math.max(0, boss.shellHp - 1);
-    bossHitReward(boss);
-    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
+  const design = unit.designData || BOSS_DESIGNS[0];
+  if (unit.shellHp > 0) {
+    unit.shellHp = Math.max(0, unit.shellHp - 1);
+    bossHitReward(unit);
+    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#62ffa1");
     addScreenShake(4);
     playShieldHit();
-    if (boss.shellHp <= 0) boss.shellTimer = boss.shellRegen || 15;
+    if (unit.shellHp <= 0) unit.shellTimer = unit.shellRegen || 15;
     return;
   }
-  if (boss.scrapShield > 0) {
+  if (unit.scrapShield > 0) {
     amount = Math.max(0, amount - 1);
-    shedScrapFragment(boss);
-    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, design.accent);
+    shedScrapFragment(unit);
+    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, design.accent);
     playShieldHit();
     if (amount <= 0) {
-      bossHitReward(boss);
+      bossHitReward(unit);
       return;
     }
   }
   if (bossStagger > 0) {
     amount = Math.ceil(amount * 1.8);
   }
-  const oldPhase = boss.phase || 1;
-  boss.hp -= amount;
-  if (boss.hp > 0) bossHitReward(boss);
+  const oldPhase = unit.phase || 1;
+  unit.hp -= amount;
+  if (unit.hp > 0) bossHitReward(unit);
   if (bossStagger <= 0) {
-    addStaggerDamage(boss, amount * (opts.staggerMul === undefined ? 1 : opts.staggerMul));
+    addStaggerDamage(unit, amount * (opts.staggerMul === undefined ? 1 : opts.staggerMul));
   }
-  boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
-  if (boss.phase > oldPhase) {
+  unit.phase = unit.hp <= unit.maxHp * 0.33 ? 3 : unit.hp <= unit.maxHp * 0.66 ? 2 : 1;
+  if (unit.phase > oldPhase) {
     addScreenShake(6);
     playBombExplosion();
-    showGameMessage(t("BOSS PHASE {n}", { n: boss.phase }), 1.15, design.color);
+    showGameMessage(t("BOSS PHASE {n}", { n: unit.phase }), 1.15, design.color);
   } else {
     addScreenShake(Math.min(1, amount));
   }
-  addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff3366");
+  addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#ff3366");
 
-  if (boss.hp <= 0) {
+  if (unit.hp <= 0) {
     comboAddKill();
-    addScore((boss.mini ? 160 : 300) + level * (boss.mini ? 25 : 50), boss.x + boss.w / 2, boss.y + boss.h / 2);
-    addScreenShake(boss.mini ? 10 : 14);
-    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffe066");
-    addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, COLORS.explosion);
+    addScore((unit.mini ? 160 : 300) + level * (unit.mini ? 25 : 50), unit.x + unit.w / 2, unit.y + unit.h / 2);
+    addScreenShake(unit.mini ? 10 : 14);
+    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#ffe066");
+    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, COLORS.explosion);
     playBombExplosion();
-    const bossX = boss.x + boss.w / 2;
-    const bossY = boss.y + boss.h / 2;
-    const mini = boss.mini === true;
-    bosses = bosses.filter((item) => item !== boss);
+    const bossX = unit.x + unit.w / 2;
+    const bossY = unit.y + unit.h / 2;
+    const mini = unit.mini === true;
+    bosses = bosses.filter((item) => item !== unit);
     boss = bosses[0] || null;
     minions.forEach((m) => {
       addExplosion(m.x + m.w / 2, m.y + m.h / 2, m.type === "idol" ? "#ffd76a" : "#8b5cf6");
@@ -1395,13 +1395,10 @@ function damageBoss(boss, amount, opts = {}) {
     if (mini || Math.random() < 0.65) {
       spawnPowerupAt(bossX + 34, bossY, pickLootType(mini ? 2 : 3), false, 9);
     }
-    showGameMessage(mini ? "MINIBOSS DOWN!" : "BOSS DOWN!", 1.35, design.color);
+    showGameMessage(mini ? t("MINIBOSS DOWN!") : t("BOSS DOWN!"), 1.35, design.color);
     if (bosses.length > 0) return;
     if (mini) {
       if (!invaders.some((invader) => invader.alive)) checkWaveClear();
-    } else if (design.name === "TURTLE BULWARK") {
-      finishBossFight();
-      return;
     } else if (isFinalStage(level)) {
       winGame();
       return;
@@ -1451,10 +1448,13 @@ function addStaggerDamage(boss, amount) {
   if (!boss || bossStagger > 0 || staggerCooldown > 0) return;
 
   staggerDamage += amount;
+  const design = boss.designData || BOSS_DESIGNS[0];
+  const ease = design.staggerEase || 1;
   const venom = boss.ability === "VENOM DIVE";
-  staggerGrace = venom ? 2.0 : 0.4;
-  staggerDecayDiv = venom ? 8 : 5;
-  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1);
+  const forgiving = venom || ease < 1;
+  staggerGrace = venom ? 2.0 : forgiving ? 1.5 : 0.4;
+  staggerDecayDiv = venom ? 8 : forgiving ? 7 : 5;
+  staggerThresholdEff = Math.max(4, 4 + level * 2) * 1.2 * (venom ? 0.75 : 1) * ease;
 
   if (staggerDamage >= staggerThresholdEff) {
     triggerBossStagger(boss);
