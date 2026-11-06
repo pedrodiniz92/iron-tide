@@ -2,75 +2,132 @@
 
 ## Core loop
 - The player defends the bottom of the screen from waves of enemies.
-- Each wave clears when all normal invaders are destroyed and no boss remains alive.
+- A wave clears when all normal invaders are destroyed and no boss remains alive. On miniboss
+  waves the boss spawns once about 10% of the invaders are left.
 - Waves 3, 6, and 9 are full bosses. Waves 7 and 8 are minibosses. Wave 10 is the final stage.
-- Clearing wave 10 wins the run and sends the score to the leaderboard.
+- Clearing wave 10 (killing the final boss) wins the run and sends the score to the leaderboard.
+- Each wave clear awards 150 points.
 
 ## Controls
 - Move: arrow keys or `A` / `D`.
-- Fire: `Space`.
+- Fire: `Space` (tap or hold).
 - Bomb: `Q`.
-- Laser: `E`.
-- Dash: `Shift` + arrow after Mobility.
-- Detonate launched bomb: `W` after Offense II.
+- Laser: `E` (needs stored laser charges).
+- Detonate a launched bomb early: `W` (after Offense II, while a bomb is in flight).
+- Dash: `Shift` + arrow after Mobility I.
 - Pause: `P`.
-- Audio: `M`, `N`, `B`.
-- Upgrade choice: `1`, `2`, `3`, arrows, Enter, click, or touch.
+- Audio: `M` (SFX), `N` (music), `B` (all).
+- Upgrade choice: `1`, `2`, `3`, up/down arrows, Enter, click, or touch.
+- Start / restart: `Enter` (or `Space` on the title screen). After a win, `Enter` opens the leaderboard.
+- The on-screen controls line lists move, fire, bomb, laser, dash, pause, SFX and music.
 
 ## Player
 - The player has 2 lives, each with 2 HP.
-- A hit costs 1 HP and grants a short invulnerability; enemy fire and weapon powerups survive it.
-- Losing the last HP costs a life: enemy fire and weapon powerups clear, and after a 1s pause you respawn with HP refilled and 1.5s of invulnerability.
-- A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
-- The hull knits itself back to full HP after 15s at 1 HP (or on any HP gain); the crack fades out over 0.55s and the speed returns with it.
+- A hit costs 1 HP and grants a short invulnerability (0.8s grace so volleys cannot chain-kill);
+  enemy fire and weapon powerups survive it.
+- Losing the last HP costs a life: enemy fire and weapon powerups clear, and after a 1s pause you
+  respawn with HP refilled and 1.5s of invulnerability.
+- A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in
+  over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
+- The hull knits itself back to full HP after 15s at 1 HP (or on any HP gain); the crack fades out
+  over 0.55s and the speed returns with it.
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
-- Losing all lives ends the run.
+- Losing all lives ends the run. If the invaders march down and reach the ship, the base is overrun
+  and the run ends immediately.
 - An extra life is awarded every 10,000 points.
-- Dash is a short horizontal burst with cooldown.
+- Dash is a short horizontal burst (210px) with a cooldown.
 
 ## Shooting
 - Normal fire shoots upward.
 - Rapid Fire increases fire rate.
 - Double Shot fires two parallel bullets.
-- Bomb powerups add stored bombs. Bombs fly upward, stick to targets, explode, and can be detonated early after Offense II.
-- Laser powerups add stored laser charges. Laser charges stack, show as `LASER xN`, and fire only with `E`.
+- Bomb powerups add stored bombs. Bombs fly upward and explode on contact (about a 180px blast
+  radius), clearing enemy bullets, bombs and spike mines in the blast, damaging bosses, gouging any
+  barrier the blast touches, and breaking a Venom Dive or Carapace Barrage. Barrier erosion is HP
+  out of a barrier's 54 (18 cells x 3 HP), landing on the cells nearest the impact and spilling
+  outward within 40px: 30 for a player bomb (10 cells gone, 56%), 16-24 for an enemy bomb (30-44%),
+  12-18 for a spike mine (22-33%). One blast cannot clear a barrier, so a bomb detonating on a
+  barrier punches a hole in your own and two clear it. `Q` launches; `W` detonates a launched bomb
+  early after Offense II.
+- Laser powerups add stored laser charges. Laser charges stack, show as `LASER xN`, and fire only
+  with `E`. The beam tracks the ship and damages the topmost target in a narrow column every 0.5s,
+  and it collects powerups it passes over.
 - Shield powerups absorb hits. Defense upgrades can restore shields after a delay.
-- A shield is its own layer: picking one up never restores HP. HP comes back only from the hull knitting at 1 HP (see Player) or from respawning on a new life.
+- A shield is its own layer: picking one up never restores HP. HP comes back only from the hull
+  knitting at 1 HP (see Player) or from respawning on a new life.
+- Time Warp slows enemies, the UFO and bosses for a few seconds.
+
+## Powerups
+- Seven types: RAPID FIRE, DOUBLE SHOT, LASER, SHIELD, TIME WARP, BOMB, LOOT CRATE.
+- Timed powerups stack their remaining time; the Mobility LONG DASH upgrade doubles their duration.
+- Normal enemies drop powerups at a wave-scaled rate (capped at 16%).
+- Loot crates have quality tiers (1/2/3) with richer loot tables at higher tiers.
+- Uncollected drops keep falling and disappear off the bottom of the screen. Nothing parks on
+  screen waiting to be picked up, including boss kills, loot crates and stagger drops.
 
 ## Enemies
-- Basic invaders march in formation and shoot downward.
-- Stingers and ghosts use limited predictive aiming.
-- Crabs have armor and award 40 points.
-- Stingers award 35 points.
-- Ghosts phase through bullets and award 60 points.
+- Six invader types: octopus (10 pts), squid (30 pts), banshee (25 pts), stinger (35 pts),
+  crab (40 pts, 2 HP armor), ghost (60 pts).
+- Formation: crabs and squids appear every wave, stingers from wave 2, banshees from wave 4,
+  ghosts from wave 5.
+- Basic invaders march in formation, drop a row when they hit a screen edge, and shoot downward.
+- Stingers, ghosts, crabs and the front row (from wave 2) use limited predictive aiming.
 - Enemy aim is limited to about 260px from the shooter.
+- Ghosts phase through bullets on a cycle; bullets pass through them, but bombs and lasers still
+  kill them while phased.
+- Banshees periodically scream, opening a frenzy zone that makes nearby invaders fire in bursts.
 
 ## Bosses and minibosses
-- SCRAPLING is a swarm printer: it spits scrap drones, fires scrap bursts, and sheds fragments when shielded.
-- SPINE SENTRY is zone denial: it drops armed spike mines, pulses aimed shots near the player, and makes armored rolls.
-- SKULL CRUISER is the laser boss.
-- WINGED VIPER uses green shots and bombs.
-- TURTLE BULWARK uses shell, burrow, and mines.
-- Minibosses never offer permanent upgrades.
-- Full bosses offer permanent upgrades after defeat.
+- Minibosses:
+  - SCRAPLING is a swarm printer: it spits scrap drones, fires scrap bursts, and sheds fragments
+    when its scrap shield is up.
+  - SPINE SENTRY is zone denial: it drops armed spike mines, pulses aimed shots near the player,
+    and makes armored rolls.
+- Full bosses:
+  - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
+  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive.
+  - TURTLE BULWARK uses a regenerating shell, a carapace barrage, and drifting spike mines.
+  - ABYSSAL SQUID is the wave-10 final boss, with the lowest base speed of any boss. THE CALLING is
+    telegraphed turtle-style: it eases to a stop, then holds a frozen windup behind a filling
+    charge bar, radiating rings and a "SUMMONING" label. Each call summons 2 zealots (never more
+    than 2 alive), and every 4th call raises the healing idol instead. The SIREN BELL freezes every
+    enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
+    shots level with or below the ship are released, never recruited, and every released shot gets a
+    fresh 2.4s life, so nothing lingers. Its minions die with it.
+- Bosses have three phases (at 66% and 33% HP) and a stagger meter; a staggered boss takes extra
+  damage for a short window.
+- Minibosses never offer permanent upgrades. Full bosses offer a permanent upgrade after defeat.
 - Defeated bosses and minibosses do not respawn.
 
 ## Drops
 - Normal enemies drop powerups at a modest wave-scaled rate.
-- Bosses and minibosses drop more often than normal enemies.
-- Boss kills drop a persistent bomb plus extra loot.
+- Bosses and minibosses drop loot more often as they take hits.
+- Boss and miniboss kills drop a persistent bomb plus extra loot; full bosses drop a third item
+  most of the time. Higher-tier loot comes from full bosses and from UFO crates.
+- Killing a UFO drops a loot crate whose quality scales with the UFO's HP.
 - Loot crates can contain powerups, bombs, shields, lasers, and quality tiers.
 
 ## Upgrades
-- Offense improves firing, damage, and bomb handling.
-- Defense improves shield capacity and recovery.
-- Mobility improves dash distance, cooldown, and invulnerability.
-- Drop Rate improves powerup frequency.
-- Starting upgrade is chosen at the beginning of each run.
+- Three trees, each with three levels. The starting upgrade is chosen at the beginning of each run,
+  and a permanent upgrade is offered after every full boss.
+- OFFENSE: RAPID I (faster firing), RAPID II (faster firing, unlocks `W` to detonate your bomb),
+  DOUBLE CORE (permanent double firing).
+- SHIELD (defense): RESTORE SHIELD (broken shield returns after 15s; respawn refills 1 charge),
+  QUICK REPAIR (shield stack 2, restore 10s), TWIN SHIELDS (shield stack 2, restore 7s).
+- UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload), LONG DASH (3s reload;
+  powerups last 2x longer), SHARP DASH (invulnerable while dashing, 210px, 2.5s reload).
 
 ## UI rules
 - On-screen messages only appear when they add information.
 - Powerup messages appear near the powerup.
 - Extra life shows `+1 life` with points below it, not total lives.
-- Upgrade selection uses only up/down arrows.
-- The leaderboard stores local and remote scores.
+- Upgrade selection uses up/down arrows (plus `1`/`2`/`3`, Enter, click, or touch).
+- The HUD shows SCORE, HI, WAVE, and `LIVES n · HP x/2`.
+- Text is bilingual (English / Brazilian Portuguese), switchable live and remembered.
+- The leaderboard stores local and remote scores (top 100).
+- The test panel freezes the run while it is open, including during a wave break, and `p` cannot
+  unfreeze it. Closing the panel resumes only a run the panel itself paused.
+- A run that takes any test-panel entry is a test run: it writes no hi-score and no leaderboard
+  entry, and the end screen reads `TEST RUN - not ranked`. The taint lasts the whole run and is
+  cleared by the next start. A test boss picked in the panel, the `?boss=` URL parameter and
+  `?selftest` all mark the run the same way.

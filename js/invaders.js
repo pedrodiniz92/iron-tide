@@ -66,7 +66,6 @@ function newWave() {
   spikeMines = [];
   shockwaves = [];
   scorePopups = [];
-  powerups = powerups.filter((powerup) => powerup.persist || Number.isFinite(powerup.ttl));
   combo = 0;
   comboMultiplier = 1;
   comboTimer = 0;
@@ -88,20 +87,6 @@ function updateEnemyBullets(dt) {
   const slowFactor = getSlowFactor("enemy");
   enemyBullets.forEach((bullet) => {
     if (bullet.frozen) return;
-
-    if (bullet.homingT > 0) {
-      bullet.homingT -= dt;
-      const speed = bullet.speed || 110;
-      const ang = Math.atan2(bullet.vx || 0, speed);
-      const want = Math.atan2(player.x + player.w / 2 - (bullet.x + bullet.w / 2),
-        player.y + player.h / 2 - (bullet.y + bullet.h / 2));
-      let d = want - ang;
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      const step = (bullet.homingRate || 0.7) * dt;
-      const na = ang + clamp(d, -step, step);
-      bullet.vx = speed * Math.sin(na);
-    }
 
     if (bullet.seek > 0) {
       bullet.seek -= dt;

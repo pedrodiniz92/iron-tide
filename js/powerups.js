@@ -4,14 +4,10 @@ function updatePowerups(dt) {
     powerup.y += powerup.vy * dt;
     if (powerup.x < 22 || powerup.x > W - 48) powerup.vx *= -1;
     if (Number.isFinite(powerup.ttl)) powerup.ttl = Math.max(0, powerup.ttl - dt);
-    if (powerup.persist && player && powerup.y > player.y - powerup.h + 6) {
-      powerup.y = player.y - powerup.h + 6;
-      powerup.vy = 0;
-    }
   });
 
   powerups = powerups.filter((powerup) => {
-    return (powerup.persist || powerup.y < H - 46) && (!Number.isFinite(powerup.ttl) || powerup.ttl > 0);
+    return powerup.y < H + 20 && (!Number.isFinite(powerup.ttl) || powerup.ttl > 0);
   });
 
   const touched = respawnTimer > 0 ? null : powerups.find((powerup) => overlaps(powerup, player));
@@ -78,8 +74,7 @@ function spawnPowerupAt(x, y, type, fromUfo = false, ttl = 6, vx = null, weak = 
     vy: 34 + level * 2,
     fromUfo,
     weak,
-    ttl,
-    persist: !Number.isFinite(ttl)
+    ttl
   };
   powerups.push(powerup);
   return powerup;
@@ -112,7 +107,7 @@ function spawnUfoLootCrate(ufo) {
     ufo.y + ufo.h / 2,
     POWERUP_TYPES.find((powerup) => powerup.id === "loot") || POWERUP_TYPES[0],
     true,
-    Infinity,
+    40,
     ufo.vx
   );
 
@@ -246,8 +241,9 @@ function updateBombShots(dt) {
     const hitInvader = invaders.find((invader) => invader.alive && overlaps(shot, invader));
     const hitUfo = ufo && overlaps(shot, ufo);
     const hitBoss = bosses.find((unit) => overlaps(shot, unit));
+    const hitShield = shields.find((shield) => overlaps(shot, shield));
 
-    if (hitInvader || hitUfo || hitBoss) {
+    if (hitInvader || hitUfo || hitBoss || hitShield) {
       explodeBombShot(shot);
       return false;
     }
@@ -270,6 +266,11 @@ function explodeBombShot(shot) {
   addShockwave(centerShotX, centerShotY, shot.radius * 1.45);
   addScreenShake(10);
   playBombExplosion();
+
+  // The blast chews the barriers, the way enemy bombs do.
+  shields.slice().forEach((shield) => {
+    damageShieldArea(shield, centerShotX, centerShotY, 30);
+  });
 
   invaders.forEach((invader) => {
     if (!invader.alive) return;

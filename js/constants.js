@@ -158,7 +158,7 @@ const BOSS_DESIGNS = [
   },
   {
     name: "ABYSSAL SQUID",
-    hp: 56, hpScale: 7, speed: 70, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    hp: 56, hpScale: 7, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
     callingInterval: 7, bellInterval: 13, staggerEase: 1.125
@@ -446,6 +446,13 @@ const STAGGER_COOLDOWN = 6;
 const STAGGER_DURATION = 3.0;
 const RESPAWN_PAUSE = 1.0;
 const RESPAWN_INVULN = 1.5;
+
+// Barrier erosion. A blast chews the barrier within SHIELD_BLAST_RADIUS of the impact, and the
+// caller's value is HP spent out of the barrier's 54 (18 cells x 3 HP): the damage lands on the
+// cells nearest the impact first and spills outward. The reach spans the barrier's 72px width, so
+// repeated blasts can clear one. A spike mine (12-18) nicks 4-6 cells, an enemy bomb (16-24) takes
+// 6-8, and a player bomb (30) opens a 10-cell hole; two player bombs clear a barrier.
+const SHIELD_BLAST_RADIUS = 40;
 
 // Hull damage. A hit that leaves the ship at 1 HP cracks the hull, throws green hull chips off
 // it, and slows the ship 30% on the spot, easing back to 15% over HP_SLOW_EASE_TIME. The hull

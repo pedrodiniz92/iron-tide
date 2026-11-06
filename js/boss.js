@@ -114,11 +114,14 @@ function explodeSpikeMine(mine) {
   const pdx = player.x + player.w / 2 - mx;
   const pdy = player.y + player.h / 2 - my;
   if (pdx * pdx + pdy * pdy <= r * r) hitPlayerWithSpikeMine();
-  shields.forEach((shield) => {
+  // damageShieldArea rebinds the global shields, so iterate a copy (as
+  // explodeBombShot does) instead of the live array. The blast takes the
+  // mine's barrier damage in HP, the same value as the mine-hits-barrier path.
+  shields.slice().forEach((shield) => {
     const sdx = shield.x + shield.w / 2 - mx;
     const sdy = shield.y + shield.h / 2 - my;
     if (sdx * sdx + sdy * sdy <= (r + 40) * (r + 40)) {
-      damageShieldArea(shield, mx, my, r);
+      damageShieldArea(shield, mx, my, mine.shieldDamage || 12);
     }
   });
 }
@@ -197,10 +200,7 @@ function fireScrapDrone(boss) {
     maxHp: 1,
     color: boss.designData.accent,
     fromBoss: true,
-    shooterId: -1,
-    drone: true,
-    wobble: Math.random() * Math.PI * 2,
-    wobbleAmp: 70 + Math.random() * 50
+    shooterId: -1
   });
 }
 
@@ -229,8 +229,7 @@ function shedScrapFragment(boss) {
     maxHp: 1,
     color: boss.designData.accent,
     fromBoss: true,
-    shooterId: -1,
-    fragment: true
+    shooterId: -1
   });
 }
 
@@ -250,11 +249,8 @@ function spawnMinion(type, x, y) {
     h: 34,
     hp,
     maxHp: hp,
-    vx: 0,
-    vy: 0,
     t: 0,
-    fire: 1 + Math.random() * 1.5,
-    spread: type === "zealot" ? 0.22 : 0,
+    fire: 1.5 + Math.random() * 2,
     auraR: type === "idol" ? 150 : 0,
     phase: Math.random() * Math.PI * 2
   };
@@ -270,23 +266,24 @@ function killMinion(minion) {
   addExplosion(cx, cy, minion.type === "idol" ? "#ffd76a" : "#8b5cf6");
   addExplosion(cx, cy, COLORS.explosion);
   playHit();
-  if (minion.type === "zealot") {
+  if (minion.type === "zealot" && enemyBullets.length < 10) {
     const a0 = Math.PI / 2;
     for (let i = 0; i < 3; i += 1) {
       const a = a0 + (i - 1) * 0.22;
-      const speed = 130;
+      const speed = 150;
       enemyBullets.push({
         x: cx - 2,
         y: cy - 2,
         w: 5,
         h: 12,
-        speed: Math.max(30, Math.sin(a) * speed),
+        speed: Math.max(90, Math.sin(a) * speed),
         vx: Math.cos(a) * speed,
         hp: 1,
         maxHp: 1,
         color: "#c026d3",
         fromBoss: true,
-        shooterId: -1
+        shooterId: -1,
+        ttl: 2.4
       });
     }
   }
@@ -295,23 +292,29 @@ function killMinion(minion) {
 }
 
 function fireZealotShot(minion) {
-  if (enemyBullets.length >= 14) return;
+  if (enemyBullets.length >= 10) return;
   const sx = minion.x + minion.w / 2;
   const sy = minion.y + minion.h / 2;
   const a = Math.atan2(player.y + player.h / 2 - sy, player.x + player.w / 2 - sx);
-  const speed = 110;
+  const speed = 150;
+  const vy = Math.max(90, Math.sin(a) * speed);
+  const vx = Math.cos(a) * speed;
   enemyBullets.push({
     x: sx - 2,
     y: sy - 2,
     w: 5,
     h: 12,
-    speed: Math.max(30, Math.sin(a) * speed),
-    vx: Math.cos(a) * speed,
+    speed: vy,
+    vx,
     hp: 1,
     maxHp: 1,
     color: "#c026d3",
     fromBoss: true,
-    shooterId: -1
+    shooterId: -1,
+    seek: 0.5,
+    seekMax: 0.45,
+    seekA0: Math.atan2(vy, vx),
+    ttl: 2.4
   });
 }
 
@@ -330,7 +333,7 @@ function updateMinions(dt) {
       }
       minion.fire -= dt;
       if (minion.fire <= 0) {
-        minion.fire = 1.5 + Math.random() * 1.0;
+        minion.fire = 2.6 + Math.random() * 1.6;
         fireZealotShot(minion);
       }
     } else if (minion.type === "idol") {
@@ -385,25 +388,30 @@ function updateMinions(dt) {
   });
 }
 
+function riteActive(boss) {
+  return boss.callState === "slow" || boss.callState === "windup";
+}
+
 function castCalling(boss) {
-  if (boss.callCount % 4 === 0 && !minions.some((m) => m.type === "idol")) {
-    spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
-  } else if (boss.callCount % 4 === 1) {
-    const cx = boss.x + boss.w / 2;
-    let zealots = minions.filter((m) => m.type === "zealot").length;
-    let spawned = 0;
-    if (zealots + spawned < 3) {
-      spawnMinion("zealot", cx - 46, boss.y + boss.h / 2);
-      spawned += 1;
+  const cx = boss.x + boss.w / 2;
+  const cy = boss.y + boss.h / 2;
+  if (boss.callCount % 4 === 0) {
+    if (!minions.some((m) => m.type === "idol")) {
+      spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
+      addExplosion(cx, cy, "#ffd76a");
     }
-    if (zealots + spawned < 3) {
-      spawnMinion("zealot", cx + 12, boss.y + boss.h / 2);
-      spawned += 1;
-    }
-    if (spawned > 0) {
-      addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#c9a7ff");
-    }
+    return;
   }
+  // Spawn 2 zealots per call, never more than 2 alive at a time.
+  const alive = minions.filter((m) => m.type === "zealot").length;
+  const want = Math.min(2, 2 - alive);
+  const slots = want === 1 ? [cx - 17] : [cx - 46, cx + 12];
+  let spawned = 0;
+  while (spawned < want) {
+    spawnMinion("zealot", slots[spawned], cy);
+    spawned += 1;
+  }
+  if (spawned > 0) addExplosion(cx, cy, "#c9a7ff");
 }
 
 function castBell(boss) {
@@ -414,26 +422,38 @@ function castBell(boss) {
 function updateBell(dt) {
   if (!bellEffect) return;
   bellEffect.t += dt;
-    if (bellEffect.phase === 0) {
+  if (bellEffect.phase === 0) {
     enemyBullets.forEach((bullet) => {
       bullet.frozen = true;
     });
     if (bellEffect.t > 1.6) {
       bellEffect.phase = 1;
-      const volley = enemyBullets.slice(0, 8);
+      const pcx = player.x + player.w / 2;
+      const pcy = player.y + player.h / 2;
+      // Only shots clearly above the ship may be recruited: from there the
+      // re-aim below always points downward, never up into the player's face.
+      // Nearest the ship first, so the volley is the threat the player sees.
+      const volley = enemyBullets
+        .filter((bullet) => bullet.y + bullet.h / 2 < player.y - 40)
+        .sort((a, b) => Math.hypot(a.x + a.w / 2 - pcx, a.y + a.h / 2 - pcy)
+          - Math.hypot(b.x + b.w / 2 - pcx, b.y + b.h / 2 - pcy))
+        .slice(0, 8);
       enemyBullets.forEach((bullet) => {
         bullet.frozen = false;
+        // Fresh clock for every shot, recruited or not, measured from release.
+        bullet.ttl = 2.4;
         if (volley.indexOf(bullet) < 0) return;
         const bx = bullet.x + bullet.w / 2;
         const by = bullet.y + bullet.h / 2;
-        const a = Math.atan2(player.x + player.w / 2 - bx, player.y + player.h / 2 - by);
+        const a = Math.atan2(pcx - bx, pcy - by);
         bullet.speed = Math.cos(a) * 340;
         bullet.vx = Math.sin(a) * 340;
         bullet.seek = 0.6;
-        bullet.seekMax = 0.7;
         bullet.seekA0 = Math.atan2(bullet.speed, bullet.vx);
-        bullet.homingT = 0;
-        bullet.ttl = 4;
+        // The shared seek clamps the turn symmetrically about seekA0, so a shallow
+        // recruit could be steered past the horizontal and come back up. Cap the
+        // turn to the arc that keeps sin(angle) >= 0, i.e. always falling.
+        bullet.seekMax = Math.min(0.7, Math.min(bullet.seekA0, Math.PI - bullet.seekA0));
         bullet.hp = 1;
         bullet.maxHp = 1;
       });
@@ -481,13 +501,26 @@ function hitPlayerWithEnemyBomb(damage = 1) {
   damagePlayer(Math.max(1, damage));
 }
 
-function damageShieldArea(shield, x, y, radius) {
-  shield.cells = shield.cells.filter((cell) => {
-    const cx = cell.x + cell.w / 2;
-    const cy = cell.y + cell.h / 2;
-    if (Math.hypot(cx - x, cy - y) <= radius) cell.hp -= 1;
-    return cell.hp > 0;
+// `damage` is HP taken out of the barrier, not a radius: it lands on the cells nearest the impact
+// and spills outward to the next-nearest once a cell is gone. See SHIELD_BLAST_RADIUS.
+function damageShieldArea(shield, x, y, damage) {
+  const inBlast = shield.cells
+    .map((cell) => ({
+      cell,
+      dist: Math.hypot(cell.x + cell.w / 2 - x, cell.y + cell.h / 2 - y),
+    }))
+    .filter((item) => item.dist <= SHIELD_BLAST_RADIUS)
+    .sort((a, b) => a.dist - b.dist);
+
+  let left = Math.max(0, damage);
+  inBlast.forEach((item) => {
+    if (left <= 0) return;
+    const taken = Math.min(item.cell.hp, left);
+    item.cell.hp -= taken;
+    left -= taken;
   });
+
+  shield.cells = shield.cells.filter((cell) => cell.hp > 0);
   if (shield.cells.length === 0) shields = shields.filter((item) => item !== shield);
 }
 
@@ -545,7 +578,9 @@ function createBossFromDesign(design, mini, x, y) {
     minePulseRadius: design.minePulseRadius || 116,
     callTimer: design.callingInterval ? 4 : 999,
     callCount: 0,
-    callWindup: 0,
+    callState: "idle",
+    callT: 0,
+    callDir: 1,
     callingInterval: design.callingInterval || 7,
     bellTimer: design.bellInterval || 999,
     bellInterval: design.bellInterval || 13,
@@ -594,9 +629,16 @@ function spawnBoss() {
     return;
   }
 
-  const design = testBossName
-    ? (MINIBOSS_DESIGNS.concat(BOSS_DESIGNS).find((d) => d.name === testBossName) || currentBossDesign(level))
-    : currentBossDesign(level);
+  let design;
+  if (testBossName) {
+    // The test boss spawner is only armed by the panel select or the ?boss= URL
+    // param, and either can survive a restart, so the run is tainted here, at
+    // the point of use, not only when the name is chosen.
+    taintRun();
+    design = MINIBOSS_DESIGNS.concat(BOSS_DESIGNS).find((d) => d.name === testBossName) || currentBossDesign(level);
+  } else {
+    design = currentBossDesign(level);
+  }
   const mini = isMinibossWave(level);
   const unit = createBossFromDesign(design, mini, W / 2 - 64, 54);
   boss = unit;
@@ -623,9 +665,8 @@ function updateBossUnit(boss, dt) {
   }
 
   const bossSlow = (staggered ? 0.22 : 1) * getSlowFactor("boss");
-  const windupSlow = boss.callWindup > 0 ? 0.45 : 1;
-  boss.x += boss.vx * dt * bossSlow * windupSlow;
-  boss.y += boss.vy * dt * bossSlow * windupSlow;
+  boss.x += boss.vx * dt * bossSlow;
+  boss.y += boss.vy * dt * bossSlow;
 
   if (boss.x <= 18) {
     boss.x = 18;
@@ -650,6 +691,13 @@ function updateBossUnit(boss, dt) {
   if (boss.y > yMax) boss.y = Math.max(yMax, boss.y - 260 * dt);
   else boss.y = clamp(boss.y, 58, yMax);
   boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
+
+  // The bell runs on its own clock, above the stagger guard: phase 0 freezes
+  // every enemy bullet, and pausing that clock during a stagger would leave
+  // the bullets frozen for the stagger on top of the 1.6 s telegraph, so the
+  // bell would visibly overrun its 4.5 s lifetime. The squid itself stays
+  // paused below, and the rite block keeps the normal (non-staggered) call.
+  if (staggered && boss.ability === "ABYSSAL RITE") updateBell(dt);
 
   if (staggered) return;
 
@@ -795,22 +843,58 @@ function updateBossUnit(boss, dt) {
 
   if (boss.ability === "ABYSSAL RITE") {
     boss.hoverT = (boss.hoverT || 0) + dt;
+    const baseSpeed = boss.designData.speed + level * 8;
     const idol = minions.find((m) => m.type === "idol");
-    if (idol) {
-      const side = Math.sin(boss.hoverT * 0.45) >= 0 ? 1 : -1;
+    if (idol && boss.callState === "idle") {
+      // Glide beside the totem. `side` stays a continuous sine so the offset
+      // sweeps smoothly, the gain is gentle, and the steering is rate limited,
+      // so the boss drifts to the idol instead of snapping to it.
+      const side = Math.sin(boss.hoverT * 0.45);
       const off = side * (95 + Math.sin(boss.hoverT * 1.7) * 15);
-      boss.vx = clamp((idol.x + idol.w / 2 + off - (boss.x + boss.w / 2)) * 1.6, -170, 170);
-      boss.vy = clamp((idol.y - 90 + Math.sin(boss.hoverT * 0.7) * 40 - boss.y) * 1.6, -130, 130);
+      const aimVx = clamp((idol.x + idol.w / 2 + off - (boss.x + boss.w / 2)) * 0.55, -baseSpeed * 0.8, baseSpeed * 0.8);
+      const aimVy = clamp((idol.y - 90 + Math.sin(boss.hoverT * 0.7) * 40 - boss.y) * 0.55, -baseSpeed * 0.55, baseSpeed * 0.55);
+      const step = 110 * dt;
+      boss.vx += clamp(aimVx - boss.vx, -step, step);
+      boss.vy += clamp(aimVy - boss.vy, -step, step);
     }
-    boss.callTimer -= dt * bossSlow;
-    if (boss.callTimer <= 0 && !boss.callWindup) {
-      boss.callCount += 1;
-      boss.callWindup = 2.5;
-      boss.callTimer = boss.callingInterval;
-    }
-    if (boss.callWindup > 0) {
-      boss.callWindup -= dt * bossSlow;
-      if (boss.callWindup <= 0) castCalling(boss);
+    // Turtle-style rite: slow to a stop, hold the windup, then summon.
+    if (boss.callState === "idle") {
+      boss.callTimer -= dt * bossSlow;
+      if (boss.callTimer <= 0) {
+        boss.callState = "slow";
+        boss.callT = 0.8;
+        boss.callVx0 = boss.vx;
+        boss.callVy0 = boss.vy;
+      }
+    } else if (boss.callState === "slow") {
+      boss.callT -= dt * bossSlow;
+      const ease = Math.max(0, boss.callT / 0.8);
+      boss.vx = boss.callVx0 * ease;
+      boss.vy = boss.callVy0 * ease;
+      if (boss.callT <= 0) {
+        boss.callState = "windup";
+        boss.callT = 1.7;
+        // boss.vx has been eased to exactly 0 by the line above, so read the
+        // direction off the velocity the rite slowed down (as the carapace
+        // barrage does with carapaceVx0), not off the eased value.
+        boss.callDir = boss.callVx0 >= 0 ? 1 : -1;
+        boss.callCount += 1;
+        boss.vx = 0;
+        boss.vy = 0;
+        addScreenShake(4);
+      }
+    } else if (boss.callState === "windup") {
+      boss.callT -= dt * bossSlow;
+      boss.vx = 0;
+      boss.vy = 0;
+      screenShake = Math.max(screenShake, 3);
+      if (boss.callT <= 0) {
+        boss.callState = "idle";
+        boss.callTimer = boss.callingInterval;
+        castCalling(boss);
+        boss.vx = boss.callDir * baseSpeed;
+        boss.vy = 12 + level;
+      }
     }
     boss.bellTimer -= dt * bossSlow;
     if (boss.bellTimer <= 0) {
@@ -838,12 +922,12 @@ function updateBossUnit(boss, dt) {
   boss.timer -= dt * bossSlow;
   if (boss.timer <= 0) {
     fireBossBullet(boss);
-    boss.timer = (boss.callWindup > 0 ? 2.2 : 1) * Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
+    boss.timer = (riteActive(boss) ? 2.2 : 1) * Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
   }
 
   boss.bombTimer -= dt * bossSlow;
   if (boss.bombTimer <= 0) {
-    if (boss.callWindup > 0) {
+    if (riteActive(boss)) {
       boss.bombTimer = 0.5;
     } else {
       fireBossBomb(boss);
@@ -1341,6 +1425,9 @@ function damageBoss(unit, amount, opts = {}) {
     minions = [];
     resetStagger();
     clearEnemyFire();
+    // The bell is the squid's cast; its bullets are cleared above, so drop the
+    // effect too instead of leaving it for newWave()/startGame() to reset.
+    bellEffect = null;
     spawnPowerupAt(bossX, bossY, POWERUP_TYPES.find((powerup) => powerup.id === "bomb") || POWERUP_TYPES[0], true, Infinity);
     spawnPowerupAt(bossX - 34, bossY, pickLootType(mini ? 2 : 3), false, 9);
     if (mini || Math.random() < 0.65) {
@@ -1672,6 +1759,36 @@ function drawBossUnit(boss, index) {
     ctx.font = "12px 'Courier New', monospace";
     ctx.fillText("WINDING UP", boss.x + boss.w / 2 - 40, boss.y + boss.h + 26);
     ctx.lineWidth = 1;
+  }
+
+  if (boss.callState === "slow" || boss.callState === "windup") {
+    const riteCx = boss.x + boss.w / 2;
+    const riteCy = boss.y + boss.h / 2;
+    // One continuous countdown across the slow (0.8s) and windup (1.7s) phases.
+    const riteElapsed = boss.callState === "slow" ? 0.8 - boss.callT : 0.8 + (1.7 - boss.callT);
+    const ritePhase = clamp(riteElapsed / 2.5, 0, 1);
+    ctx.save();
+    ctx.strokeStyle = "rgba(201, 167, 255, 0.7)";
+    ctx.lineWidth = 3;
+    const riteBarW = boss.w + 20;
+    ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, riteBarW, 12);
+    // Fill the bar as the rite charges so the cast has a readable countdown.
+    ctx.fillStyle = "rgba(201, 167, 255, 0.55)";
+    ctx.fillRect(boss.x - 8, boss.y + boss.h - 4, (riteBarW - 4) * clamp(ritePhase, 0, 1), 8);
+    for (let ring = 0; ring < 3; ring += 1) {
+      // Steady pulse driven by hoverT so the rings keep radiating through the rite.
+      const p = (boss.hoverT * 1.4 + ring / 3) % 1;
+      ctx.globalAlpha = 0.55 * (1 - p);
+      ctx.beginPath();
+      ctx.arc(riteCx, riteCy, boss.w / 2 + 10 + p * 70, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#c9a7ff";
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText("SUMMONING", boss.x + boss.w / 2 - 32, boss.y + boss.h + 26);
+    ctx.lineWidth = 1;
+    ctx.restore();
   }
 
   if (boss.carapaceInvuln > 0) {

@@ -4,15 +4,38 @@ const TEST_FEATURES = [
 ];
 
 let testBossName = null;
+// The ?boss= URL param is a page-session facility: startGame() restores this
+// into testBossName so the URL keeps working across restarts.
+let urlBossName = null;
+
+// Any test-panel entry that touches the run makes it ineligible for the
+// leaderboard and the stored hi-score. The taint is one-way: it persists for
+// the rest of the run and is cleared by the next startGame().
+let runTainted = false;
+
+function taintRun() {
+  const fresh = !runTainted;
+  runTainted = true;
+  if (fresh && runIsLive()) showGameMessage(t("TEST RUN: NO SCORES SAVED"), 2.4, "#ff9a6a");
+}
+
 const qBoss = new URLSearchParams(location.search).get("boss");
-if (qBoss) testBossName = qBoss;
+if (qBoss) {
+  testBossName = qBoss;
+  urlBossName = qBoss;
+  runTainted = true;
+}
 
 function spawnTestBoss() {
   if (state !== "playing" || bosses.length) return;
+  taintRun();
   spawnBoss();
 }
 
 let testPanelOpen = false;
+// True when opening the panel is what paused the run, so closing it resumes
+// only that pause and never a run the player paused with `p`.
+let panelPaused = false;
 
 function testFeatureOn(id) {
   const feature = TEST_FEATURES.find((item) => item.id === id);
@@ -29,12 +52,14 @@ function handleTestKeys(key, event) {
   }
 
   if (key === "l" && !repeat && state === "playing" && testFeatureOn("laserKey")) {
+    taintRun();
     laserCharges += 1;
     showFloatingMessage(t("LASER x{n}", { n: laserCharges }), player.x + player.w / 2, player.y - 18, 1.0, "#6fdcff");
     return true;
   }
 
   if (key === "p" && event.shiftKey && !repeat && state === "playing" && testFeatureOn("dropPower")) {
+    taintRun();
     const types = POWERUP_TYPES.filter((type) => type.id !== "loot");
     const type = types[Math.floor(Math.random() * types.length)];
     spawnPowerupAt(player.x + player.w / 2, player.y - 40, type);
@@ -49,21 +74,45 @@ function toggleTestPanel() {
   if (!panel) return;
   testPanelOpen = !testPanelOpen;
   panel.style.display = testPanelOpen ? "block" : "none";
-  if (testPanelOpen && state === "playing") state = "paused";
-  if (!testPanelOpen && state === "paused") state = "playing";
+  if (testPanelOpen) {
+    // Freeze the run while the panel is open, including between waves, and
+    // remember that the panel did the pausing: closing it must not resume a
+    // run the player had already paused with `p`.
+    if (state === "playing" || state === "waveBreak") {
+      panelPaused = true;
+      state = "paused";
+    }
+  } else if (panelPaused) {
+    panelPaused = false;
+    state = "playing";
+  }
+}
+
+function runIsLive() {
+  return state === "playing" || state === "paused" || state === "waveBreak" || state === "choices";
 }
 
 function jumpToWave(target) {
+  taintRun();
   const prompt = document.getElementById("testUpgradePrompt");
   if (prompt) prompt.style.display = "none";
-  level = target;
-  testJumpLevel = level;
-  newWave();
+  if (!runIsLive()) {
+    testJumpLevel = target;
+    startGame(true);
+  } else {
+    level = target;
+    testJumpLevel = 0;
+    newWave();
+  }
   nextWaveIsBoss = isFullBossWave(level);
   if (nextWaveIsBoss) {
     spawnBoss();
     nextWaveIsBoss = false;
   }
+  // startGame() above clears the taint, so re-arm it on every path that
+  // starts or jumps a run: a wave jump is a test facility and must never rank.
+  taintRun();
+  state = "playing";
   updateStatus(t("Jumped to wave {n}", { n: level }));
 }
 
@@ -111,14 +160,14 @@ function showUpgradePrompt(target, earned) {
   startBtn.textContent = t("START WAVE {n}", { n: target });
   startBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#ffe066;border:1px solid #ffe066;cursor:pointer;";
   startBtn.addEventListener("click", () => {
+    if (testPanelOpen) toggleTestPanel();
+    jumpToWave(target);
     upgradeLevels = { offense: 0, defense: 0, mobility: 0 };
     rows.forEach(({ tree, lvlSel }) => {
       const level = Math.min(Number(lvlSel.value), tree.levels.length);
       if (level < 1) return;
       applyUpgrade({ treeId: tree.id, level, text: `${t(tree.name)} ${level}: ${t(tree.levels[level - 1].label)}` });
     });
-    if (testPanelOpen) toggleTestPanel();
-    jumpToWave(target);
   });
   box.appendChild(startBtn);
 
@@ -173,7 +222,10 @@ function buildTestPanel() {
     opt.textContent = t(name);
     select.appendChild(opt);
   });
-  select.addEventListener("change", () => { testBossName = select.value === "None" ? null : select.value; });
+  select.addEventListener("change", () => {
+    testBossName = select.value === "None" ? null : select.value;
+    if (testBossName) taintRun();
+  });
   const spawnBtn = document.createElement("button");
   spawnBtn.setAttribute("data-i18n", "SPAWN BOSS"); spawnBtn.textContent = t("SPAWN BOSS");
   spawnBtn.style.cssText = "display:block;margin-top:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
@@ -223,14 +275,19 @@ function buildTestPanel() {
   const bombBtn = document.createElement("button");
   bombBtn.setAttribute("data-i18n", "+1 BOMB"); bombBtn.textContent = t("+1 BOMB");
   bombBtn.style.cssText = "display:inline-block;margin-right:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#9ae6ff;border:1px solid #2c5f7a;cursor:pointer;";
-  bombBtn.addEventListener("click", () => { bombInventory += 1; updateStatus(t("+1 bomb")); });
+  bombBtn.addEventListener("click", () => { taintRun(); bombInventory += 1; updateStatus(t("+1 bomb")); });
   const laserBtn = document.createElement("button");
   laserBtn.setAttribute("data-i18n", "+1 LASER"); laserBtn.textContent = t("+1 LASER");
-  laserBtn.style.cssText = "display:inline-block;padding:3px 8px;font:12px monospace;background:#101820;color:#6fdcff;border:1px solid #2c5f7a;cursor:pointer;";
-  laserBtn.addEventListener("click", () => { laserCharges += 1; updateStatus(t("+1 laser")); });
+  laserBtn.style.cssText = "display:inline-block;margin-right:6px;padding:3px 8px;font:12px monospace;background:#101820;color:#6fdcff;border:1px solid #2c5f7a;cursor:pointer;";
+  laserBtn.addEventListener("click", () => { taintRun(); laserCharges += 1; updateStatus(t("+1 laser")); });
+  const lifeBtn = document.createElement("button");
+  lifeBtn.setAttribute("data-i18n", "+1 LIFE"); lifeBtn.textContent = t("+1 LIFE");
+  lifeBtn.style.cssText = "display:inline-block;padding:3px 8px;font:12px monospace;background:#101820;color:#78ff78;border:1px solid #2c5f7a;cursor:pointer;";
+  lifeBtn.addEventListener("click", () => { taintRun(); lives += 1; updateStatus(t("+1 life")); });
   bombRow.appendChild(bombLabel);
   bombRow.appendChild(bombBtn);
   bombRow.appendChild(laserBtn);
+  bombRow.appendChild(lifeBtn);
   panel.appendChild(bombRow);
 
   const hint = document.createElement("div");

@@ -8,7 +8,7 @@ function init() {
   draw();
 }
 
-function startGame() {
+function startGame(skipStartingUpgrade = false) {
   initAudio();
   state = "playing";
   score = 0;
@@ -78,6 +78,12 @@ function startGame() {
   clearPlayerBulletsPending = false;
   runTime = 0;
   victoryRank = 0;
+  runTainted = false;
+  // A panel boss pick must not leak into the next run. The ?boss= URL param is
+  // a page-session facility, so it stays armed - and that run is tainted from
+  // the start, before a single point is scored.
+  testBossName = urlBossName;
+  if (urlBossName) taintRun();
   keys.clear();
   window.touchAimX = null;
   playerName = effectiveName() || "PILOT";
@@ -86,9 +92,13 @@ function startGame() {
   updateDashHint();
   newWave();
   setMusic(pickWaveMusic(level), true);
-  state = "choices";
   gameMessages = [];
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (skipStartingUpgrade) {
+    state = "playing";
+    return;
+  }
+  state = "choices";
   upgradeChoices = buildUpgradeChoices();
   upgradeSel = 0;
   upgradePrompt = t("CHOOSE A STARTING UPGRADE");
@@ -117,7 +127,7 @@ function winGame() {
   waveClearing = true;
   clearEnemyFire();
   gameMessages = [];
-  victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
+  victoryRank = runTainted ? 0 : saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: true });
   playLevelClear();
   updateStatus(t("THE IRON TIDE IS BROKEN."));
 }
@@ -367,7 +377,9 @@ function updateWaveBreak(dt) {
 function addScore(points, x, y) {
   const gained = Math.max(1, Math.floor(points * comboMultiplier));
   score += gained;
-  if (score > highScore) {
+  // A test-panel run must not touch the stored hi-score, not even in memory:
+  // a later clean run would save the tainted value straight back out.
+  if (!runTainted && score > highScore) {
     highScore = score;
     saveHighScore(highScore);
   }
@@ -390,9 +402,11 @@ function gameOver() {
   state = "gameover";
   screenShake = 0;
   gameMessages = [];
-  saveHighScore(highScore);
-  if (score > 0) {
-    victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: false });
+  if (!runTainted) {
+    saveHighScore(highScore);
+    if (score > 0) {
+      victoryRank = saveScore({ name: playerName || "PILOT", score: score, time: Math.round(runTime), date: new Date().toISOString().slice(0, 10), win: false });
+    }
   }
   stopMusic();
   playGameOver();
@@ -602,6 +616,8 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (key === "p") {
+    // The panel owns the freeze while it is open; `p` must not unfreeze it.
+    if (testPanelOpen) return;
     if (state === "playing") state = "paused";
     else if (state === "paused") state = "playing";
     return;
@@ -637,6 +653,9 @@ if (new URLSearchParams(location.search).has("selftest")) {
       level = lvl;
       newWave();
     }
+    // Selftest is a test facility: it jumps waves, forces a boss and drops
+    // every powerup, so this run must never reach the hi-score or the board.
+    taintRun();
     setTimeout(() => {
       document.title = "SELFTEST spawned";
       spawnBoss();

@@ -52,10 +52,12 @@ function draw() {
   } else if (state === "victory") {
     showOverlay(t("YOU BEAT IT"), "");
     overlaySub.innerHTML = t("The Iron Tide is broken.") + "<br>" + t("SCORE") + " " + score +
-      " &middot; " + t("TIME") + " " + formatTime(runTime) + " &middot; " + t("RANK #") + victoryRank +
+      " &middot; " + t("TIME") + " " + formatTime(runTime) + " &middot; " +
+      (runTainted ? t("TEST RUN - not ranked") : t("RANK #") + victoryRank) +
       "<br><br>" + t("Press <kbd>Enter</kbd> for the leaderboard");
   } else if (state === "gameover") {
     showOverlay(t("GAME OVER"), t("Score {n} · Press Enter", { n: score }));
+    if (runTainted && overlaySub) overlaySub.innerHTML += "<br>" + t("TEST RUN - not ranked");
   } else if (state === "paused") {
     showOverlay(t("PAUSED"), "");
     overlaySub.innerHTML = controlsText() + "<br><br>" + t("Press <kbd>P</kbd> to continue");
