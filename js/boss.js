@@ -168,7 +168,7 @@ function fireMineShot(mine) {
   const sx = mine.x + mine.w / 2;
   const sy = mine.y + mine.h / 2;
   const speed = 260;
-  enemyBullets.push({
+  pushEnemyBullet({
     x: sx - 2,
     y: sy - 2,
     w: 4,
@@ -189,7 +189,7 @@ function fireScrapDrone(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h;
   const dir = Math.random() < 0.5 ? -1 : 1;
-  enemyBullets.push({
+  pushEnemyBullet({
     x: cx - 8,
     y: cy,
     w: 16,
@@ -218,7 +218,7 @@ function fireScrapBurst(boss) {
 function shedScrapFragment(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h / 2;
-  enemyBullets.push({
+  pushEnemyBullet({
     x: cx - 6,
     y: cy - 6,
     w: 12,
@@ -271,7 +271,7 @@ function killMinion(minion) {
     for (let i = 0; i < 3; i += 1) {
       const a = a0 + (i - 1) * 0.22;
       const speed = 150;
-      enemyBullets.push({
+      pushEnemyBullet({
         x: cx - 2,
         y: cy - 2,
         w: 5,
@@ -299,7 +299,7 @@ function fireZealotShot(minion) {
   const speed = 150;
   const vy = Math.max(90, Math.sin(a) * speed);
   const vx = Math.cos(a) * speed;
-  enemyBullets.push({
+  pushEnemyBullet({
     x: sx - 2,
     y: sy - 2,
     w: 5,
@@ -922,7 +922,10 @@ function updateBossUnit(boss, dt) {
   boss.timer -= dt * bossSlow;
   if (boss.timer <= 0) {
     fireBossBullet(boss);
-    boss.timer = (riteActive(boss) ? 2.2 : 1) * Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
+    // shotMul is the design's own firing-rate multiplier (the viper shoots less
+    // often than the others); every other boss and miniboss is 1.
+    boss.timer = (riteActive(boss) ? 2.2 : 1) * (boss.designData.shotMul || 1) *
+      Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
   }
 
   boss.bombTimer -= dt * bossSlow;
@@ -1332,7 +1335,7 @@ function fireBossBomb(boss) {
 function addBossBullet(boss, x, y, vx, speed) {
   if (enemyBullets.length >= (boss?.bulletCap || 6)) return;
   const design = boss?.designData || BOSS_DESIGNS[0];
-  enemyBullets.push({
+  pushEnemyBullet({
     x,
     y,
     w: 5,

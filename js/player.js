@@ -159,6 +159,9 @@ function findLaserTarget(x, y) {
     if (invader.alive) add("invader", invader);
   });
   bosses.forEach((unit) => add("boss", unit));
+  // Minions block the beam, the way they block bullets and take the blast: the
+  // idol hovers beside the squid, so the beam hits it instead of the boss.
+  minions.forEach((minion) => add("minion", minion));
   add("ufo", ufo);
   enemyBullets.forEach((bullet) => add("bullet", bullet));
   enemyBombs.forEach((bomb) => add("bomb", bomb));
@@ -220,6 +223,15 @@ function damageLaserTarget(target) {
 
     if (target.kind === "boss") {
       damageBoss(ref, 1);
+      return;
+    }
+
+    if (target.kind === "minion") {
+      ref.hp -= 1;
+      addExplosion(cx, cy, ref.type === "idol" ? "#ffd76a" : "#c9a7ff");
+      playHit();
+      if (ref.hp > 0) comboAddHit();
+      if (ref.hp <= 0) killMinion(ref);
       return;
     }
 

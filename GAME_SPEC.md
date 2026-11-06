@@ -42,8 +42,9 @@
 - Rapid Fire increases fire rate.
 - Double Shot fires two parallel bullets.
 - Bomb powerups add stored bombs. Bombs fly upward and explode on contact (about a 180px blast
-  radius), clearing enemy bullets, bombs and spike mines in the blast, damaging bosses, gouging any
-  barrier the blast touches, and breaking a Venom Dive or Carapace Barrage. Barrier erosion is HP
+  radius), clearing enemy bullets, bombs and spike mines in the blast, damaging bosses, killing any
+  zealot or idol caught in it (4 HP ends both, so a bomb is how you break the idol's heal), gouging
+  any barrier the blast touches, and breaking a Venom Dive or Carapace Barrage. Barrier erosion is HP
   out of a barrier's 54 (18 cells x 3 HP), landing on the cells nearest the impact and spilling
   outward within 40px: 30 for a player bomb (10 cells gone, 56%), 16-24 for an enemy bomb (30-44%),
   12-18 for a spike mine (22-33%). One blast cannot clear a barrier, so a bomb detonating on a
@@ -51,7 +52,9 @@
   early after Offense II.
 - Laser powerups add stored laser charges. Laser charges stack, show as `LASER xN`, and fire only
   with `E`. The beam tracks the ship and damages the topmost target in a narrow column every 0.5s,
-  and it collects powerups it passes over.
+  and it collects powerups it passes over. Targets are invaders, bosses, minions, the UFO and enemy
+  fire, so a zealot or the idol parked in the column blocks the beam and burns instead of the boss
+  behind it (1 HP per tick: 4 ticks for a zealot, 3 for the idol).
 - Shield powerups absorb hits. Defense upgrades can restore shields after a delay.
 - A shield is its own layer: picking one up never restores HP. HP comes back only from the hull
   knitting at 1 HP (see Player) or from respawning on a new life.
@@ -73,6 +76,9 @@
 - Basic invaders march in formation, drop a row when they hit a screen edge, and shoot downward.
 - Stingers, ghosts, crabs and the front row (from wave 2) use limited predictive aiming.
 - Enemy aim is limited to about 260px from the shooter.
+- Foe shots fly slower in the opening waves: 15% slower on wave 1, 10% on waves 2 and 3, 5% on
+  wave 4, full speed from wave 5. The vertical and horizontal components are scaled together, so
+  the shot is slower along exactly the same line of fire.
 - Ghosts phase through bullets on a cycle; bullets pass through them, but bombs and lasers still
   kill them while phased.
 - Banshees periodically scream, opening a frenzy zone that makes nearby invaders fire in bursts.
@@ -85,7 +91,8 @@
     and makes armored rolls.
 - Full bosses:
   - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
-  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive.
+  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. It fires 25% less often
+    than the other bosses (`shotMul`).
   - TURTLE BULWARK uses a regenerating shell, a carapace barrage, and drifting spike mines.
   - ABYSSAL SQUID is the wave-10 final boss, with the lowest base speed of any boss. THE CALLING is
     telegraphed turtle-style: it eases to a stop, then holds a frozen windup behind a filling
@@ -93,7 +100,9 @@
     than 2 alive), and every 4th call raises the healing idol instead. The SIREN BELL freezes every
     enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
     shots level with or below the ship are released, never recruited, and every released shot gets a
-    fresh 2.4s life, so nothing lingers. Its minions die with it.
+    fresh 2.4s life, so nothing lingers. Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
+    shootable and each drops loot; one bomb blast kills either, so the idol's heal can be broken.
+    Its minions die with it.
 - Bosses have three phases (at 66% and 33% HP) and a stagger meter; a staggered boss takes extra
   damage for a short window.
 - Minibosses never offer permanent upgrades. Full bosses offer a permanent upgrade after defeat.

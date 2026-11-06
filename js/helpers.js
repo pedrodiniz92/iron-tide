@@ -18,6 +18,22 @@ function overlapsPadded(a, b, pad) {
   return a.x < b.x + b.w + pad && a.x + a.w > b.x - pad && a.y < b.y + b.h + pad && a.y + a.h > b.y - pad;
 }
 
+// Foe shot speed for the wave being played (see ENEMY_SHOT_SPEED_SCALES).
+function enemyShotSpeedScale() {
+  return ENEMY_SHOT_SPEED_SCALES[level] || 1;
+}
+
+// Every foe shot is born here. The early-wave curve scales the vertical and the horizontal
+// component together, so the shot is slower along exactly the same line of fire.
+function pushEnemyBullet(bullet) {
+  const scale = enemyShotSpeedScale();
+  if (scale !== 1) {
+    bullet.speed = (bullet.speed || 0) * scale;
+    bullet.vx = (bullet.vx || 0) * scale;
+  }
+  enemyBullets.push(bullet);
+}
+
 function addExplosion(x, y, color, squash = null) {
   explosions.push({ x, y, color, squash, ttl: 0.38 });
 }

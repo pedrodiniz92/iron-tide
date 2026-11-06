@@ -146,7 +146,7 @@ const BOSS_DESIGNS = [
     ability: "VENOM DIVE", bulletCap: 8, bombMax: 3, bombRadius: 34, laserFollow: 0,
     laser: false, bombsPerLaunch: 2, bombShieldDamage: 16,
     bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 16,
-    diveInterval: 4.6
+    shotMul: 1.25, diveInterval: 4.6
   },
   {
     name: "TURTLE BULWARK",
@@ -446,6 +446,11 @@ const STAGGER_COOLDOWN = 6;
 const STAGGER_DURATION = 3.0;
 const RESPAWN_PAUSE = 1.0;
 const RESPAWN_INVULN = 1.5;
+
+// Foe shots fly slower in the opening waves, so the first screens read as readable
+// volleys: -15% on wave 1, -10% on waves 2 and 3, -5% on wave 4, full speed from
+// wave 5. Applied to both components of the shot, so the line of fire is unchanged.
+const ENEMY_SHOT_SPEED_SCALES = { 1: 0.85, 2: 0.9, 3: 0.9, 4: 0.95 };
 
 // Barrier erosion. A blast chews the barrier within SHIELD_BLAST_RADIUS of the impact, and the
 // caller's value is HP spent out of the barrier's 54 (18 cells x 3 HP): the damage lands on the

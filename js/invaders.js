@@ -203,7 +203,7 @@ function fireEnemyBullet() {
   const bulletSpeed = 560 * Math.min(1, 0.85 + (level - 1) * 0.05);
   const vx = aimed ? aimVx(source, sx, sy, bulletSpeed, 190) : 0;
 
-  enemyBullets.push({
+  pushEnemyBullet({
     x: sx - 2,
     y: sy,
     w: 4,
@@ -271,7 +271,7 @@ function updateInvaders(dt) {
     const fspeed = 560 * Math.min(1, 0.85 + (level - 1) * 0.05);
     const faim = (invader.rowRole === "last" && level >= 2) ||
       invader.type.name === "stinger" || invader.type.name === "ghost" || invader.type.name === "crab";
-    enemyBullets.push({
+    pushEnemyBullet({
       x: fx - 2, y: fy, w: 4, h: 14,
       speed: fspeed,
       vx: faim ? aimVx(invader, fx, fy, fspeed, 380) : 0,

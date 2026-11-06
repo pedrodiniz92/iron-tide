@@ -317,6 +317,17 @@ function explodeBombShot(shot) {
     }
   });
 
+  // Minions are in the blast too - a bomb is how you break the idol's heal.
+  // 4 HP ends a zealot (4) and the idol (3) outright. killMinion rebinds the
+  // global minions, so iterate a copy (as the shields loop above does).
+  minions.slice().forEach((minion) => {
+    const dx = minion.x + minion.w / 2 - centerShotX;
+    const dy = minion.y + minion.h / 2 - centerShotY;
+    if (dx * dx + dy * dy > shot.radius * shot.radius) return;
+    minion.hp -= 4;
+    if (minion.hp <= 0) killMinion(minion);
+  });
+
   const clearRadius = shot.radius * 0.85;
   enemyBullets = enemyBullets.filter((bullet) => {
     const dx = bullet.x + bullet.w / 2 - centerShotX;
