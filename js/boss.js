@@ -395,11 +395,12 @@ function riteActive(boss) {
 function castCalling(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h / 2;
-  if (boss.callCount % 4 === 0) {
-    if (!minions.some((m) => m.type === "idol")) {
-      spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
-      addExplosion(cx, cy, "#ffd76a");
-    }
+  // Every 4th call raises the healing idol. The windup is a promise: the bar fills,
+  // the rings radiate, the player reads "summon coming". So when the idol is
+  // already on screen the call is not wasted - it fills with zealots instead.
+  if (boss.callCount % 4 === 0 && !minions.some((m) => m.type === "idol")) {
+    spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
+    addExplosion(cx, cy, "#ffd76a");
     return;
   }
   // Spawn 2 zealots per call, never more than 2 alive at a time.

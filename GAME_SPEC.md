@@ -97,7 +97,9 @@
   - ABYSSAL SQUID is the wave-10 final boss, with the lowest base speed of any boss. THE CALLING is
     telegraphed turtle-style: it eases to a stop, then holds a frozen windup behind a filling
     charge bar, radiating rings and a "SUMMONING" label. Each call summons 2 zealots (never more
-    than 2 alive), and every 4th call raises the healing idol instead. The SIREN BELL freezes every
+    than 2 alive), and every 4th call raises the healing idol instead. If the idol is already on
+    screen, that 4th call fills with zealots instead, so the windup never promises a summon and
+    delivers nothing. The SIREN BELL freezes every
     enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
     shots level with or below the ship are released, never recruited, and every released shot gets a
     fresh 2.4s life, so nothing lingers. Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
@@ -135,7 +137,9 @@
 - Text is bilingual (English / Brazilian Portuguese), switchable live and remembered.
 - The leaderboard stores local and remote scores (top 100).
 - The test panel freezes the run while it is open, including during a wave break, and `p` cannot
-  unfreeze it. Closing the panel resumes only a run the panel itself paused.
+  unfreeze it. Closing the panel resumes exactly the state it froze - a wave break resumes as a
+  wave break - and never a run you paused yourself with `p`, so the wave after a panel-opened
+  break still starts.
 - A run that takes any test-panel entry is a test run: it writes no hi-score and no leaderboard
   entry, and the end screen reads `TEST RUN - not ranked`. The taint lasts the whole run and is
   cleared by the next start. A test boss picked in the panel, the `?boss=` URL parameter and

@@ -61,8 +61,9 @@ Open `index.html?selftest` to auto-start a wave with a boss, a UFO and every loo
 `{ state, invaders, powerups, boss, ufo, iron3d, meshes, frames, threeLivePct, threePct, twoPct }`.
 
 Press `` ` `` to toggle the test panel. Opening it pauses the run, including between waves, and
-closing it resumes only when the panel was the one that paused it, so a `p` pause you made yourself
-survives. Any entry you use there marks the run as a test run, which is excluded from the hi-score
+closing it resumes exactly the state it froze - a wave break resumes as a wave break - and only
+when the panel was the one that paused it, so a `p` pause you made yourself survives. Any entry
+you use there marks the run as a test run, which is excluded from the hi-score
 and the leaderboard (see Leaderboard below).
 
 ## Leaderboard

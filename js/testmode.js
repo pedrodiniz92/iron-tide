@@ -33,9 +33,10 @@ function spawnTestBoss() {
 }
 
 let testPanelOpen = false;
-// True when opening the panel is what paused the run, so closing it resumes
-// only that pause and never a run the player paused with `p`.
-let panelPaused = false;
+// The state the panel froze (null when it froze nothing), so closing it resumes
+// exactly that pause: never a run the player paused with `p`, and a wave break
+// resumes as a wave break.
+let panelPausedFrom = null;
 
 function testFeatureOn(id) {
   const feature = TEST_FEATURES.find((item) => item.id === id);
@@ -76,15 +77,17 @@ function toggleTestPanel() {
   panel.style.display = testPanelOpen ? "block" : "none";
   if (testPanelOpen) {
     // Freeze the run while the panel is open, including between waves, and
-    // remember that the panel did the pausing: closing it must not resume a
-    // run the player had already paused with `p`.
+    // remember which state it froze. "playing" is not a safe answer for a wave
+    // break: the break leaves waveClearing set, and checkWaveClear() ignores a
+    // "playing" run flagged that way, so the run would sit in an empty field
+    // with no wave to come.
     if (state === "playing" || state === "waveBreak") {
-      panelPaused = true;
+      panelPausedFrom = state;
       state = "paused";
     }
-  } else if (panelPaused) {
-    panelPaused = false;
-    state = "playing";
+  } else if (panelPausedFrom) {
+    state = panelPausedFrom;
+    panelPausedFrom = null;
   }
 }
 
@@ -112,6 +115,10 @@ function jumpToWave(target) {
   // startGame() above clears the taint, so re-arm it on every path that
   // starts or jumps a run: a wave jump is a test facility and must never rank.
   taintRun();
+  // A jump starts a fresh wave, so the wave-clear flag left behind by the wave
+  // being skipped must not carry over: newWave() does not clear it, and a
+  // "playing" run flagged as clearing can never advance to the next wave.
+  waveClearing = false;
   state = "playing";
   updateStatus(t("Jumped to wave {n}", { n: level }));
 }
