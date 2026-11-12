@@ -112,13 +112,22 @@ function addScorePopup(x, y, points) {
 
 function registerInvaderKill(invader) {
   comboAddKill();
-  let score = invader.type.score;
-  // SILENCED: a banshee killed while her frenzy wail zone is live pays double,
-  // with a message so the bonus is noticed.
-  if (invader.type.name === "banshee" &&
-      frenzyZones.some((z) => z.b === invader && z.t > 0)) {
-    score *= 2;
-    showGameMessage(t("BANSHEE SILENCED - DOUBLE POINTS"), 1.1, "#ff6a3d");
+  const score = invader.type.score;
+  // SILENCED: a banshee killed while her frenzy wail zone is live pays double.
+  // No text message - the fat green popup and the silenced chime are the tell.
+  const silenced = invader.type.name === "banshee" &&
+    frenzyZones.some((z) => z.b === invader && z.t > 0);
+  if (silenced) {
+    // The popup shows what addScore actually pays (combo multiplier included),
+    // same as every other score popup.
+    const gained = Math.max(1, Math.floor(score * 2 * comboMultiplier));
+    addScore(score * 2);
+    scorePopups.push({
+      x: invader.x + invader.w / 2, y: invader.y - 12, points: gained,
+      ttl: 1.15, maxTtl: 1.15, color: "#62ffa1", big: true
+    });
+    playSilencedChime();
+    return;
   }
   addScore(score, invader.x + invader.w / 2, invader.y + invader.h / 2);
 }

@@ -979,10 +979,14 @@ function drawScorePopups() {
     const alpha = Math.max(0, popup.ttl / popup.maxTtl);
     ctx.globalAlpha = alpha;
     ctx.fillStyle = popup.color;
-    ctx.font = `bold ${12 + Math.min(8, popup.points / 18)}px 'Courier New', monospace`;
+    ctx.font = popup.big
+      ? "bold 22px 'Courier New', monospace"
+      : `bold ${12 + Math.min(8, popup.points / 18)}px 'Courier New', monospace`;
+    if (popup.big) { ctx.shadowColor = popup.color; ctx.shadowBlur = 10; }
     ctx.textAlign = "center";
     ctx.fillText(`+${popup.points}`, popup.x, popup.y);
     ctx.textAlign = "start";
+    if (popup.big) ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
   });
 }

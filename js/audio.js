@@ -223,6 +223,15 @@ function playComboScore(points) {
   });
 }
 
+// SILENCED (banshee killed mid-wail): a clean rising major chime - the sound
+// of a hard-to-get reward. No text needed.
+function playSilencedChime() {
+  [659, 831, 988, 1319].forEach((freq, index) => {
+    playTone({ start: freq, end: freq, duration: 0.16, type: "sine", gain: 0.12, delay: index * 0.07 });
+  });
+  playTone({ start: 1319, end: 1319, duration: 0.34, type: "sine", gain: 0.08, delay: 0.32 });
+}
+
 function playPowerup() {
   [880, 1120, 1320, 1560].forEach((freq, index) => {
     playTone({ start: freq, end: freq * 1.15, duration: 0.09, gain: 0.15, delay: index * 0.06 });

@@ -116,7 +116,7 @@ function firePlayer() {
   if (fireCooldown > 0) return;
   const rapid = effects.rapid > 0;
   const rapidMult = rapid ? 0.76 : 1;
-  const offenseMult = 1 - Math.min(0.5, permanentFireRateBonus);
+  const offenseMult = 1 - Math.min(0.24, permanentFireRateBonus);
   // Standing in an ink cloud fires 20% slower; Mobility I+ ignores it.
   const inkMult = (upgradeLevels.mobility < 1 && playerInInk()) ? INK_FIRE_SLOW : 1;
   fireCooldown = 0.44 * rapidMult * offenseMult * inkMult;

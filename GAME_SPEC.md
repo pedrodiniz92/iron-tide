@@ -63,7 +63,8 @@
 
 ## Powerups
 - Seven types: RAPID FIRE, DOUBLE SHOT, LASER, SHIELD, TIME WARP, BOMB, LOOT CRATE.
-- Timed powerups stack their remaining time; the Mobility LONG DASH upgrade doubles their duration.
+- Timed powerups REFRESH (a fresh pickup resets the clock to its own length - they do not bank
+  time); the Mobility LONG DASH upgrade doubles their duration.
 - Normal enemies drop powerups at a wave-scaled rate (capped at 16%).
 - Loot crates have quality tiers (1/2/3) with richer loot tables at higher tiers.
 - Uncollected drops keep falling and disappear off the bottom of the screen. Nothing parks on
@@ -89,7 +90,8 @@
   pays 40 pts and drops a parting 5-shot fan; letting it escape costs nothing. 2-HP mobs show
   cracks at 1 HP left (crack texture on the 3D models, jagged lines in the 2D fallback).
 - Banshees periodically scream, opening a frenzy zone that makes nearby invaders fire in bursts.
-  Killing a banshee while her own frenzy zone is live pays DOUBLE points ("BANSHEE SILENCED").
+  Killing a banshee while her own frenzy zone is live pays DOUBLE points - no text, just a fat
+  green +N popup and a rising chime (the reward tell for a hard-to-get kill).
 
 ## Bosses and minibosses
 - Minibosses:
@@ -147,9 +149,10 @@
   and a permanent upgrade is offered after every full boss.
 - A maxed tree stays on the picker card list, drawn greyed with a "MAXED" tag, and cannot be
   picked (click, number key and Enter all refuse; up/down skip it).
-- OFFENSE: RAPID I (fires 1.39x faster), RAPID II (fires 2x faster, unlocks `W` to detonate your
+- OFFENSE: RAPID I (fires 1.18x faster), RAPID II (fires 1.32x faster, unlocks `W` to detonate your
   bomb), DOUBLE CORE (permanent double firing; a DOUBLE SHOT pickup on top of it fires a triple -
-  glass cannon: it costs 1 max HP, 2 to 1, for the rest of the run).
+  glass cannon: it costs 1 max HP, 2 to 1, for the rest of the run). Fire-rate bonuses cap at 1.32x
+  (the v1.10.0 retune to 1.39x/2x was reverted as too fast; RAPID powerups refresh, they do not stack).
 - SHIELD (defense): RESTORE SHIELD (broken shield returns after 15s; respawn refills 1 charge),
   QUICK REPAIR (shield stack 2, restore 10s), TWIN SHIELDS (shield stack 2, restore 7s).
 - UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload; cracked-hull and ink

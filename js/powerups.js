@@ -121,8 +121,11 @@ function applyTemporaryEffect(id, duration, weak = false) {
     laserCharges += 1;
     return;
   }
+  // Powerups REFRESH, they do not stack: a fresh pickup resets the clock to
+  // its own length (was: additive up to a 14s/28s bank - RAPID stacked on top
+  // of OFFENSE II put the ship at ~6 shots/s for half a minute).
   const effective = effectivePowerupDuration(duration, weak);
-  effects[id] = Math.min(effectivePowerupDuration(14, weak), effects[id] + effective);
+  effects[id] = effective;
 }
 
 function grantBomb(x, y) {
