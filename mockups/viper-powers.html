@@ -657,7 +657,7 @@
       // ---- venom pools (proposed) ----
       function addVenomPool(x) {
         const cx = clamp(x, 40, W - 40);
-        venomPools.push({ x: cx, y: H - 42, w: 70, h: 20, ttl: 3.5, maxTtl: 3.5 });
+        venomPools.push({ x: cx, y: H - 42, w: 70, h: 20, ttl: 1.5, maxTtl: 1.5 });
         stats.pools += 1;
         addShockwave(cx, H - 42, 46);
       }

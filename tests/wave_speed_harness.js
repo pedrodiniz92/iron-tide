@@ -129,19 +129,19 @@ const viper = designs.find((d) => d.name === "WINGED VIPER");
 const skull = designs.find((d) => d.name === "SKULL CRUISER");
 
 console.log("\nviper shot cadence (real timer-reset expression from js/boss.js)");
-check("WINGED VIPER carries shotMul 1.25", viper.shotMul === 1.25, "shotMul=" + viper.shotMul);
+check("WINGED VIPER carries shotMul 1.6 (dive-as-the-event: strafing thins between dives)", viper.shotMul === 1.6, "shotMul=" + viper.shotMul);
 let allRatios = [];
 [1, 3, 5, 8, 9].forEach((lv) => [1, 2, 3].forEach((ph) => {
   const r = interval(viper, lv, ph) / interval(skull, lv, ph);
   allRatios.push(r);
 }));
-check("viper's gap between shots is 1.25x the other bosses' at every wave and phase",
-  allRatios.every((r) => Math.abs(r - 1.25) < 1e-12),
+check("viper's gap between shots is 1.6x the other bosses' at every wave and phase",
+  allRatios.every((r) => Math.abs(r - 1.6) < 1e-12),
   "ratios " + Math.min(...allRatios).toFixed(3) + "-" + Math.max(...allRatios).toFixed(3));
-check("that is 20% fewer shots per second",
-  Math.abs((1 / interval(viper, 5, 1)) / (1 / interval(skull, 5, 1)) - 0.8) < 1e-12,
+check("that is 37.5% fewer shots per second",
+  Math.abs((1 / interval(viper, 5, 1)) / (1 / interval(skull, 5, 1)) - 1 / 1.6) < 1e-12,
   "shots/s " + (1 / interval(skull, 5, 1)).toFixed(3) + " -> " + (1 / interval(viper, 5, 1)).toFixed(3));
-check("the gap does not widen with the wave (same 1.25x on wave 1 and wave 9)",
+check("the gap does not widen with the wave (same 1.6x on wave 1 and wave 9)",
   Math.abs(interval(viper, 1, 1) / interval(skull, 1, 1) - interval(viper, 9, 3) / interval(skull, 9, 3)) < 1e-12,
   "w1 " + interval(viper, 1, 1).toFixed(3) + "s vs w9 " + interval(viper, 9, 3).toFixed(3) + "s");
 check("every other design is unchanged (no shotMul)",

@@ -29,6 +29,7 @@ function draw() {
   drawLaserBeams();
   drawEnemyBombs();
   drawSpikeMines();
+  drawVenomPools();
   drawBullets();
   drawInkBlight();
   drawPlayer();
@@ -750,8 +751,25 @@ function drawEnemyBombs() {
   });
 }
 
-function drawSpikeMines() {
-  spikeMines.forEach((mine) => {
+// VENOM POOLS: green floor puddles, fading out over their last 0.5s.
+function drawVenomPools() {
+  venomPools.forEach((pool) => {
+    ctx.save();
+    ctx.globalAlpha = 0.75 * Math.min(1, pool.t / 0.5);
+    ctx.fillStyle = pool.color;
+    ctx.beginPath();
+    ctx.ellipse(pool.x, pool.y, pool.w / 2, pool.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.35 * Math.min(1, pool.t / 0.5);
+    ctx.fillStyle = "#0d0d14";
+    ctx.beginPath();
+    ctx.ellipse(pool.x - 8, pool.y - 2, pool.w / 5, pool.ry / 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawSpikeMines() {  spikeMines.forEach((mine) => {
     const cx = mine.x + mine.w / 2;
     const cy = mine.y + mine.h / 2;
     const armed = (mine.arm || 0) <= 0;

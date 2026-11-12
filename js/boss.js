@@ -12,6 +12,7 @@ function updateEnemyBombs(dt) {
     bomb.trail = bomb.trail.filter((point) => point.ttl > 0);
 
     if (bomb.y >= H - 42) {
+      if (bomb.direct) spawnVenomPool(bomb);
       explodeEnemyBomb(bomb);
       return false;
     }
@@ -19,6 +20,7 @@ function updateEnemyBombs(dt) {
 
     if (bomb.ttl <= 0) {
       if (!bomb.direct) explodeEnemyBomb(bomb);
+      else spawnVenomPool(bomb);
       return false;
     }
 
@@ -42,7 +44,34 @@ function updateEnemyBombs(dt) {
     enemyBullets = [];
     enemyBombs = [];
     spikeMines = [];
+    venomPools = [];
   }
+}
+
+// VENOM POOLS: a direct bomb that lands (or expires) leaves a puddle that owns
+// floor space for 1.5s. Touching it is one hit - dashing through it is free.
+function spawnVenomPool(bomb) {
+  venomPools.push({
+    x: bomb.x + bomb.w / 2,
+    y: H - 52,
+    w: 70,
+    ry: 12,
+    t: 1.5,
+    color: bomb.color || "#7dff66"
+  });
+}
+
+function updateVenomPools(dt) {
+  venomPools.forEach((pool) => {
+    pool.t -= dt;
+    if (dashTimer > 0) return; // dash through: no damage
+    const px = player.x + player.w / 2;
+    const py = player.y + player.h / 2;
+    if (Math.hypot((px - pool.x) / (pool.w / 2), (py - pool.y) / pool.ry) < 1) {
+      hitPlayerWithEnemyBomb(1);
+    }
+  });
+  venomPools = venomPools.filter((pool) => pool.t > 0);
 }
 
 function updateSpikeMines(dt) {
@@ -779,20 +808,26 @@ function updateBossUnit(boss, dt) {
         boss.diveCount = 0;
         boss.vx = (boss.diveTargetX >= boss.x + boss.w / 2 ? 1 : -1) * diveSpeed * 1.6;
         boss.vy = 300 + level * 10;
+        // DIVE AS THE EVENT: the dive opens with a 5-shot V-curtain.
+        fireDiveCurtain(boss);
       }
     } else if (boss.diveState === "dive") {
-      boss.diveDropTimer -= dt * bossSlow;
-      if (boss.diveDropTimer <= 0) {
-        boss.diveDropTimer = 0.22;
-        fireVenomBomb(boss);
-        boss.diveCount += 1;
-      }
-      if (boss.y + boss.h >= player.y - 130 || boss.diveCount >= 4) {
+      if (boss.y + boss.h >= player.y - 130) {
         boss.diveState = "climb";
         boss.vy = -(300 + level * 10);
+        boss.diveDropTimer = 0.1;
+        boss.diveCount = 0;
         addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 70);
       }
     } else if (boss.diveState === "climb") {
+      // Mines ride the climb: the dive opens with the curtain and seeds the
+      // floor on the way back up.
+      boss.diveDropTimer -= dt * bossSlow;
+      if (boss.diveDropTimer <= 0) {
+        boss.diveDropTimer = 0.22;
+        fireSpikeMine(boss);
+        boss.diveCount += 1;
+      }
       if (boss.y <= 58) {
         boss.y = 58;
         boss.diveState = "idle";
@@ -930,6 +965,20 @@ function updateBossUnit(boss, dt) {
     // often than the others); every other boss and miniboss is 1.
     boss.timer = (riteActive(boss) ? 2.2 : 1) * (boss.designData.shotMul || 1) *
       Math.max(0.45, 1.25 - level * 0.04 - (boss.phase - 1) * 0.14);
+  }
+
+  // Delayed volley shots (the sniper pair's second bullet): aimed when they
+  // fire, so the pair tracks the ship across the 0.12s gap.
+  if (boss.pendingShots && boss.pendingShots.length) {
+    boss.pendingShots.forEach((s) => {
+      s.t -= dt * bossSlow;
+      if (s.t <= 0) {
+        const sx = boss.x + boss.w / 2;
+        const sy = boss.y + boss.h;
+        addBossBullet(boss, sx - 2, sy, bossAimVx(boss, sx, sy, s.speed, 70), s.speed);
+      }
+    });
+    boss.pendingShots = boss.pendingShots.filter((s) => s.t > 0);
   }
 
   boss.bombTimer -= dt * bossSlow;
@@ -1207,17 +1256,16 @@ function fireBossBullet(boss) {
   }
 
   if (design.ability === "VENOM DIVE") {
-    const pattern = Math.floor(Math.random() * 2);
-    if (pattern === 0) {
-      const sideAim = Math.abs(aim(60));
-      addBossBullet(boss, cx - 2, cy, aim(40), speed * 0.95);
-      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.85);
-      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.85);
+    // STRUCTURED VOLLEYS: two readable alternating patterns - (a) a 2-shot
+    // sniper pair aimed at the ship, the second shot 0.12s behind and re-aimed
+    // when it fires, and (b) a wide 5-shot fan at 0.8x speed, easy to weave.
+    boss.volleySniper = !boss.volleySniper;
+    if (boss.volleySniper) {
+      addBossBullet(boss, cx - 2, cy, aim(70), speed * 1.15);
+      boss.pendingShots = [{ t: 0.12, speed: speed * 1.15 }];
     } else {
-      const lead = aim(70);
-      addBossBullet(boss, cx - 24, cy, lead * 0.6, speed * 0.9);
-      addBossBullet(boss, cx + 20, cy, lead, speed * 0.9);
-      if (phase >= 3) addBossBullet(boss, cx - 2, cy, lead * 1.2, speed);
+      const fan = Math.abs(aim(60));
+      [-1, -0.5, 0, 0.5, 1].forEach((k) => addBossBullet(boss, cx - 2, cy, fan * k, speed * 0.8));
     }
     return;
   }
@@ -1243,31 +1291,15 @@ function fireBossBullet(boss) {
   }
 }
 
-function fireVenomBomb(boss) {
+// DIVE AS THE EVENT: the dive's opening move is a 5-shot V-curtain (speed 240,
+// vx -170..+170). Between dives the viper strafes at shotMul 1.6 - fewer shots,
+// each one means something; the dive is the attack, strafing is the breather.
+function fireDiveCurtain(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h;
-  const shield = shields.length ? shields[Math.floor(Math.random() * shields.length)] : null;
-  const targetX = shield ? shield.x + shield.w / 2 : playerCenterX();
-  const dx = targetX - cx;
-  enemyBombs.push({
-    x: cx - 7,
-    y: cy,
-    w: 14,
-    h: 14,
-    vx: clamp(dx * 0.5 + boss.vx * 0.35, -160, 160),
-    vy: 60,
-    ttl: 4.2,
-    hp: 2,
-    maxHp: 2,
-    radius: 18,
-    direct: true,
-    playerDamage: Math.max(1, boss.bombPlayerDamage || 1),
-    shieldDamage: boss.bombBarrierDamage || 16,
-    color: boss.designData.accent,
-    fromBoss: true,
-    trail: []
-  });
-  playBombLaunch();
+  for (let i = 0; i < 5; i += 1) {
+    addBossBullet(boss, cx - 2, cy, (i - 2) * 85, 240);
+  }
 }
 
 function fireBossBomb(boss) {

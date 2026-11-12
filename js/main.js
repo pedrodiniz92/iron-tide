@@ -144,6 +144,7 @@ function update(dt) {
   updateLaserBeams(dt);
   updateBombShots(dt);
   updateEnemyBombs(dt);
+  updateVenomPools(dt);
   updateSpikeMines(dt);
   updatePowerups(dt);
   updateEffects(dt);

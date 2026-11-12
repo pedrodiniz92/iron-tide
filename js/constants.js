@@ -147,7 +147,7 @@ const BOSS_DESIGNS = [
     ability: "VENOM DIVE", bulletCap: 8, bombMax: 3, bombRadius: 34, laserFollow: 0,
     laser: false, bombsPerLaunch: 2, bombShieldDamage: 16,
     bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 16,
-    shotMul: 1.25, diveInterval: 4.6
+    shotMul: 1.6, diveInterval: 4.6
   },
   {
     name: "ABYSSAL SQUID",

@@ -92,8 +92,13 @@
     and makes armored rolls.
 - Full bosses:
   - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
-  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. It fires 25% less often
-    than the other bosses (`shotMul`).
+  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. It fires 60% less often
+    than the other bosses (`shotMul` 1.6) - the dive is the attack, strafing is the breather.
+    DIVE AS THE EVENT: the telegraphed dive opens with a 5-shot V-curtain on the way down and
+    drops spike mines on the way back up. STRUCTURED VOLLEYS: strafing alternates two readable
+    patterns - a 2-shot sniper pair aimed at the ship (second shot 0.12s behind, re-aimed when it
+    fires) and a wide 5-shot fan at 0.8x speed. VENOM POOLS: a direct bomb that lands (or expires)
+    leaves a 1.5s venom puddle on the floor - touching it is one hit, dashing through it is free.
   - ABYSSAL SQUID is the wave-9 final boss (158 HP at wave 9), with the lowest base speed of any
     boss. THE CALLING is
     telegraphed: it eases to a stop, then holds a frozen windup behind a filling

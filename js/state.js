@@ -101,6 +101,8 @@ let permanentLongPowerups = false;
 let inkBlight = null;
 // Seconds spent inside the ink cloud (drives the -10% -> -20% move-slow ramp).
 let inkSlowT = 0;
+// VENOM POOLS (WINGED VIPER): floor puddles left by direct bombs.
+let venomPools = [];
 let maxShieldHits = 1;
 let itemShieldHits = 0;
 let shieldWeakTtl = 0;
