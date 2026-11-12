@@ -490,9 +490,9 @@ const CRACK_FADE_TIME = 0.55;
 const HULL_CHIP_TIME = 0.85;
 
 // Points per bonus life.
-// v1.0: scaled with the combo ceiling (10,000 at x8 -> 6,250 at x5) so extra
-// lives keep the same pace relative to a run's score.
-const EXTRA_LIFE_INTERVAL = 6250;
+// 10,000 stays (user call): with the x5 combo ceiling a run scores lower, so
+// extra lives are deliberately harder to earn than in the x8 days.
+const EXTRA_LIFE_INTERVAL = 10000;
 const hudScoreEl = document.getElementById("score");
 const hudHiEl = document.getElementById("hi");
 const hudWaveEl = document.getElementById("wave");

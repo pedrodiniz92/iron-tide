@@ -40,7 +40,7 @@
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
 - Losing all lives ends the run. If the invaders march down and reach the ship, the base is overrun
   and the run ends immediately.
-- An extra life is awarded every 6,250 points (scaled with the x5 combo ceiling).
+- An extra life is awarded every 10,000 points - deliberately tight under the x5 combo ceiling.
 - Dash is a short horizontal burst (210px) with a cooldown.
 
 ## Shooting
