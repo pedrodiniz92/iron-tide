@@ -76,6 +76,8 @@ const idolProbe = `
     var b = bosses[0];
     if (!b) return { err: "no boss on wave 9" };
     var out = { idolCastWithIdol: 0, idolCastNoIdol: 0, zealotPeak: 0 };
+    // ladder: the idol joins from phase 2 - run the casts there
+    b.phase = 2;
     // idol up, 3rd call: must fill with zealots
     minions = [{ id: 1, type: "idol", x: 300, y: 200, bx: 300, by: 200, w: 34, h: 34,
                  hp: 3, maxHp: 3, t: 0, fire: 9, auraR: 150, phase: 0 }];

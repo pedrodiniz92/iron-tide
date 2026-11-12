@@ -450,10 +450,10 @@ function riteShieldActive(boss) {
 function castCalling(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h / 2;
-  // Every 3rd call raises the healing idol. The windup is a promise: the bar fills,
-  // the rings radiate, the player reads "summon coming". So when the idol is
-  // already on screen the call is not wasted - it fills with zealots instead.
-  if (boss.callCount % 3 === 0 && !minions.some((m) => m.type === "idol")) {
+  // THE LADDER: phase 1 summons zealots only. The healing idol (totem) joins
+  // from phase 2. Every 3rd call raises it when it is already on screen the
+  // call is not wasted - it fills with zealots instead.
+  if (boss.phase >= 2 && boss.callCount % 3 === 0 && !minions.some((m) => m.type === "idol")) {
     spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
     addExplosion(cx, cy, "#ffd76a");
     return;
@@ -960,7 +960,10 @@ function updateBossUnit(boss, dt) {
       boss.bellTimer = boss.bellInterval;
     }
     updateBell(dt);
-    updateInkBlight(boss, dt);
+    // THE LADDER: INK BLIGHT is the phase-3 payoff - zealots alone in phase 1,
+    // zealots + idol in phase 2, all three in phase 3. The cadence clock lives
+    // inside updateInkBlight, so it starts counting the moment phase 3 begins.
+    if (boss.phase >= 3) updateInkBlight(boss, dt);
   }
 
   if (boss.laserEnabled === false) {

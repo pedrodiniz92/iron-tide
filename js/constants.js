@@ -109,7 +109,7 @@ const POWERUP_TYPES = [
   { id: "double", label: "D", name: POWERUP_NAMES.double, color: "#ffb04c", duration: 6 },
   { id: "laser", label: "L", name: POWERUP_NAMES.laser, color: "#6fdcff", duration: 4 },
   { id: "shield", label: "S", name: POWERUP_NAMES.shield, color: "#62ffa1", duration: 8 },
-  { id: "slow", label: "Z", name: POWERUP_NAMES.slow, color: "#bf9cff", duration: 3.5 },
+  { id: "slow", label: "Z", name: POWERUP_NAMES.slow, color: "#bf9cff", duration: 5 },
   { id: "bomb", label: "B", name: POWERUP_NAMES.bomb, color: "#ffe66a", duration: 0 },
   { id: "loot", label: "C", name: POWERUP_NAMES.loot, color: "#ffd166", duration: 0 }
 ];

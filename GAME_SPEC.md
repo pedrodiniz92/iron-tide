@@ -59,7 +59,7 @@
 - Shield powerups absorb hits. Defense upgrades can restore shields after a delay.
 - A shield is its own layer: picking one up never restores HP. HP comes back only from the hull
   knitting at 1 HP (see Player) or from respawning on a new life.
-- Time Warp slows enemies, the UFO and bosses for a few seconds.
+- Time Warp slows enemies, the UFO and bosses (enemies/UFO to 42%, bosses to 71%) for 5 seconds.
 
 ## Powerups
 - Seven types: RAPID FIRE, DOUBLE SHOT, LASER, SHIELD, TIME WARP, BOMB, LOOT CRATE.
@@ -81,8 +81,10 @@
 - Foe shots fly slower in the opening waves: 15% slower on wave 1, 10% on waves 2 and 3, 5% on
   wave 4, full speed from wave 5. The vertical and horizontal components are scaled together, so
   the shot is slower along exactly the same line of fire.
-- SHOT CLASH: your shot and any foe shot (boss shots included) cancel each other out on contact -
-  one for one, no hp checks - with a mini explosion on the spot (+12 pts).
+- SHOT CLASH (2 HP): your shot and any foe shot (boss shots included) trade one hit per contact -
+  both shots are 2 HP, so two of yours kill one of theirs and two of theirs kill one of yours
+  (+12 pts on the kill, paid silently). Whoever fired first meets the other shot earlier and wins
+  the duel.
 - Ghosts phase through bullets on a cycle; bombs and lasers still kill them while phased.
   PHASE BANK: a shot that passes through a phased ghost is swallowed (max 3, shown as orbiting
   dots) and comes back aimed the instant the ghost materializes - shooting a phased ghost costs.
@@ -115,9 +117,11 @@
     charge bar, radiating rings and a "SUMMONING" label. 0.5s into the channel the squid raises the
     ABYSSAL WARD - a violet bubble ("WARD x1/2") that halves all damage it takes until the cast
     resolves, so single shots land for 0.5. Each call summons 2 zealots (never more
-    than 2 alive), and every 3rd call raises the healing idol instead. If the idol is already on
+    than 2 alive), and every 3rd call raises the healing idol instead (from phase 2 - see the
+    ladder below). If the idol is already on
     screen, that call fills with zealots instead, so the windup never promises a summon and
-    delivers nothing. The SIREN BELL freezes every
+    delivers nothing. THE LADDER: phase 1 is zealots only; phase 2 adds the idol; phase 3 adds
+    INK BLIGHT (its 15-18s clock starts when phase 3 begins). The SIREN BELL freezes every
     enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
     shots level with or below the ship are released, never recruited, and every released shot gets a
     fresh 2.4s life, so nothing lingers. Every 15-18s the squid also fires INK BLIGHT: an ink blob

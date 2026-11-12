@@ -22,10 +22,10 @@ function sliceFn(src, name) {
   throw new Error("unbalanced " + name);
 }
 
-function cast(src, callCount, minions) {
+function cast(src, callCount, minions, phase = 2) {
   const target = {
     Math, Number, String, Array, Object, JSON, Boolean, isNaN,
-    W: 928, H: 620, minions, minionSeq: 0, boss: { x: 400, y: 120, w: 128, h: 96, callCount },
+    W: 928, H: 620, minions, minionSeq: 0, boss: { x: 400, y: 120, w: 128, h: 96, callCount, phase },
     seen: []
   };
   const sandbox = new Proxy(target, {
@@ -55,8 +55,13 @@ const minion = (type) => ({
 console.log("\nTHE CALLING summons (real castCalling)");
 
 const idolCast = cast(boss, 3, []);
-check("3rd cast raises the idol", idols(idolCast) === 1 && zealots(idolCast) === 0,
+check("3rd cast raises the idol (phase 2 - the ladder)", idols(idolCast) === 1 && zealots(idolCast) === 0,
   "idols=" + idols(idolCast) + " zealots=" + zealots(idolCast));
+
+const idolPhase1 = cast(boss, 3, [], 1);
+check("ladder: 3rd cast in phase 1 fills with zealots, no idol",
+  idols(idolPhase1) === 0 && zealots(idolPhase1) === 2,
+  "idols=" + idols(idolPhase1) + " zealots=" + zealots(idolPhase1));
 
 const idolAlive = cast(boss, 3, [minion("idol")]);
 check("3rd cast with the idol already alive summons 2 zealots, not nothing",

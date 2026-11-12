@@ -262,18 +262,26 @@ function checkCollisions() {
       return false;
     }
 
-    const hitEnemyBullet = enemyBullets.find((enemyBullet) => overlapsPadded(bullet, enemyBullet, 5));
+    const hitEnemyBullet = enemyBullets.find((enemyBullet) =>
+      overlapsPadded(bullet, enemyBullet, 5) && !(enemyBullet.clashT > 0));
     if (hitEnemyBullet) {
-      // SHOT CLASH: any shot of yours cancels any foe shot on the spot - one
-      // for one, no hp checks, boss shots included.
+      // SHOT CLASH (2 HP): both shots take ONE hit per contact - two of yours
+      // kill one of theirs, two of theirs kill one of yours. Whoever fired
+      // first meets the other shot earlier and wins the duel. clashT keeps a
+      // single crossing from counting twice on consecutive frames.
       const cx = hitEnemyBullet.x + hitEnemyBullet.w / 2;
       const cy = hitEnemyBullet.y + hitEnemyBullet.h / 2;
-      enemyBullets = enemyBullets.filter((item) => item !== hitEnemyBullet);
+      hitEnemyBullet.clashT = 0.15;
+      hitEnemyBullet.hp = Math.max(0, (hitEnemyBullet.hp || 2) - 1);
       addExplosion(cx, cy, "#ff8844");
-      addShockwave(cx, cy, 26);
-      addScore(12);
       playHit();
-      return false;
+      if (hitEnemyBullet.hp <= 0) {
+        enemyBullets = enemyBullets.filter((item) => item !== hitEnemyBullet);
+        addShockwave(cx, cy, 26);
+        addScore(12);
+      }
+      bullet.clashHp = (bullet.clashHp === undefined ? 2 : bullet.clashHp) - 1;
+      return bullet.clashHp > 0;
     }
 
     const hitEnemyBomb = enemyBombs.find((bomb) => overlaps(bullet, bomb));

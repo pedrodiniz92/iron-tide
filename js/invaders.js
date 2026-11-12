@@ -114,6 +114,7 @@ function updateEnemyBullets(dt) {
 
     bullet.y += bullet.speed * slowFactor * dt;
     bullet.x += (bullet.vx || 0) * slowFactor * dt;
+    if (bullet.clashT > 0) bullet.clashT -= dt;
     if (bullet.ttl !== undefined) bullet.ttl -= dt;
   });
 
