@@ -183,7 +183,7 @@ function fireSpikeMine(boss, arm = 1.2, offset = 0) {
     h: 16,
     vx: 0,
     vy: 112,
-    ttl: 6.2,
+    ttl: boss.mineTtl || 6.2,
     fuse: 3.0,
     blastRadius: 64,
     hp: 1,
@@ -657,6 +657,7 @@ function createBossFromDesign(design, mini, x, y) {
     mineTimer: design.mineInterval || 0.9,
     mineShieldDamage: design.mineShieldDamage || 12,
     mineInterval: design.mineInterval || 0.9,
+    mineTtl: design.mineTtl || 6.2,
     droneTimer: design.droneInterval || 1.25,
     droneInterval: design.droneInterval || 1.25,
     burstTimer: design.burstInterval || 2.4,
@@ -668,6 +669,9 @@ function createBossFromDesign(design, mini, x, y) {
     rollDuration: 0,
     rollLength: design.rollDuration || 1.6,
     rolling: false,
+    rollStartX: 0,
+    rollReturn: false,
+    rollRecover: 0,
     mineArmDelay: design.mineArmDelay || 0.75,
     minePulseRadius: design.minePulseRadius || 116,
     callTimer: design.callingInterval ? 4 : 999,
@@ -806,7 +810,8 @@ function updateBossUnit(boss, dt) {
     const diveSpeed = boss.designData.speed + level * 8;
     if (boss.diveState === "idle") {
       boss.diveTimer -= dt * bossSlow;
-      if (boss.diveTimer <= 0) {
+      // THE LADDER: the dive is the phase-2 event - phase 1 is pure strafing.
+      if (boss.diveTimer <= 0 && boss.phase >= 2) {
         boss.diveState = "telegraph";
         boss.diveTele = 0.6;
         boss.diveTargetX = clamp(playerCenterX(), 60, W - 60);
@@ -832,12 +837,12 @@ function updateBossUnit(boss, dt) {
         addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 70);
       }
     } else if (boss.diveState === "climb") {
-      // Mines ride the climb: the dive opens with the curtain and seeds the
-      // floor on the way back up.
+      // Mines ride the climb - but only in phase 3 (THE LADDER): the phase-2
+      // dive is the V-curtain and a clean climb, no seeded floor.
       boss.diveDropTimer -= dt * bossSlow;
       if (boss.diveDropTimer <= 0) {
         boss.diveDropTimer = 0.22;
-        fireSpikeMine(boss);
+        if (boss.phase >= 3) fireSpikeMine(boss);
         boss.diveCount += 1;
       }
       if (boss.y <= 58) {
@@ -880,18 +885,47 @@ function updateBossUnit(boss, dt) {
       boss.mineTimer = Math.max(0.95, boss.mineInterval - (boss.phase - 1) * 0.18);
     }
     const baseSpeed = boss.designData.speed + level * 8;
-    if (boss.rolling) {
+    // BOOMERANG ROLL (v1.10.6): the armored roll runs out at ~200px, comes
+    // back to where it started, and ends in a 1.2s recovery - the sentry sits
+    // duck, and the player always has a reachable boss. It never camps behind
+    // its own field.
+    if (boss.rollRecover > 0) {
+      boss.rollRecover -= dt * bossSlow;
+      boss.vx = 0;
+      if (boss.rollRecover <= 0) {
+        boss.rollRecover = 0;
+        boss.vx = (Math.random() < 0.5 ? -1 : 1) * baseSpeed;
+      }
+    } else if (boss.rolling) {
       boss.rollDuration -= dt * bossSlow;
-      boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed * 2.15;
-      if (boss.rollDuration <= 0) {
+      const cx = boss.x + boss.w / 2;
+      if (!boss.rollReturn && Math.abs(cx - boss.rollStartX) >= 200) {
+        boss.rollReturn = true;
+        boss.vx = (boss.rollStartX >= cx ? 1 : -1) * baseSpeed * 2.15;
+      } else if (boss.rollReturn && Math.abs(cx - boss.rollStartX) <= 6) {
         boss.rolling = false;
-        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed;
+        boss.rollReturn = false;
+        boss.vx = 0;
+        boss.rollRecover = 1.2;
+      } else {
+        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed * 2.15;
+      }
+      if (boss.rollDuration <= 0) {
+        // hard cap (screen-edge pin): end the roll where it is, with the
+        // same recovery window.
+        boss.rolling = false;
+        boss.rollReturn = false;
+        boss.vx = 0;
+        boss.rollRecover = 1.2;
       }
     } else {
       boss.rollTimer -= dt * bossSlow;
       if (boss.rollTimer <= 0) {
         boss.rolling = true;
-        boss.rollDuration = boss.rollLength;
+        boss.rollReturn = false;
+        boss.rollStartX = boss.x + boss.w / 2;
+        // leash + return + slack: the round trip is ~1.5s, the cap is 2.4s
+        boss.rollDuration = boss.rollLength * 1.5;
         boss.rollTimer = Math.max(2.8, boss.rollInterval - (boss.phase - 1) * 0.7);
         boss.vx = (boss.x + boss.w / 2 < W / 2 ? 1 : -1) * baseSpeed * 2.15;
         addScreenShake(4);
@@ -1000,9 +1034,14 @@ function updateBossUnit(boss, dt) {
   if (boss.bombTimer <= 0) {
     if (riteActive(boss)) {
       boss.bombTimer = 0.5;
+    } else if (boss.ability === "VENOM DIVE" && boss.phase < 2) {
+      // THE LADDER: a phase-1 viper only strafes - no bombs until phase 2.
+      boss.bombTimer = 1.2;
     } else {
       fireBossBomb(boss);
-      boss.bombTimer = Math.max(1.8, 3.8 - level * 0.08 - (boss.phase - 1) * 0.22);
+      // Phase 2 lobs at half rate; phase 3 is the full kit as tuned.
+      const ladder = boss.ability === "VENOM DIVE" && boss.phase === 2 ? 1.5 : 1;
+      boss.bombTimer = ladder * Math.max(1.8, 3.8 - level * 0.08 - (boss.phase - 1) * 0.22);
     }
   }
 
@@ -1467,7 +1506,9 @@ function damageBoss(unit, amount, opts = {}) {
     showGameMessage(mini ? t("MINIBOSS DOWN!") : t("BOSS DOWN!"), 1.35, design.color);
     if (bosses.length > 0) return;
     if (mini) {
-      if (!invaders.some((invader) => invader.alive)) checkWaveClear();
+      // A miniboss kill earns an upgrade pick too (v1.10.6): the wave ends on
+      // the kill, same as a full boss.
+      finishBossFight();
     } else if (isFinalStage(level)) {
       winGame();
       return;

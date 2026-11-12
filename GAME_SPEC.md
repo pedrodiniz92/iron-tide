@@ -5,6 +5,7 @@
 - A wave clears when all normal invaders are destroyed and no boss remains alive. On miniboss
   waves the boss spawns once about 10% of the invaders are left.
 - Waves 3 and 6 are full bosses. Waves 7 and 8 are minibosses. Wave 9 is the final stage.
+- Killing a miniboss ends the wave and awards a permanent upgrade pick, same as a full boss.
 - Clearing wave 9 (killing the ABYSSAL SQUID) wins the run and sends the score to the leaderboard.
 - Each wave clear awards 150 points.
 
@@ -100,7 +101,11 @@
   - SCRAPLING is a swarm printer: it spits scrap drones, fires scrap bursts, and sheds fragments
     when its scrap shield is up.
   - SPINE SENTRY is zone denial: it drops armed spike mines, pulses aimed shots near the player,
-    and makes armored rolls.
+    and makes armored rolls. THE BOOMERANG ROLL: a roll runs out at ~200px, returns to where it
+    started, and ends in a 1.2s recovery pause - the sentry sits duck and is always reachable.
+    DECAYING FIELD: its mines live 3.5s (not 6.2s) and drop every 2.2s, so the arena never fills
+    into a wall it can camp behind. Mines chew 7 barrier damage per blast (was 14, same as the
+    viper's).
 - Full bosses:
   - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
   - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. Its shots come 60% slower
@@ -111,6 +116,10 @@
     patterns - a 2-shot sniper pair aimed at the ship (second shot 0.12s behind, re-aimed when it
     fires) and a wide 5-shot fan at 0.8x speed. VENOM POOLS: a direct bomb that lands (or expires)
     leaves a 1.5s venom puddle on the floor - touching it is one hit, dashing through it is free.
+    THE LADDER: phase 1 is pure strafing volleys - no dive, no bombs. Phase 2 adds the dive
+    (V-curtain, clean climb, no mines) and bombs at half rate. Phase 3 is the full kit: dives
+    seed spike mines on the climb and bombs run at full cadence. Barrier damage softened: bombs
+    chew 10 (was 16) and mines 7 (was 12) of barrier per blast.
   - ABYSSAL SQUID is the wave-9 final boss (158 HP at wave 9), with the lowest base speed of any
     boss. THE CALLING is
     telegraphed: it eases to a stop, then holds a frozen windup behind a filling

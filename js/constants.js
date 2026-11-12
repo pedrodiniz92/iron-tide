@@ -128,7 +128,7 @@ const MINIBOSS_DESIGNS = [
     hp: 11, hpScale: 3, speed: 64, bombTimer: 5.2, color: "#9fffc9", accent: "#62ffa1",
     ability: "ZONE DENIAL", bulletCap: 4, bombMax: 1, bombRadius: 42, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 14,
-    mineInterval: 1.7, mineShieldDamage: 14, rollInterval: 5.4, rollDuration: 1.6,
+    mineInterval: 2.2, mineTtl: 3.5, mineShieldDamage: 7, rollInterval: 5.4, rollDuration: 1.6,
     mineArmDelay: 0.75, minePulseRadius: 116
   }
 ];
@@ -145,8 +145,8 @@ const BOSS_DESIGNS = [
     name: "WINGED VIPER",
     hp: 18, hpScale: 4, speed: 122, bombTimer: 3.35, color: "#2fc96f", accent: "#7dff66",
     ability: "VENOM DIVE", bulletCap: 8, bombMax: 3, bombRadius: 34, laserFollow: 0,
-    laser: false, bombsPerLaunch: 2, bombShieldDamage: 16,
-    bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 16,
+    laser: false, bombsPerLaunch: 2, bombShieldDamage: 10,
+    bombDirect: true, bombPlayerDamage: 1, bombBarrierDamage: 10, mineShieldDamage: 7,
     shotMul: 1.6, diveInterval: 4.6
   },
   {
