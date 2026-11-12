@@ -149,10 +149,11 @@
   and a permanent upgrade is offered after every full boss.
 - A maxed tree stays on the picker card list, drawn greyed with a "MAXED" tag, and cannot be
   picked (click, number key and Enter all refuse; up/down skip it).
-- OFFENSE: RAPID I (fires 1.18x faster), RAPID II (fires 1.32x faster, unlocks `W` to detonate your
-  bomb), DOUBLE CORE (permanent double firing; a DOUBLE SHOT pickup on top of it fires a triple -
-  glass cannon: it costs 1 max HP, 2 to 1, for the rest of the run). Fire-rate bonuses cap at 1.32x
-  (the v1.10.0 retune to 1.39x/2x was reverted as too fast; RAPID powerups refresh, they do not stack).
+- OFFENSE: RAPID I (2.4 shots/s), RAPID II (2.8 shots/s, unlocks `W` to detonate your
+  bomb), DOUBLE CORE (2.8 shots/s with permanent double firing; a DOUBLE SHOT pickup on top of it
+  fires a triple - glass cannon: it costs 1 max HP, 2 to 1, for the rest of the run). Base fire
+  rate is 2 shots/s (the v1.10.0 retune to 1.39x/2x was reverted; RAPID powerups refresh, they do
+  not stack).
 - SHIELD (defense): RESTORE SHIELD (broken shield returns after 15s; respawn refills 1 charge),
   QUICK REPAIR (shield stack 2, restore 10s), TWIN SHIELDS (shield stack 2, restore 7s).
 - UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload; cracked-hull and ink

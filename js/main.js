@@ -531,7 +531,7 @@ function applyUpgrade(choice) {
   upgradeLevels[choice.treeId] = choice.level;
 
   if (choice.treeId === "offense") {
-    permanentFireRateBonus = [0, 0.15, 0.3, 0.3][choice.level] || 0.3;
+    permanentFireRateBonus = [0, 0.1667, 0.2857, 0.2857][choice.level] || 0.2857;
     permanentDamage = 0;
     permanentDoubleShots = choice.level >= 3;
     // Glass cannon: OFFENSE III's extra barrel costs 1 max HP (2 -> 1).

@@ -116,10 +116,11 @@ function firePlayer() {
   if (fireCooldown > 0) return;
   const rapid = effects.rapid > 0;
   const rapidMult = rapid ? 0.76 : 1;
-  const offenseMult = 1 - Math.min(0.24, permanentFireRateBonus);
+  // v1.10.4 tuning: base 2 shots/s (0.5s), OFFENSE I 2.4/s, II/III 2.8/s.
+  const offenseMult = 1 - Math.min(0.2857, permanentFireRateBonus);
   // Standing in an ink cloud fires 20% slower; Mobility I+ ignores it.
   const inkMult = (upgradeLevels.mobility < 1 && playerInInk()) ? INK_FIRE_SLOW : 1;
-  fireCooldown = 0.44 * rapidMult * offenseMult * inkMult;
+  fireCooldown = 0.5 * rapidMult * offenseMult * inkMult;
 
   // DOUBLE on top of the OFFENSE III permanent double fires a triple.
   let offsets = [0];
