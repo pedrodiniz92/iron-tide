@@ -875,7 +875,8 @@ function drawInkBlight() {
     ctx.stroke();
   } else {
     const a = clamp(inkBlight.t / INK_CLOUD_TTL, 0, 1);
-    ctx.globalAlpha = 0.92 * Math.min(1, a * 2);
+    // Fully opaque core: enemy bullets inside the cloud are truly invisible.
+    ctx.globalAlpha = Math.min(1, a * 2);
     ctx.fillStyle = "#0a0813";
     ctx.beginPath();
     ctx.ellipse(inkBlight.x, inkBlight.cy, INK_CLOUD_RX, INK_CLOUD_RY, 0, 0, Math.PI * 2);

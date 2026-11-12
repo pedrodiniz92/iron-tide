@@ -61,7 +61,7 @@ const I18N = {
     "TWIN SHIELDS": "ESCUDOS GÊMEOS",
     "Shield stack 2, restore 7s": "Escudo duplo, recarga em 7s",
     "QUICK DASH": "TURBO RÁPIDO",
-    "Shift+Arrow dashes 210px, 3.5s reload; hull and ink slowdowns cannot touch you": "Shift+setas avança 210px, recarga em 3,5s; lentidões de casco e tinta não te afetam",
+    "Shift+Arrow dashes 210px, 3.5s reload; hull slowdowns cannot touch you, ink slows you half as much": "Shift+setas avança 210px, recarga em 3,5s; lentidão de casco não te afeta, tinta te atrasa pela metade",
     "LONG DASH": "TURBO LONGO",
     "Dash 3s reload; powerups last 2x longer": "Turbo com recarga em 3s; power-ups duram 2x mais",
     "SHARP DASH": "TURBO AFIADO",

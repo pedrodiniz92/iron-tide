@@ -212,7 +212,7 @@ const UPGRADE_TREES = [
     id: "mobility",
     name: "UTILITY",
     levels: [
-      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload; hull and ink slowdowns cannot touch you" },
+      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload; hull slowdowns cannot touch you, ink slows you half as much" },
       { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer" },
       { label: "SHARP DASH", desc: "Invulnerable while dashing, 210px, 2.5s reload" }
     ]
@@ -464,23 +464,26 @@ const HP_SLOW_EASE_TIME = 2;
 // INK BLIGHT (ABYSSAL SQUID): fires an expanding ink blob at the ship (locked
 // at launch, so it is dodgeable). It grows from INK_R0 at the squid to INK_R1
 // on arrival, then blooms into a cloud that drifts down and follows the ship's
-// column in slow pursuit. Standing in the cloud: fire 20% slower, move 15%
-// slower. Mobility I+ negates this and the cracked-hull slowdown.
+// column in slow pursuit. The cloud is OPAQUE - enemy bullets inside it are
+// truly invisible. Standing in the cloud: fire 20% slower, move 15% -> 30%
+// slower. Mobility I+ halves the ink move penalty (no longer immune), ignores
+// the fire slow, and negates the cracked-hull slowdown.
 const INK_INTERVAL = [15, 18];
 const INK_FLY_SPEED = 330;
 const INK_R0 = 8;
 const INK_R1 = 64;
 const INK_CLOUD_TTL = 5;
 const INK_CLOUD_RX = 90;
-const INK_CLOUD_RY = 130;
+const INK_CLOUD_RY = 180;
 const INK_FALL = 26;
 const INK_PURSUIT = 45;
 const INK_FIRE_SLOW = 1.25; // cooldown multiplier (fire 20% slower)
-// Movement slow ramps with time spent in the cloud: -10% on entry, -20% after
-// INK_SLOW_RAMP seconds. It decays off the tail when the ship leaves, and the
-// cloud itself dies after INK_CLOUD_TTL - nothing here is permanent.
-const INK_MOVE_SLOW_START = 0.90;
-const INK_MOVE_SLOW_END = 0.80;
+// Movement slow ramps with time spent in the cloud: -15% on entry, -30% after
+// INK_SLOW_RAMP seconds; Mobility I+ halves the penalty. It decays off the
+// tail when the ship leaves, and the cloud itself dies after INK_CLOUD_TTL -
+// nothing here is permanent.
+const INK_MOVE_SLOW_START = 0.85;
+const INK_MOVE_SLOW_END = 0.70;
 const INK_SLOW_RAMP = 2.5;
 const CRACK_SHOW_TIME = 0.2;
 const CRACK_FADE_TIME = 0.55;

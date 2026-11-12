@@ -30,7 +30,7 @@
   respawn with HP refilled and 1.5s of invulnerability.
 - A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in
   over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
-  Mobility I+ negates the cracked-hull slowdown and the ink blight slowdown entirely.
+  Mobility I+ negates the cracked-hull slowdown entirely and halves the ink blight slowdown.
 - The hull knits itself back to full HP after 15s at 1 HP (or on any HP gain); the crack fades out
   over 0.55s and the speed returns with it.
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
@@ -136,10 +136,13 @@
     shots level with or below the ship are released, never recruited, and every released shot gets a
     fresh 2.4s life, so nothing lingers. Every 15-18s the squid also fires INK BLIGHT: an ink blob
     aimed at the ship's position at launch (dodgeable), growing from a small muzzle blob into a
-    64px one as it closes, then blooming into a 5s cloud that drifts down and follows the ship's
-    column in slow pursuit (45px/s vs the ship's 290). The cloud blacks out shots inside it, and
-    standing in it fires 20% slower and moves 10% slower on entry, ramping to 20% slower after 2.5s
-    inside (the slow wears off 0.5s after you leave, and the cloud itself dies after 5s).
+    64px one as it closes, then blooming into a 5s cloud (a tall 90x180-radius ellipse) that
+    drifts down and follows the ship's
+    column in slow pursuit (45px/s vs the ship's 290). The cloud is OPAQUE - enemy bullets inside
+    it are truly invisible - and
+    standing in it fires 20% slower and moves 15% slower on entry, ramping to 30% slower after 2.5s
+    inside (Mobility I+ halves the ink move penalty and ignores the fire slow; the slow wears off
+    0.5s after you leave, and the cloud itself dies after 5s).
     Mobility I+ ignores all of it.
     Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
     shootable and each drops loot; one bomb blast kills either, so the idol's heal can be broken.
@@ -170,8 +173,8 @@
   not stack).
 - SHIELD (defense): RESTORE SHIELD (broken shield returns after 15s; respawn refills 1 charge),
   QUICK REPAIR (shield stack 2, restore 10s), TWIN SHIELDS (shield stack 2, restore 7s).
-- UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload; cracked-hull and ink
-  blight slowdowns cannot touch you), LONG DASH (3s reload;
+- UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload; cracked-hull slowdown
+  cannot touch you, ink blight slows you half as much), LONG DASH (3s reload;
   powerups last 2x longer), SHARP DASH (invulnerable while dashing, 210px, 2.5s reload).
 
 ## UI rules

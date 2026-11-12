@@ -73,27 +73,30 @@ function updateDash(dt) {
 }
 
 // A cracked hull (1 HP) drags the ship: -30% on the spot, easing to -15% over HP_SLOW_EASE_TIME.
-// The speed comes back when the hull knits (see updateHpRegen). Ink blight adds -15%.
-// Mobility I+ shrugs both off.
+// The speed comes back when the hull knits (see updateHpRegen). Mobility I+ shrugs the hull off.
+// Ink blight adds -15% -> -30% (ramp); Mobility I+ HALVES the ink penalty, never removes it.
 function playerSpeedMul() {
-  if (upgradeLevels.mobility >= 1) return 1;
   let mul = 1;
-  if (playerHp < maxPlayerHp) {
+  if (upgradeLevels.mobility < 1 && playerHp < maxPlayerHp) {
     const t = clamp(hpSlowTimer / HP_SLOW_EASE_TIME, 0, 1);
     mul = HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
   }
   if (inkSlowT > 0) {
-    // -10% on entry, easing to -20% after INK_SLOW_RAMP seconds in the cloud
+    // -15% on entry, easing to -30% after INK_SLOW_RAMP seconds in the cloud;
+    // Mobility I+ halves it.
     const p = clamp(inkSlowT / INK_SLOW_RAMP, 0, 1);
-    mul *= INK_MOVE_SLOW_START + (INK_MOVE_SLOW_END - INK_MOVE_SLOW_START) * p;
+    let slow = INK_MOVE_SLOW_START + (INK_MOVE_SLOW_END - INK_MOVE_SLOW_START) * p;
+    if (upgradeLevels.mobility >= 1) slow = 1 - (1 - slow) / 2;
+    mul *= slow;
   }
   return mul;
 }
 
 function movePlayer(dt) {
-  // Ink ramp: builds while the ship sits in the cloud, wears off the tail in
-  // 0.5s once it leaves. The cloud itself expires after INK_CLOUD_TTL.
-  if (upgradeLevels.mobility < 1 && playerInInk()) inkSlowT = Math.min(INK_SLOW_RAMP, inkSlowT + dt);
+  // Ink ramp: builds while the ship sits in the cloud (Mobility I+ builds it
+  // too - it just applies half as much), wears off the tail in 0.5s once it
+  // leaves. The cloud itself expires after INK_CLOUD_TTL.
+  if (playerInInk()) inkSlowT = Math.min(INK_SLOW_RAMP, inkSlowT + dt);
   else inkSlowT = Math.max(0, inkSlowT - dt * 5);
   const left = keys.has("arrowleft") || keys.has("a");
   const right = keys.has("arrowright") || keys.has("d");
