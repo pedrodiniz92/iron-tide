@@ -8,6 +8,10 @@
 - Killing a miniboss ends the wave and awards a permanent upgrade pick, same as a full boss.
 - Clearing wave 9 (killing the ABYSSAL SQUID) wins the run and sends the score to the leaderboard.
 - Each wave clear awards 150 points.
+- KILL COMBO: a hit adds +0.06 to the combo meter, a kill +0.20. The meter decays 0.22/s and a
+  2.25s grace timer (refreshed by any hit or kill) resets the combo when it lapses. The score
+  multiplier is `1 + floor(meter x 5)`, capped at **x5** (tiers at meter 0.2 / 0.4 / 0.6 / 0.8).
+  Kill points and the wave-clear bonus are paid multiplied by it.
 
 ## Controls
 - Move: arrow keys or `A` / `D`.
@@ -36,7 +40,7 @@
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
 - Losing all lives ends the run. If the invaders march down and reach the ship, the base is overrun
   and the run ends immediately.
-- An extra life is awarded every 10,000 points.
+- An extra life is awarded every 6,250 points (scaled with the x5 combo ceiling).
 - Dash is a short horizontal burst (210px) with a cooldown.
 
 ## Shooting

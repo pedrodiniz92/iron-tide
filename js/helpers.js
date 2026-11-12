@@ -150,7 +150,8 @@ function comboAddKill() {
 }
 
 function refreshCombo() {
-  const next = Math.min(8, 1 + Math.floor(comboMeter * 8));
+  // v1.0: ceiling x5 (was x8) - tiers at meter 0.2 / 0.4 / 0.6 / 0.8.
+  const next = Math.min(5, 1 + Math.floor(comboMeter * 5));
   if (next > comboMultiplier) updateStatus(t("COMBO x{n}", { n: next }));
   comboMultiplier = next;
 }
