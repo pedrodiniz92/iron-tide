@@ -121,7 +121,7 @@ const MINIBOSS_DESIGNS = [
     ability: "SWARM PRINTER", bulletCap: 4, bombMax: 0, bombRadius: 34, laserFollow: 0,
     laser: false, bombsPerLaunch: 0, bombShieldDamage: 0,
     droneInterval: 1.25, burstInterval: 2.4, scrapShieldDuration: 1.1,
-    staggerEase: 0.6, bombMul: 0.5
+    staggerEase: 0.6, bombMul: 0.4
   },
   {
     name: "SPINE SENTRY",
@@ -129,11 +129,12 @@ const MINIBOSS_DESIGNS = [
     ability: "ZONE DENIAL", bulletCap: 4, bombMax: 1, bombRadius: 42, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 14,
     mineInterval: 2.2, mineTtl: 3.5, mineShieldDamage: 7, rollInterval: 5.4, rollDuration: 1.6,
-    mineArmDelay: 0.75, minePulseRadius: 116
+    mineArmDelay: 0.75, minePulseRadius: 116, bombMul: 0.6
   }
 ];
 
-// The squid is the wave-9 finale; its hp is tuned to keep the old wave-10 total (hp + 9 * hpScale).
+// The squid is the wave-9 finale. Flat 130 HP (user tuning, v1.0.1+): it does
+// not scale with level - wave 9 is its only stage.
 const BOSS_DESIGNS = [
   {
     name: "SKULL CRUISER",
@@ -151,7 +152,7 @@ const BOSS_DESIGNS = [
   },
   {
     name: "ABYSSAL SQUID",
-    hp: 95, hpScale: 7, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    hp: 130, hpScale: 0, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
     callingInterval: 7, bellInterval: 13, staggerEase: 1.125

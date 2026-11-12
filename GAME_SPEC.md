@@ -55,7 +55,8 @@
   outward within 40px: 30 for a player bomb (10 cells gone, 56%), 16-24 for an enemy bomb (30-44%),
   12-18 for a spike mine (22-33%). One blast cannot clear a barrier, so a bomb detonating on a
   barrier punches a hole in your own and two clear it. `Q` launches; `W` detonates a launched bomb
-  early after Offense II.
+  early after Offense II. Minibosses resist bombs (`bombMul`): the SCRAPLING takes 40% and the
+  SPINE SENTRY 60% of normal bomb damage - a bomb is a bite, not a delete button.
 - Laser powerups add stored laser charges. Laser charges stack, show as `LASER xN`, and fire only
   with `E`. The beam tracks the ship and damages the topmost target in a narrow column every 0.5s,
   and it collects powerups it passes over. Targets are invaders, bosses, minions, the UFO and enemy
@@ -125,7 +126,7 @@
     (V-curtain, clean climb, no mines) and bombs at half rate. Phase 3 is the full kit: dives
     seed spike mines on the climb and bombs run at full cadence. Barrier damage softened: bombs
     chew 10 (was 16) and mines 7 (was 12) of barrier per blast.
-  - ABYSSAL SQUID is the wave-9 final boss (158 HP at wave 9), with the lowest base speed of any
+  - ABYSSAL SQUID is the wave-9 final boss (130 HP, flat - it does not scale with level), with the lowest base speed of any
     boss. THE CALLING is
     telegraphed: it eases to a stop, then holds a frozen windup behind a filling
     charge bar, radiating rings and a "SUMMONING" label. 0.5s into the channel the squid raises the
