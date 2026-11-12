@@ -101,8 +101,9 @@
   - SCRAPLING is a swarm printer: it spits scrap drones, fires scrap bursts, and sheds fragments
     when its scrap shield is up.
   - SPINE SENTRY is zone denial: it drops armed spike mines, pulses aimed shots near the player,
-    and makes armored rolls. THE BOOMERANG ROLL: a roll runs out at ~200px, returns to where it
-    started, and ends in a 1.2s recovery pause - the sentry sits duck and is always reachable.
+    and makes armored rolls. ROAMING ROLL: each roll picks a random heading - half the time at
+    your side, half the time the other way - and bounces off the walls, so it never camps behind
+    its own field and never pins itself at an edge.
     DECAYING FIELD: its mines live 3.5s (not 6.2s) and drop every 2.2s, so the arena never fills
     into a wall it can camp behind. Mines chew 7 barrier damage per blast (was 14, same as the
     viper's).

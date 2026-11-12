@@ -669,9 +669,6 @@ function createBossFromDesign(design, mini, x, y) {
     rollDuration: 0,
     rollLength: design.rollDuration || 1.6,
     rolling: false,
-    rollStartX: 0,
-    rollReturn: false,
-    rollRecover: 0,
     mineArmDelay: design.mineArmDelay || 0.75,
     minePulseRadius: design.minePulseRadius || 116,
     callTimer: design.callingInterval ? 4 : 999,
@@ -885,49 +882,30 @@ function updateBossUnit(boss, dt) {
       boss.mineTimer = Math.max(0.95, boss.mineInterval - (boss.phase - 1) * 0.18);
     }
     const baseSpeed = boss.designData.speed + level * 8;
-    // BOOMERANG ROLL (v1.10.6): the armored roll runs out at ~200px, comes
-    // back to where it started, and ends in a 1.2s recovery - the sentry sits
-    // duck, and the player always has a reachable boss. It never camps behind
-    // its own field.
-    if (boss.rollRecover > 0) {
-      boss.rollRecover -= dt * bossSlow;
-      boss.vx = 0;
-      if (boss.rollRecover <= 0) {
-        boss.rollRecover = 0;
-        boss.vx = (Math.random() < 0.5 ? -1 : 1) * baseSpeed;
-      }
-    } else if (boss.rolling) {
+    // ROAMING ROLL (v1.10.7): the armored dash picks a random heading at the
+    // roll - half the time at your side, half the time the other way - and
+    // bounces off the walls. It never camps and never pins itself at an edge.
+    if (boss.rolling) {
       boss.rollDuration -= dt * bossSlow;
-      const cx = boss.x + boss.w / 2;
-      if (!boss.rollReturn && Math.abs(cx - boss.rollStartX) >= 200) {
-        boss.rollReturn = true;
-        boss.vx = (boss.rollStartX >= cx ? 1 : -1) * baseSpeed * 2.15;
-      } else if (boss.rollReturn && Math.abs(cx - boss.rollStartX) <= 6) {
-        boss.rolling = false;
-        boss.rollReturn = false;
-        boss.vx = 0;
-        boss.rollRecover = 1.2;
-      } else {
-        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed * 2.15;
+      boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed * 2.15;
+      if (boss.x <= 18 && boss.vx < 0) {
+        boss.vx = baseSpeed * 2.15;
+      } else if (boss.x >= W - boss.w - 18 && boss.vx > 0) {
+        boss.vx = -baseSpeed * 2.15;
       }
       if (boss.rollDuration <= 0) {
-        // hard cap (screen-edge pin): end the roll where it is, with the
-        // same recovery window.
         boss.rolling = false;
-        boss.rollReturn = false;
-        boss.vx = 0;
-        boss.rollRecover = 1.2;
+        boss.vx = (boss.vx >= 0 ? 1 : -1) * baseSpeed;
       }
     } else {
       boss.rollTimer -= dt * bossSlow;
       if (boss.rollTimer <= 0) {
         boss.rolling = true;
-        boss.rollReturn = false;
-        boss.rollStartX = boss.x + boss.w / 2;
-        // leash + return + slack: the round trip is ~1.5s, the cap is 2.4s
-        boss.rollDuration = boss.rollLength * 1.5;
+        boss.rollDuration = boss.rollLength;
         boss.rollTimer = Math.max(2.8, boss.rollInterval - (boss.phase - 1) * 0.7);
-        boss.vx = (boss.x + boss.w / 2 < W / 2 ? 1 : -1) * baseSpeed * 2.15;
+        // aim at the ship, or the other way - coin flip per roll
+        const toPlayer = player.x + player.w / 2 >= boss.x + boss.w / 2 ? 1 : -1;
+        boss.vx = toPlayer * (Math.random() < 0.5 ? 1 : -1) * baseSpeed * 2.15;
         addScreenShake(4);
       }
     }
