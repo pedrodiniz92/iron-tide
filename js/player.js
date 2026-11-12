@@ -73,14 +73,28 @@ function updateDash(dt) {
 }
 
 // A cracked hull (1 HP) drags the ship: -30% on the spot, easing to -15% over HP_SLOW_EASE_TIME.
-// The speed comes back when the hull knits (see updateHpRegen).
+// The speed comes back when the hull knits (see updateHpRegen). Ink blight adds -15%.
+// Mobility I+ shrugs both off.
 function playerSpeedMul() {
-  if (playerHp >= maxPlayerHp) return 1;
-  const t = clamp(hpSlowTimer / HP_SLOW_EASE_TIME, 0, 1);
-  return HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
+  if (upgradeLevels.mobility >= 1) return 1;
+  let mul = 1;
+  if (playerHp < maxPlayerHp) {
+    const t = clamp(hpSlowTimer / HP_SLOW_EASE_TIME, 0, 1);
+    mul = HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
+  }
+  if (inkSlowT > 0) {
+    // -10% on entry, easing to -20% after INK_SLOW_RAMP seconds in the cloud
+    const p = clamp(inkSlowT / INK_SLOW_RAMP, 0, 1);
+    mul *= INK_MOVE_SLOW_START + (INK_MOVE_SLOW_END - INK_MOVE_SLOW_START) * p;
+  }
+  return mul;
 }
 
 function movePlayer(dt) {
+  // Ink ramp: builds while the ship sits in the cloud, wears off the tail in
+  // 0.5s once it leaves. The cloud itself expires after INK_CLOUD_TTL.
+  if (upgradeLevels.mobility < 1 && playerInInk()) inkSlowT = Math.min(INK_SLOW_RAMP, inkSlowT + dt);
+  else inkSlowT = Math.max(0, inkSlowT - dt * 5);
   const left = keys.has("arrowleft") || keys.has("a");
   const right = keys.has("arrowright") || keys.has("d");
   const speed = player.speed * playerSpeedMul();
@@ -102,11 +116,15 @@ function firePlayer() {
   if (fireCooldown > 0) return;
   const rapid = effects.rapid > 0;
   const rapidMult = rapid ? 0.76 : 1;
-  const offenseMult = 1 - Math.min(0.24, permanentFireRateBonus);
-  fireCooldown = 0.44 * rapidMult * offenseMult;
+  const offenseMult = 1 - Math.min(0.5, permanentFireRateBonus);
+  // Standing in an ink cloud fires 20% slower; Mobility I+ ignores it.
+  const inkMult = (upgradeLevels.mobility < 1 && playerInInk()) ? INK_FIRE_SLOW : 1;
+  fireCooldown = 0.44 * rapidMult * offenseMult * inkMult;
 
-  const multishot = effects.double > 0 || permanentDoubleShots;
-  const offsets = multishot ? [-14, 14] : [0];
+  // DOUBLE on top of the OFFENSE III permanent double fires a triple.
+  let offsets = [0];
+  if (permanentDoubleShots && effects.double > 0) offsets = [-22, 0, 22];
+  else if (permanentDoubleShots || effects.double > 0) offsets = [-14, 14];
 
   offsets.forEach((offset) => {
     playerBullets.push({

@@ -43,9 +43,12 @@ They exit non-zero on failure, so they chain in CI: `for h in tests/*_harness.js
 
 ## Gotchas, learned the hard way
 
-- **Pin baselines to a pre-fix commit, never `HEAD`.** The harnesses diff the current file
-  against `fe5174c` (v1.8.1) to prove the old bug existed. Diffing against `HEAD` breaks the
-  moment the fix ships — that produced 10 bogus failures once already.
+- **Pin baselines to the release that HAD the bug, never `HEAD`.** The harnesses diff the current
+  file against an old commit to prove the old bug existed. Diffing against `HEAD` breaks the moment
+  the fix ships — `idol_cast_harness.js` did exactly that once, going red on the commit that fixed
+  it. The pins are literal hashes: `fe5174c` (v1.8.1) for bomb/laser/wave-speed/panel/scoring, and
+  `f99861c` (v1.9.1) for `idol_cast_harness.js`, because the squid no-show is a v1.9.0 regression
+  that v1.8.1 predates.
 - **The loader's Proxy auto-stubs every unknown global** (`has: () => true`, `get` returns a
   no-op function). A global you forget to seed is silently swallowed instead of throwing —
   that hid `pushEnemyBullet` in two harnesses. Seed real builtins, every mutable array global,

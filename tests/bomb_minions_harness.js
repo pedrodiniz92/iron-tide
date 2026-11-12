@@ -1,6 +1,6 @@
 // Verifies a player bomb blast kills minions (zealot + idol), running the REAL
 // explodeBombShot out of js/powerups.js and the REAL killMinion out of js/boss.js.
-// Also runs the pre-fix HEAD copy of explodeBombShot to prove the bug was real.
+// Also runs the pre-fix v1.8.1 (fe5174c) copy of explodeBombShot to prove the bug was real.
 const fs = require("fs");
 const vm = require("vm");
 const { execSync } = require("child_process");
@@ -14,7 +14,7 @@ const helpers = fs.readFileSync(REPO + "/js/helpers.js", "utf8");
 const SHOT_HELPERS = fs.readFileSync(REPO + "/js/constants.js", "utf8")
   .match(/const ENEMY_SHOT_SPEED_SCALES = \{[^}]*\};/)[0] + "\n" +
   sliceFn(helpers, "enemyShotSpeedScale") + "\n" + sliceFn(helpers, "pushEnemyBullet");
-const head = execSync("git -C " + REPO + " show fe5174c:js/powerups.js", { encoding: "utf8" });
+const v181 = execSync("git -C " + REPO + " show fe5174c:js/powerups.js", { encoding: "utf8" });
 
 function sliceFn(src, name) {
   const start = src.indexOf("function " + name + "(");
@@ -124,7 +124,7 @@ const baseline = (() => {
   const list = [minion("zealot", 420, 320), minion("idol", 380, 280)];
   const c = makeCtx(list);
   // SHOT_HELPERS is already in this context from makeCtx; re-declaring the const throws.
-  vm.runInContext(sliceFn(head, "explodeBombShot") + "\n" + KILL, c.sandbox);
+  vm.runInContext(sliceFn(v181, "explodeBombShot") + "\n" + KILL, c.sandbox);
   c.sandbox.shot = shot;
   vm.runInContext("explodeBombShot(shot)", c.sandbox);
   return c;

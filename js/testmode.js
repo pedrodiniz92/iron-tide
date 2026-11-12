@@ -249,7 +249,7 @@ function buildTestPanel() {
   waveLabel.style.cssText = "color:#9ae6ff;margin-bottom:4px;";
   const waveSelect = document.createElement("select");
   waveSelect.style.cssText = "background:#101820;color:#cfe8d4;border:1px solid #2c5f7a;font:12px monospace;";
-  for (let w = 1; w <= 10; w += 1) {
+  for (let w = 1; w <= FINAL_STAGE_LEVEL; w += 1) {
     const opt = document.createElement("option");
     opt.value = String(w);
     opt.textContent = t("WAVE {n}", { n: w });

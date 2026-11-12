@@ -100,7 +100,7 @@ function startGame(skipStartingUpgrade = false) {
   }
   state = "choices";
   upgradeChoices = buildUpgradeChoices();
-  upgradeSel = 0;
+  upgradeSel = firstSelectableUpgrade();
   upgradePrompt = t("CHOOSE A STARTING UPGRADE");
   showGameMessage(t("CHOOSE A STARTING UPGRADE"), 2.2, "#ffe066");
   updateStatus(t("Click a card, up/down + Enter, or press 1, 2, 3."));
@@ -430,7 +430,7 @@ function finishBossFight() {
   gameMessages = [];
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   upgradeChoices = buildUpgradeChoices();
-  upgradeSel = 0;
+  upgradeSel = firstSelectableUpgrade();
   upgradePrompt = t("CHOOSE A PERMANENT UPGRADE");
   showGameMessage(t("CHOOSE A PERMANENT UPGRADE"), 2.2, "#ffe066");
   updateStatus(t("Click a card, up/down + Enter, or press 1, 2, 3."));
@@ -438,12 +438,16 @@ function finishBossFight() {
 
 function buildUpgradeChoices() {
   return UPGRADE_TREES.map((tree) => {
-    const level = Math.min(upgradeLevels[tree.id] + 1, tree.levels.length);
+    const next = upgradeLevels[tree.id] + 1;
+    const level = Math.min(next, tree.levels.length);
     const def = tree.levels[level - 1];
     return {
       treeId: tree.id,
       treeName: t(tree.name),
       level,
+      // A maxed tree stays on the card list, drawn as MAXED and unselectable,
+      // so the player sees the full board and why a card cannot be taken.
+      maxed: next > tree.levels.length,
       label: t(def.label),
       desc: t(def.desc),
       text: `${t(tree.name)} ${level}: ${t(def.label)}`
@@ -451,9 +455,25 @@ function buildUpgradeChoices() {
   });
 }
 
+function firstSelectableUpgrade() {
+  const index = upgradeChoices.findIndex((choice) => !choice.maxed);
+  return index < 0 ? 0 : index;
+}
+
+function moveUpgradeSel(dir) {
+  let i = upgradeSel;
+  for (let n = 0; n < upgradeChoices.length; n += 1) {
+    i = (i + dir + upgradeChoices.length) % upgradeChoices.length;
+    if (!upgradeChoices[i].maxed) {
+      upgradeSel = i;
+      return;
+    }
+  }
+}
+
 function chooseUpgrade(index) {
   const choice = upgradeChoices[index];
-  if (!choice) return;
+  if (!choice || choice.maxed) return;
 
   applyUpgrade(choice);
   upgradeChoices = [];
@@ -469,9 +489,14 @@ function applyUpgrade(choice) {
   upgradeLevels[choice.treeId] = choice.level;
 
   if (choice.treeId === "offense") {
-    permanentFireRateBonus = [0, 0.15, 0.3, 0.3][choice.level] || 0.3;
+    permanentFireRateBonus = [0, 0.28, 0.5, 0.5][choice.level] || 0.5;
     permanentDamage = 0;
     permanentDoubleShots = choice.level >= 3;
+    // Glass cannon: OFFENSE III's extra barrel costs 1 max HP (2 -> 1).
+    if (choice.level >= 3) {
+      maxPlayerHp = 1;
+      playerHp = Math.min(playerHp, maxPlayerHp);
+    }
     return;
   }
 
@@ -521,6 +546,7 @@ function pickUpgradeAt(event) {
   for (let i = 0; i < upgradeChoices.length; i += 1) {
     const y = 225 + i * 70;
     if (mx > 82 && mx < W - 82 && my > y - 28 && my < y + 26) {
+      if (upgradeChoices[i].maxed) return true;
       upgradeSel = i;
       chooseUpgrade(i);
       return true;
@@ -586,12 +612,12 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (state === "choices" && key === "arrowup") {
-    upgradeSel = (upgradeSel + upgradeChoices.length - 1) % upgradeChoices.length;
+    moveUpgradeSel(-1);
     return;
   }
 
   if (state === "choices" && key === "arrowdown") {
-    upgradeSel = (upgradeSel + 1) % upgradeChoices.length;
+    moveUpgradeSel(1);
     return;
   }
 

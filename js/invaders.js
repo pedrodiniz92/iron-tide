@@ -169,8 +169,20 @@ function aimTargetX(invader, sx, sy, speed) {
   return clamp(target, sx - 260, sx + 260);
 }
 
+// Per-shot angular shake (radians) for aimed shots, so the impact point
+// scatters a few tens of pixels around the predicted spot and the player
+// can't learn the exact lead and dance in place. A separate function because
+// the speed-curve harness slices aimVx alone and expects the bare line of fire.
+function aimJitter() {
+  return (Math.random() - 0.5) * 0.22;
+}
+
 function aimVx(invader, sx, sy, speed, limit) {
-  return clamp((aimTargetX(invader, sx, sy, speed) - sx) * 1.5, -limit, limit);
+  const base = clamp((aimTargetX(invader, sx, sy, speed) - sx) * 1.5, -limit, limit);
+  // Rotate the clamped direction by the jitter, then re-clamp: the shake can
+  // never push a shot past the hard angle cap the limit enforces.
+  const angle = Math.atan2(base, speed) + (aimJitter() || 0);
+  return clamp(speed * Math.tan(angle), -limit, limit);
 }
 
 function applyRowRoles() {

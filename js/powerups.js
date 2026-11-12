@@ -305,16 +305,7 @@ function explodeBombShot(shot) {
       showGameMessage(t("DIVE BROKEN!"), 1.0, "#7dff66");
     }
 
-    if (unit.carapaceState === "windup" || unit.carapaceState === "drop") {
-      unit.carapaceState = "idle";
-      unit.carapaceInvuln = 0;
-      unit.carapaceTimer = Math.max(3.4, (unit.designData.carapaceInterval || 5.4) - (unit.phase - 1) * 0.6);
-      unit.vx = (unit.vx >= 0 ? 1 : -1) * (unit.designData.speed + level * 8);
-      showGameMessage(t("BARRAGE BROKEN!"), 1.0, "#ffe066");
-      damageBoss(unit, bombShotDamage(unit, 18 + level * 1.5 + unit.maxHp * 0.09), { staggerMul: 0.5 });
-    } else {
-      damageBoss(unit, bombShotDamage(unit, 12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });
-    }
+    damageBoss(unit, bombShotDamage(unit, 12 + level + unit.maxHp * 0.06), { staggerMul: 0.5 });
   });
 
   // Minions are in the blast too - a bomb is how you break the idol's heal.

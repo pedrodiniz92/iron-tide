@@ -71,10 +71,6 @@ const SIL = {
     c.beginPath(); c.moveTo(0,-12); c.lineTo(8,-4); c.lineTo(26,-9); c.lineTo(16,2);
     c.lineTo(6,6); c.lineTo(0,14); c.lineTo(-6,6); c.lineTo(-16,2); c.lineTo(-26,-9);
     c.lineTo(-8,-4); c.closePath(); } },
-  turtle: { bb:{x:-40,y:-28,w:80,h:50}, path(c){
-    c.beginPath(); c.moveTo(-38,10); c.quadraticCurveTo(-40,-26,0,-28);
-    c.quadraticCurveTo(40,-26,38,10); c.quadraticCurveTo(20,22,0,22);
-    c.quadraticCurveTo(-20,22,-38,10); c.closePath(); } },
   mine: { bb:{x:-9,y:-9,w:18,h:18}, path(c){
     c.beginPath();
     for(let i=0;i<8;i+=1){

@@ -2,7 +2,7 @@
 
 A vertical wave-shooter. You defend the bottom of the screen from marching waves of invaders,
 bosses and minibosses, collecting powerups and picking permanent upgrades between boss fights.
-Clear wave 10 to win.
+Clear wave 9 to win.
 
 The mobs, ships, bosses and loot are drawn as **real 3D models** (Three.js, toon ramp + sky rim,
 no outline ink) on a WebGL canvas (`stage3d`) layered under the 2D canvas (`game`). Bullets, bombs,

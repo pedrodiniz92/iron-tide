@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ABYSSAL WARD — shell visual options</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 14px 'Courier New', monospace; }
+  h1 { font-size: 18px; margin: 14px 16px 2px; color: #c9a7ff; }
+  .sub { margin: 0 16px 10px; color: #6f7aa5; font-size: 12px; }
+  canvas { display: block; margin: 0 16px; background: #0d0d14; border: 1px solid #2c2440; }
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 5; background: rgba(8,12,18,0.92);
+    border: 1px solid #2c5f7a; padding: 10px 12px; font: 12px 'Courier New', monospace; }
+  #panel label { display: block; margin: 4px 0; cursor: pointer; }
+  #panel .t { color: #9ae6ff; margin-bottom: 6px; }
+  #panel .hint { color: #6f7aa5; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>ABYSSAL WARD — how should the shield LOOK while the squid channels?</h1>
+<div class="sub">The squid is permanently in THE CALLING windup, so the ward (halves all damage) is always up.
+Shoot it and watch the shell read. Switch styles on the right. &larr;/&rarr; move &middot; SPACE fire.</div>
+<canvas id="game" width="900" height="600"></canvas>
+<div id="panel">
+  <div class="t">SHELL STYLE</div>
+  <label><input type="radio" name="style" value="dome" checked> A - DOME (current)</label>
+  <label><input type="radio" name="style" value="hex"> B - HEX PLATES</label>
+  <label><input type="radio" name="style" value="vortex"> C - INK VORTEX</label>
+  <div class="hint">ward = every hit deals 0.5</div>
+</div>
+<script>
+"use strict";
+const W = 900, H = 600;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const keys = new Set();
+let t = 0;
+const style = () => document.querySelector('input[name="style"]:checked').value;
+const player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290 };
+const boss = { x: W / 2 - 64, y: 90, w: 128, h: 64, hp: 126, maxHp: 126, flash: 0 };
+const SHELL_R = () => boss.w / 2 + 16;
+let bullets = [], sparks = [], hits = 0;
+window.addEventListener("keydown", (e) => {
+  if (["arrowleft", "arrowright", " "].includes(e.key.toLowerCase())) e.preventDefault();
+  keys.add(e.key.toLowerCase());
+});
+window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+let fireCd = 0;
+function update(dt) {
+  t += dt;
+  boss.flash = Math.max(0, boss.flash - dt);
+  const dir = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+  player.x = clamp(player.x + dir * player.speed * dt, 10, W - player.w - 10);
+  fireCd -= dt;
+  if (keys.has(" ") && fireCd <= 0) {
+    fireCd = 0.44;
+    bullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 4, h: 12 });
+  }
+  bullets.forEach((b) => { b.y -= 560 * dt; });
+  // shell radius: bullets stop at the ward, deal 0.5, spark at the contact point
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2, r = SHELL_R();
+  bullets = bullets.filter((b) => {
+    const bx = b.x + b.w / 2;
+    if (Math.hypot(bx - cx, b.y + b.h / 2 - cy) < r) {
+      boss.hp -= 0.5; hits += 1; boss.flash = 0.08; plateHitT = t;
+      const a = Math.atan2(b.y - cy, bx - cx);
+      for (let i = 0; i < 6; i += 1) {
+        const sa = a + (Math.random() - 0.5) * 1.6;
+        sparks.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r,
+          vx: Math.cos(sa) * 120, vy: Math.sin(sa) * 120, ttl: 0.35 });
+      }
+      return false;
+    }
+    return b.y > -20;
+  });
+  sparks.forEach((s) => { s.x += s.vx * dt; s.y += s.vy * dt; s.ttl -= dt; });
+  sparks = sparks.filter((s) => s.ttl > 0);
+  if (boss.hp <= 0) { boss.hp = boss.maxHp; hits = 0; }
+}
+function drawSquid() {
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2, w = boss.w, h = boss.h;
+  ctx.save();
+  if (boss.flash > 0) ctx.globalAlpha = 0.6;
+  ctx.fillStyle = "#8b5cf6"; ctx.shadowColor = "#8b5cf6"; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.ellipse(cx, cy - h * 0.10, w * 0.28, h * 0.34, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - w * 0.13, cy - h * 0.36); ctx.lineTo(cx, cy - h * 0.62); ctx.lineTo(cx + w * 0.13, cy - h * 0.36); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#c9a7ff"; ctx.lineWidth = 4;
+  for (let i = 0; i < 4; i += 1) {
+    const bx = cx - w * 0.24 + i * w * 0.16;
+    ctx.beginPath(); ctx.arc(bx, cy + h * 0.28, w * 0.09, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke();
+  }
+  ctx.lineWidth = 1; ctx.fillStyle = "#0d0d14";
+  ctx.beginPath(); ctx.arc(cx - w * 0.16, cy - h * 0.1, 6, 0, Math.PI * 2); ctx.arc(cx + w * 0.16, cy - h * 0.1, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// A - DOME: the shipped look (js/boss.js ward drawing)
+function drawDome(cx, cy) {
+  const r = SHELL_R() + Math.sin(t * 6) * 3;
+  ctx.save();
+  ctx.fillStyle = "rgba(139, 92, 246, 0.18)";
+  ctx.strokeStyle = "rgba(201, 167, 255, 0.9)";
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(201, 167, 255, 0.45)"; ctx.lineWidth = 2;
+  for (let seg = 0; seg < 6; seg += 1) {
+    const a0 = t * 1.8 + seg * (Math.PI / 3);
+    ctx.beginPath(); ctx.arc(cx, cy, r - 7, a0, a0 + 0.62); ctx.stroke();
+  }
+  ctx.lineWidth = 1; ctx.restore();
+}
+// B - HEX PLATES: discrete plates orbit the squid; a hit flashes the plate
+let plateHitT = -9;
+function drawHex(cx, cy) {
+  const r = SHELL_R();
+  ctx.save();
+  for (let i = 0; i < 12; i += 1) {
+    const a = t * 0.6 + (i / 12) * Math.PI * 2;
+    const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+    const fresh = clamp(1 - (t - plateHitT) / 0.3, 0, 1);
+    ctx.translate(px, py); ctx.rotate(a + t * 0.6);
+    ctx.beginPath();
+    for (let k = 0; k < 6; k += 1) {
+      const ha = (k / 6) * Math.PI * 2;
+      const hx = Math.cos(ha) * 15, hy = Math.sin(ha) * 15;
+      if (k === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `rgba(139, 92, 246, ${0.16 + fresh * 0.5})`;
+    ctx.strokeStyle = `rgba(201, 167, 255, ${0.7 + fresh * 0.3})`;
+    ctx.lineWidth = 2;
+    ctx.fill(); ctx.stroke();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  ctx.restore();
+}
+// C - INK VORTEX: the ward is a swirling ink whirlpool with orbiting droplets
+function drawVortex(cx, cy) {
+  const r = SHELL_R();
+  ctx.save();
+  const g = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+  g.addColorStop(0, "rgba(10, 8, 19, 0.85)");
+  g.addColorStop(1, "rgba(10, 8, 19, 0.15)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(cx, cy); ctx.rotate(t * 2.2);
+  ctx.strokeStyle = "rgba(139, 92, 246, 0.65)"; ctx.lineWidth = 3;
+  for (let arm = 0; arm < 5; arm += 1) {
+    ctx.rotate((Math.PI * 2) / 5);
+    ctx.beginPath();
+    ctx.moveTo(r * 0.25, 0);
+    ctx.quadraticCurveTo(r * 0.6, r * 0.35, r * 0.97, r * 0.12);
+    ctx.stroke();
+  }
+  for (let d = 0; d < 6; d += 1) {
+    const a = -t * 3 + (d / 6) * Math.PI * 2;
+    ctx.fillStyle = "#0a0813";
+    ctx.beginPath(); ctx.arc(Math.cos(a) * (r - 4), Math.sin(a) * (r - 4), 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(201, 167, 255, 0.5)"; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.restore();
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2;
+  const st = style();
+  if (st === "dome") drawDome(cx, cy);
+  drawSquid();
+  if (st === "hex") drawHex(cx, cy);
+  if (st === "vortex") drawVortex(cx, cy);
+  ctx.fillStyle = "#9ae6ff";
+  bullets.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+  sparks.forEach((s) => {
+    ctx.globalAlpha = clamp(s.ttl / 0.35, 0, 1);
+    ctx.fillStyle = "#e9d5ff";
+    ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3);
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#62ffa1";
+  ctx.beginPath();
+  ctx.moveTo(player.x + player.w / 2, player.y - 8);
+  ctx.lineTo(player.x + player.w, player.y + player.h);
+  ctx.lineTo(player.x, player.y + player.h);
+  ctx.closePath(); ctx.fill();
+  // HUD
+  const ratio = clamp(boss.hp / boss.maxHp, 0, 1);
+  ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(W / 2 - 130, 14, 260, 10);
+  ctx.fillStyle = "#ff3366"; ctx.fillRect(W / 2 - 130, 14, 260 * ratio, 10);
+  ctx.strokeStyle = "#c9a7ff"; ctx.strokeRect(W / 2 - 130, 14, 260, 10);
+  ctx.fillStyle = "#cfefff"; ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("WARD x1/2 - HITS " + hits + " = " + (hits * 0.5).toFixed(1) + " DMG", W / 2 - 118, 40);
+  ctx.fillText("STYLE " + ({ dome: "A - DOME (current)", hex: "B - HEX PLATES", vortex: "C - INK VORTEX" })[st], 12, H - 14);
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.035, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

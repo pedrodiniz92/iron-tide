@@ -197,6 +197,7 @@ function clearEnemyFire() {
   enemyBullets = [];
   enemyBombs = [];
   spikeMines = [];
+  inkBlight = null;
   clearEnemyFirePending = true;
 }
 

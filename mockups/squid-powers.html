@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ABYSSAL SQUID — POWER OPTIONS (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 14px 'Courier New', monospace; }
+  h1 { font-size: 18px; margin: 14px 16px 2px; color: #c9a7ff; }
+  .sub { margin: 0 16px 10px; color: #6f7aa5; font-size: 12px; }
+  canvas { display: block; margin: 0 16px; background: #0d0d14; border: 1px solid #2c2440; }
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 5; background: rgba(8,12,18,0.92);
+    border: 1px solid #2c5f7a; padding: 10px 12px; font: 12px 'Courier New', monospace; }
+  #panel label { display: block; margin: 4px 0; cursor: pointer; }
+  #panel .t { color: #9ae6ff; margin-bottom: 6px; }
+  #panel .hint { color: #6f7aa5; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>ABYSSAL SQUID — POWER OPTIONS</h1>
+<div class="sub">Playable sandbox, true to js/boss.js numbers (wave 9: 158 HP, speed 56, rite 7s, bell 13s, ward at 0.5s).
+Baseline kit (Calling + zealots + idol + ward + bell + bombs) is always on. Toggle the proposed powers below. R = restart.</div>
+<canvas id="game" width="900" height="600"></canvas>
+<div id="panel">
+  <div class="t">PROPOSED POWERS</div>
+  <label><input type="checkbox" id="pInk"> INK BLIGHT</label>
+  <label><input type="checkbox" id="pMartyr"> IDOL MARTYRDOM</label>
+  <div class="hint">&larr;/&rarr; move &middot; SPACE fire &middot; R restart</div>
+</div>
+<script>
+"use strict";
+// ---- true-to-game constants (js/constants.js, js/boss.js, wave 9) ----
+const W = 900, H = 600, LEVEL = 9;
+const SQUID = { hp: 95 + LEVEL * 7, speed: 56, bombTimer: 2.6, bulletCap: 6, bombMax: 2,
+  bombsPerLaunch: 1, bombRadius: 60, callingInterval: 7, bellInterval: 13,
+  color: "#8b5cf6", accent: "#c9a7ff" };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const keys = new Set();
+let t = 0, waveTime = 0, screenShake = 0;
+let player, playerBullets, enemyBullets, enemyBombs, boss, minions, minionSeq, bellEffect;
+let ink;
+let inkSlowT = 0;
+const on = (id) => document.getElementById(id).checked;
+
+function reset() {
+  t = 0; waveTime = 0; screenShake = 0;
+  player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290, hp: 2, invuln: 1.5, respawn: 0 };
+  playerBullets = []; enemyBullets = []; enemyBombs = []; minions = []; minionSeq = 0;
+  bellEffect = null; ink = null; inkSlowT = 0;
+  boss = {
+    x: W / 2 - 64, y: 54, w: 128, h: 64,
+    hp: SQUID.hp, maxHp: SQUID.hp, phase: 1,
+    vx: SQUID.speed, vy: 12 + LEVEL, moveTimer: 1.4,
+    timer: 1.1, bombTimer: SQUID.bombTimer,
+    callTimer: 4, callCount: 0, callState: "idle", callT: 0, callDir: 1, callVx0: 0, callVy0: 0,
+    bellTimer: SQUID.bellInterval, hoverT: 0, flash: 0
+  };
+}
+reset();
+document.getElementById("panel").addEventListener("click", (e) => e.stopPropagation());
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
+  keys.add(k);
+  if (k === "r") reset();
+});
+window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+// ---- player (js/player.js: 0.44s cadence, 4x12 @ 560 up) ----
+let fireCooldown = 0;
+function updatePlayer(dt) {
+  if (player.respawn > 0) {
+    player.respawn -= dt;
+    if (player.respawn <= 0) { player.x = W / 2 - 28; player.hp = 2; player.invuln = 1.5; }
+    return;
+  }
+  const dir = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+  // ink blight: move slow ramps -10% on entry -> -20% after 2.5s in the cloud,
+  // wears off in 0.5s once you leave; fires 20% slower while inside.
+  if (playerInInk()) inkSlowT = Math.min(2.5, inkSlowT + dt);
+  else inkSlowT = Math.max(0, inkSlowT - dt * 5);
+  const inkMul = inkSlowT > 0 ? 0.90 - 0.10 * (inkSlowT / 2.5) : 1;
+  player.x = clamp(player.x + dir * player.speed * inkMul * dt, 10, W - player.w - 10);
+  player.invuln = Math.max(0, player.invuln - dt);
+  fireCooldown -= dt;
+  if (keys.has(" ") && fireCooldown <= 0) {
+    fireCooldown = 0.44 * (playerInInk() ? 1.25 : 1);
+    playerBullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 4, h: 12, speed: 560 });
+  }
+}
+function hitPlayer() {
+  if (player.invuln > 0 || player.respawn > 0) return;
+  player.hp -= 1;
+  screenShake = 8;
+  if (player.hp <= 0) player.respawn = 1;
+  else player.invuln = 1.5;
+}
+function updateBullets(dt) {
+  playerBullets.forEach((b) => { b.y -= b.speed * dt; });
+  playerBullets = playerBullets.filter((b) => b.y > -20);
+  enemyBullets.forEach((b) => {
+    if (b.frozen) return;
+    // zealot seek (js/invaders.js): steer toward the ship, capped at seekMax
+    if (b.seek) {
+      const a = Math.atan2(b.vx, b.speed);
+      const want = Math.atan2(player.x + player.w / 2 - (b.x + b.w / 2), player.y - (b.y + b.h / 2));
+      let d = want - a;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      const max = b.seekA0 + clamp(d, -b.seekMax, b.seekMax);
+      b.vx = Math.sin(max) * b.rawSpeed;
+      b.speed = Math.cos(max) * b.rawSpeed;
+    }
+    b.x += b.vx * dt;
+    b.y += b.speed * dt;
+    b.ttl -= dt;
+  });
+  enemyBullets = enemyBullets.filter((b) => b.ttl > 0 && b.y < H + 20 && b.y > -30 && b.x > -20 && b.x < W + 20);
+}
+// ---- squid (js/boss.js updateBossUnit, ABYSSAL RITE block) ----
+const riteActive = (b) => b.callState === "slow" || b.callState === "windup";
+const riteShieldActive = (b) =>
+  b.callState === "slow" ? b.callT <= 0.3 : b.callState === "windup";
+const playerCenterX = () => player.x + player.w / 2;
+const playerInInk = () => inkCovers(playerCenterX(), player.y + player.h / 2);
+
+function bossAimVx(sx, sy, speed, limit) {
+  const dx = playerCenterX() - sx;
+  const dy = player.y + player.h / 2 - sy;
+  return clamp((dx / Math.max(40, dy)) * speed, -limit, limit);
+}
+
+function damageBoss(amount) {
+  if (riteShieldActive(boss)) amount *= 0.5; // the ward halves everything
+  boss.hp -= amount;
+  boss.flash = 0.08;
+  if (boss.hp <= 0) reset();
+}
+
+function fireBossBullet() {
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h;
+  const speed = 190 + LEVEL * 16 + boss.phase * 18;
+  const pattern = Math.floor(Math.random() * 3);
+  const add = (x, vx, sp) => {
+    if (enemyBullets.length >= SQUID.bulletCap) return;
+    enemyBullets.push({ x: x - 2, y: cy, w: 5, h: 15, speed: sp, vx, hp: 2, color: SQUID.accent, ttl: 8 });
+  };
+  if (pattern === 0) {
+    const wide = Math.abs(bossAimVx(cx, cy, speed, 55));
+    add(cx, 0, speed); add(cx, -wide, speed); add(cx, wide, speed);
+  } else if (pattern === 1) {
+    const side = Math.abs(bossAimVx(cx, cy, speed, 35));
+    add(cx - 42, -side, speed); add(cx + 38, side, speed);
+    if (boss.phase >= 2) add(cx, 0, speed * 1.1);
+  } else if (boss.phase >= 3) {
+    const fan = Math.abs(bossAimVx(cx, cy, speed, 45));
+    [-fan, 0, fan].forEach((vx) => add(cx, vx, speed));
+  } else {
+    add(cx, 0, speed * 1.2);
+  }
+}
+
+function fireBossBomb() {
+  const count = Math.min(SQUID.bombsPerLaunch, SQUID.bombMax - enemyBombs.length);
+  for (let i = 0; i < count; i += 1) {
+    const ox = boss.x + boss.w / 2, oy = boss.y + boss.h;
+    const tx = playerCenterX() + (Math.random() * 14 - 7);
+    const ty = player.y + player.h / 2 + (Math.random() * 18 - 9);
+    enemyBombs.push({ x: ox - 7, y: oy, w: 14, h: 14,
+      vx: clamp((tx - ox) * 0.85, -210, 210), vy: Math.min(135, -40 + (ty - oy) * 0.45),
+      ttl: 4.5, hp: 2, radius: SQUID.bombRadius, color: SQUID.accent });
+  }
+}
+
+function castCalling(b) {
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  // every 3rd call raises the idol (js/boss.js castCalling)
+  if (b.callCount % 3 === 0 && !minions.some((m) => m.type === "idol")) {
+    spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
+    return;
+  }
+  const alive = minions.filter((m) => m.type === "zealot").length;
+  const want = Math.min(2, 2 - alive);
+  const slots = want === 1 ? [cx - 17] : [cx - 46, cx + 12];
+  for (let s = 0; s < want; s += 1) spawnMinion("zealot", slots[s], cy);
+}
+
+function castBell() { bellEffect = { t: 0, phase: 0 }; screenShake = 4; }
+
+function updateBell(dt) {
+  if (!bellEffect) return;
+  bellEffect.t += dt;
+  if (bellEffect.phase === 0) {
+    enemyBullets.forEach((b) => { b.frozen = true; });
+    if (bellEffect.t > 1.6) {
+      bellEffect.phase = 1;
+      const pcx = playerCenterX(), pcy = player.y + player.h / 2;
+      const volley = enemyBullets
+        .filter((b) => b.y + b.h / 2 < player.y - 40)
+        .sort((a, b) => Math.hypot(a.x - pcx, a.y - pcy) - Math.hypot(b.x - pcx, b.y - pcy))
+        .slice(0, 8);
+      enemyBullets.forEach((b) => {
+        b.frozen = false;
+        b.ttl = 2.4;
+        if (!volley.includes(b)) return;
+        const a = Math.atan2(pcx - (b.x + b.w / 2), pcy - (b.y + b.h / 2));
+        b.rawSpeed = 340;
+        b.speed = Math.cos(a) * 340;
+        b.vx = Math.sin(a) * 340;
+        b.seek = 0.6;
+        b.seekA0 = Math.atan2(b.speed, b.vx);
+        b.seekMax = Math.min(0.7, Math.min(b.seekA0, Math.PI - b.seekA0));
+        b.hp = 1;
+      });
+    }
+  } else if (bellEffect.t > 4.5) bellEffect = null;
+}
+
+function updateBoss(dt) {
+  boss.flash = Math.max(0, boss.flash - dt);
+  const bossSlow = 1;
+  boss.moveTimer -= dt * bossSlow;
+  if (boss.moveTimer <= 0) {
+    boss.moveTimer = 1.1 + Math.random() * 1.2;
+    const inLowerHalf = boss.y + boss.h / 2 > H / 2;
+    boss.vy = Math.random() < (inLowerHalf ? 0.72 : 0.44) ? -(18 + LEVEL * 2) : (18 + LEVEL * 2);
+  }
+  // glide beside the totem (js/boss.js ABYSSAL RITE hover block)
+  const idol = minions.find((m) => m.type === "idol");
+  if (idol && boss.callState === "idle") {
+    const baseSpeed = SQUID.speed + LEVEL * 8;
+    boss.hoverT += dt;
+    const side = Math.sin(boss.hoverT * 0.45);
+    const off = side * (95 + Math.sin(boss.hoverT * 1.7) * 15);
+    const aimVx = clamp((idol.x + idol.w / 2 + off - (boss.x + boss.w / 2)) * 0.55, -baseSpeed * 0.8, baseSpeed * 0.8);
+    const aimVy = clamp((idol.y - 90 + Math.sin(boss.hoverT * 0.7) * 40 - boss.y) * 0.55, -baseSpeed * 0.55, baseSpeed * 0.55);
+    const step = 110 * dt;
+    boss.vx += clamp(aimVx - boss.vx, -step, step);
+    boss.vy += clamp(aimVy - boss.vy, -step, step);
+  }
+  // the rite: slow -> windup (ward at 1.0s) -> cast
+  if (boss.callState === "idle") {
+    boss.callTimer -= dt;
+    if (boss.callTimer <= 0) {
+      boss.callState = "slow"; boss.callT = 0.8;
+      boss.callVx0 = boss.vx; boss.callVy0 = boss.vy;
+    }
+  } else if (boss.callState === "slow") {
+    boss.callT -= dt;
+    const ease = Math.max(0, boss.callT / 0.8);
+    boss.vx = boss.callVx0 * ease; boss.vy = boss.callVy0 * ease;
+    if (boss.callT <= 0) {
+      boss.callState = "windup"; boss.callT = 1.7;
+      boss.callDir = boss.callVx0 >= 0 ? 1 : -1;
+      boss.callCount += 1;
+      boss.vx = 0; boss.vy = 0;
+    }
+  } else if (boss.callState === "windup") {
+    boss.callT -= dt;
+    boss.vx = 0; boss.vy = 0;
+    if (boss.callT <= 0) {
+      boss.callState = "idle";
+      boss.callTimer = SQUID.callingInterval;
+      castCalling(boss);
+      boss.vx = boss.callDir * (SQUID.speed + LEVEL * 8);
+      boss.vy = 12 + LEVEL;
+    }
+  }
+  boss.x += boss.vx * dt;
+  boss.y += boss.vy * dt;
+  if (boss.x <= 18) { boss.x = 18; boss.vx = Math.abs(boss.vx); }
+  if (boss.x + boss.w >= W - 18) { boss.x = W - boss.w - 18; boss.vx = -Math.abs(boss.vx); }
+  const yMax = Math.min(H - boss.h - 24, player.y - boss.h - 150);
+  boss.y = clamp(boss.y, 58, Math.max(yMax, boss.y));
+  boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
+
+  boss.timer -= dt;
+  if (boss.timer <= 0) {
+    fireBossBullet();
+    // riteActive -> 2.2x slower shots (js/boss.js shot cadence)
+    boss.timer = (riteActive(boss) ? 2.2 : 1) *
+      Math.max(0.45, 1.25 - LEVEL * 0.04 - (boss.phase - 1) * 0.14);
+  }
+  boss.bombTimer -= dt;
+  if (boss.bombTimer <= 0) {
+    if (riteActive(boss)) boss.bombTimer = 0.5;
+    else { fireBossBomb(); boss.bombTimer = Math.max(1.8, 3.8 - LEVEL * 0.08 - (boss.phase - 1) * 0.22); }
+  }
+  boss.bellTimer -= dt;
+  if (boss.bellTimer <= 0) { castBell(); boss.bellTimer = SQUID.bellInterval; }
+  updateBell(dt);
+}
+// ---- minions (js/boss.js spawnMinion/updateMinions/killMinion) ----
+function spawnMinion(type, x, y) {
+  if (type === "idol" && minions.some((m) => m.type === "idol")) return;
+  const hp = type === "zealot" ? 4 : 3;
+  minions.push({ id: ++minionSeq, type, x: clamp(x, 16, W - 50), y: clamp(y, 60, H - 140),
+    bx: clamp(x, 16, W - 50), by: clamp(y, 60, H - 140), w: 34, h: 34, hp, maxHp: hp,
+    t: 0, fire: 1.5 + Math.random() * 2, auraR: type === "idol" ? 150 : 0, phase: Math.random() * Math.PI * 2 });
+}
+function killMinion(m) {
+  const cx = m.x + m.w / 2, cy = m.y + m.h / 2;
+  if (m.type === "zealot" && enemyBullets.length < 10) {
+    // death hex: 3 shots fanning down (js/boss.js killMinion)
+    for (let i = 0; i < 3; i += 1) {
+      const a = Math.PI / 2 + (i - 1) * 0.22;
+      enemyBullets.push({ x: cx - 2, y: cy - 2, w: 5, h: 12,
+        speed: Math.max(90, Math.sin(a) * 150), vx: Math.cos(a) * 150, rawSpeed: 150,
+        hp: 1, color: "#c026d3", ttl: 2.4 });
+    }
+  }
+  if (m.type === "idol" && on("pMartyr")) {
+    // MARTYRDOM: the totem bursts into a ring of 8 slow shots
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i / 8) * Math.PI * 2;
+      enemyBullets.push({ x: cx - 2, y: cy - 2, w: 6, h: 6,
+        speed: Math.cos(a) * 120, vx: Math.sin(a) * 120, rawSpeed: 120,
+        hp: 99, color: "#ffd76a", ttl: 4 });
+    }
+  }
+  minions = minions.filter((x) => x !== m);
+}
+function fireZealotShot(m) {
+  if (enemyBullets.length >= 10) return;
+  const sx = m.x + m.w / 2, sy = m.y + m.h / 2;
+  const a = Math.atan2(player.y + player.h / 2 - sy, player.x + player.w / 2 - sx);
+  const vy = Math.max(90, Math.sin(a) * 150), vx = Math.cos(a) * 150;
+  enemyBullets.push({ x: sx - 2, y: sy - 2, w: 5, h: 12, speed: vy, vx, rawSpeed: 150,
+    hp: 1, color: "#c026d3", ttl: 2.4, seek: 0.5, seekMax: 0.45, seekA0: Math.atan2(vy, vx) });
+}
+function updateMinions(dt) {
+  minions.forEach((m) => {
+    m.t += dt;
+    if (m.type === "zealot") {
+      if (m.t < 1.6) {
+        const away = m.x + m.w / 2 >= boss.x + boss.w / 2 ? 1 : -1;
+        m.x += away * 150 * dt;
+        m.y += (boss.y + 50 - m.y) * 2.2 * dt;
+      } else {
+        m.x += Math.cos(m.t * 1.1 + m.phase) * 95 * dt;
+        m.y += Math.sin(m.t * 1.9 + m.phase) * 65 * dt;
+        // pilgrimage drift (js/boss.js): tendency to follow, not a lock-on
+        const pull = 46 + 18 * Math.sin(m.t * 0.7 + m.phase);
+        m.x += clamp((playerCenterX() - (m.x + m.w / 2)) * 0.5, -pull, pull) * dt;
+        m.y += clamp((player.y - 170 - m.y) * 0.4, -30, 30) * dt;
+      }
+      m.fire -= dt;
+      if (m.fire <= 0) {
+        let gap = 2.6 + Math.random() * 1.6;
+        if (boss.phase === 3 &&
+            Math.hypot(boss.x + boss.w / 2 - (m.x + m.w / 2), boss.y + boss.h / 2 - (m.y + m.h / 2)) < 150) gap *= 0.6;
+        m.fire = gap;
+        fireZealotShot(m);
+      }
+    } else {
+      m.x = clamp(m.bx + Math.sin(m.t * 0.6 + m.phase) * 150, 16, W - 50);
+      m.y = clamp(m.by + Math.sin(m.t * 0.42 + m.phase * 1.7) * 85, 60, H - 140);
+      const cx = m.x + m.w / 2, cy = m.y + m.h / 2;
+      if (Math.hypot(boss.x + boss.w / 2 - cx, boss.y + boss.h / 2 - cy) < m.auraR + 60) {
+        boss.hp = Math.min(boss.maxHp, boss.hp + 0.5 * dt);
+      }
+    }
+    m.x = clamp(m.x, 16, W - m.w - 16);
+    m.y = clamp(m.y, 60, H - 140);
+  });
+}
+
+// ---- proposed power 2: INK BLIGHT ----
+// The squid FIRES an ink blob at your position (locked at launch, so it is
+// dodgeable). It travels ~1s and EXPANDS from a small muzzle blob into a
+// big one as it closes on you, then blooms into a cloud that blacks out the
+// strip and drifts toward your column in slow pursuit. No damage - vision denial.
+const INK_FLY_SPEED = 330;
+let inkTimer = 5;
+function updateInk(dt) {
+  if (!on("pInk")) { ink = null; return; }
+  if (!ink) {
+    inkTimer -= dt;
+    if (inkTimer <= 0) {
+      const sx = boss.x + boss.w / 2, sy = boss.y + boss.h;
+      const tx = playerCenterX(), ty = player.y + player.h / 2;
+      const d = Math.max(60, Math.hypot(tx - sx, ty - sy));
+      ink = { phase: "fly", x: sx, y: sy, r: 8, dist: 0, total: d, t: 6,
+        vx: ((tx - sx) / d) * INK_FLY_SPEED, vy: ((ty - sy) / d) * INK_FLY_SPEED };
+    }
+    return;
+  }
+  ink.t -= dt;
+  if (ink.phase === "fly") {
+    ink.x += ink.vx * dt;
+    ink.y += ink.vy * dt;
+    ink.dist += INK_FLY_SPEED * dt;
+    // expands en route: 8px at the squid -> 64px on arrival
+    ink.r = 8 + 56 * clamp(ink.dist / ink.total, 0, 1);
+    if (ink.dist >= ink.total || ink.y >= player.y - 40) {
+      ink.phase = "cloud"; ink.t = 5; ink.cy = ink.y;
+    }
+    if (ink.t <= 0) { ink = null; inkTimer = 15 + Math.random() * 3; }
+  } else {
+    ink.cy += 26 * dt;
+    // slow pursuit: the cloud drifts toward the ship's column (~45 px/s, the
+    // player does 290 - always outrunnable, never standable)
+    ink.x += clamp(playerCenterX() - ink.x, -45 * dt, 45 * dt);
+    if (ink.t <= 0) { ink = null; inkTimer = 15 + Math.random() * 3; }
+  }
+}
+
+// ---- bombs + collisions ----
+function updateBombs(dt) {
+  enemyBombs.forEach((b) => {
+    b.x += b.vx * dt; b.y += b.vy * dt; b.ttl -= dt;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    if (player.respawn <= 0 && Math.hypot(playerCenterX() - cx, player.y + player.h / 2 - cy) < b.radius) {
+      hitPlayer(); b.ttl = 0;
+    }
+  });
+  enemyBombs = enemyBombs.filter((b) => b.ttl > 0 && b.y < H + 20);
+  // player bullets shoot back at everything shootable
+  playerBullets.forEach((pb) => {
+    enemyBullets.forEach((eb) => {
+      if (eb.hp < 99 && pb.y < eb.y + eb.h && pb.y + pb.h > eb.y && pb.x < eb.x + eb.w && pb.x + pb.w > eb.x) {
+        eb.hp -= 1; pb.dead = true;
+        if (eb.hp <= 0) eb.ttl = 0;
+      }
+    });
+    enemyBombs.forEach((b) => {
+      if (pb.y < b.y + b.h && pb.y + pb.h > b.y && pb.x < b.x + b.w && pb.x + pb.w > b.x) { b.hp -= 1; pb.dead = true; if (b.hp <= 0) b.ttl = 0; }
+    });
+    minions.forEach((m) => {
+      if (pb.y < m.y + m.h && pb.y + pb.h > m.y && pb.x < m.x + m.w && pb.x + pb.w > m.x) { m.hp -= 1; pb.dead = true; if (m.hp <= 0) killMinion(m); }
+    });
+    if (pb.y < boss.y + boss.h && pb.y + pb.h > boss.y && pb.x < boss.x + boss.w && pb.x + pb.w > boss.x) {
+      pb.dead = true; damageBoss(1);
+    }
+  });
+  playerBullets = playerBullets.filter((pb) => !pb.dead);
+  enemyBullets = enemyBullets.filter((b) => b.hp > 0 || b.hp >= 99);
+  // enemy bullets hit the player
+  enemyBullets.forEach((b) => {
+    if (player.respawn <= 0 && b.y < player.y + player.h && b.y + b.h > player.y && b.x < player.x + player.w && b.x + b.w > player.x) {
+      hitPlayer(); b.ttl = 0;
+    }
+  });
+}
+// ---- drawing ----
+function drawSquid() {
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2, w = boss.w, h = boss.h;
+  ctx.save();
+  if (boss.flash > 0) { ctx.globalAlpha = 0.6; }
+  ctx.fillStyle = SQUID.color; ctx.shadowColor = SQUID.color; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.ellipse(cx, cy - h * 0.10, w * 0.28, h * 0.34, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - w * 0.13, cy - h * 0.36); ctx.lineTo(cx, cy - h * 0.62); ctx.lineTo(cx + w * 0.13, cy - h * 0.36); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = SQUID.accent; ctx.lineWidth = 4;
+  for (let i = 0; i < 4; i += 1) {
+    const bx = cx - w * 0.24 + i * w * 0.16;
+    ctx.beginPath(); ctx.arc(bx, cy + h * 0.28, w * 0.09, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#0d0d14";
+  ctx.beginPath(); ctx.arc(cx - w * 0.16, cy - h * 0.1, 6, 0, Math.PI * 2); ctx.arc(cx + w * 0.16, cy - h * 0.1, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function drawWard() {
+  if (!riteShieldActive(boss)) return;
+  const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2;
+  const r = boss.w / 2 + 16 + Math.sin(waveTime * 6) * 3;
+  ctx.save();
+  ctx.fillStyle = "rgba(139, 92, 246, 0.18)";
+  ctx.strokeStyle = "rgba(201, 167, 255, 0.9)";
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(201, 167, 255, 0.45)"; ctx.lineWidth = 2;
+  for (let seg = 0; seg < 6; seg += 1) {
+    const a0 = waveTime * 1.8 + seg * (Math.PI / 3);
+    ctx.beginPath(); ctx.arc(cx, cy, r - 7, a0, a0 + 0.62); ctx.stroke();
+  }
+  ctx.fillStyle = "#c9a7ff"; ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("WARD x1/2", cx - 38, boss.y - 12);
+  ctx.lineWidth = 1; ctx.restore();
+}
+function drawRite() {
+  if (!riteActive(boss)) return;
+  const elapsed = boss.callState === "slow" ? 0.8 - boss.callT : 0.8 + (1.7 - boss.callT);
+  const p = clamp(elapsed / 2.5, 0, 1);
+  ctx.save();
+  ctx.strokeStyle = "rgba(201, 167, 255, 0.7)"; ctx.lineWidth = 3;
+  const bw = boss.w + 20;
+  ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, bw, 12);
+  ctx.fillStyle = "rgba(201, 167, 255, 0.55)";
+  ctx.fillRect(boss.x - 8, boss.y + boss.h - 4, (bw - 4) * p, 8);
+  for (let ring = 0; ring < 3; ring += 1) {
+    const q = (boss.hoverT * 1.4 + ring / 3) % 1;
+    ctx.globalAlpha = 0.55 * (1 - q);
+    ctx.beginPath(); ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.w / 2 + 10 + q * 70, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = "#c9a7ff"; ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("SUMMONING", boss.x + boss.w / 2 - 32, boss.y + boss.h + 26);
+  ctx.lineWidth = 1; ctx.restore();
+}
+function drawMinion(m) {
+  const cx = m.x + m.w / 2, cy = m.y + m.h / 2;
+  ctx.save();
+  if (m.type === "zealot") {
+    ctx.fillStyle = "#8b5cf6";
+    ctx.beginPath(); ctx.moveTo(cx, cy - 14); ctx.lineTo(cx + 12, cy); ctx.lineTo(cx, cy + 14); ctx.lineTo(cx - 12, cy); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#0d0d14"; ctx.fillRect(cx - 3, cy - 3, 6, 6);
+  } else {
+    ctx.strokeStyle = "rgba(255, 215, 106, 0.25)";
+    ctx.beginPath(); ctx.arc(cx, cy, m.auraR, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#ffd76a";
+    ctx.fillRect(cx - 6, cy - 16, 12, 32);
+    ctx.beginPath(); ctx.arc(cx, cy - 16, 8, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = "#7de68f";
+  ctx.fillRect(m.x, m.y - 8, m.w * clamp(m.hp / m.maxHp, 0, 1), 3);
+  ctx.restore();
+}
+function drawInk() {
+  if (!ink) return;
+  ctx.save();
+  if (ink.phase === "fly") {
+    // trailing blobs behind the growing core
+    for (let i = 3; i >= 1; i -= 1) {
+      const p = i / 4;
+      ctx.globalAlpha = 0.4 * (1 - p);
+      ctx.fillStyle = "#141026";
+      ctx.beginPath();
+      ctx.arc(ink.x - ink.vx * 0.035 * i, ink.y - ink.vy * 0.035 * i, ink.r * (1 - p * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#0a0813";
+    ctx.beginPath(); ctx.arc(ink.x, ink.y, ink.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(139,92,246,0.55)";
+    ctx.beginPath(); ctx.arc(ink.x, ink.y, ink.r, 0, Math.PI * 2); ctx.stroke();
+  } else {
+    const a = clamp(ink.t / 5, 0, 1);
+    ctx.globalAlpha = 0.92 * Math.min(1, a * 2);
+    ctx.fillStyle = "#0a0813";
+    ctx.beginPath(); ctx.ellipse(ink.x, ink.cy, 90, 130, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+function inkCovers(x, y) {
+  return ink && ink.phase === "cloud" && Math.hypot((x - ink.x) / 90, (y - ink.cy) / 130) < 1;
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (screenShake > 0) { ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake); screenShake = Math.max(0, screenShake - 0.6); }
+  drawSquid();
+  drawWard();
+  drawRite();
+  minions.forEach(drawMinion);
+  if (bellEffect) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(201,167,255,0.5)";
+    const p = (bellEffect.t * 1.2) % 1;
+    ctx.globalAlpha = 1 - p;
+    ctx.beginPath(); ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, 40 + p * 380, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  enemyBullets.forEach((b) => {
+    if (inkCovers(b.x, b.y)) return;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+  });
+  enemyBombs.forEach((b) => {
+    ctx.fillStyle = b.color;
+    ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 7, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.fillStyle = "#9ae6ff";
+  playerBullets.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+  if (player.respawn <= 0 && !(player.invuln > 0 && Math.floor(waveTime * 12) % 2 === 0)) {
+    ctx.fillStyle = "#62ffa1";
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.w / 2, player.y - 8);
+    ctx.lineTo(player.x + player.w, player.y + player.h);
+    ctx.lineTo(player.x, player.y + player.h);
+    ctx.closePath(); ctx.fill();
+  }
+  drawInk();
+  // HUD
+  const ratio = clamp(boss.hp / boss.maxHp, 0, 1);
+  ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(W / 2 - 130, 14, 260, 10);
+  ctx.fillStyle = "#ff3366"; ctx.fillRect(W / 2 - 130, 14, 260 * ratio, 10);
+  ctx.strokeStyle = "#c9a7ff"; ctx.strokeRect(W / 2 - 130, 14, 260, 10);
+  ctx.fillStyle = "#cfefff"; ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("ABYSSAL SQUID - PHASE " + boss.phase, W / 2 - 100, 40);
+  ctx.fillText("HP " + Math.max(0, boss.hp).toFixed(1) + " / " + boss.maxHp, W / 2 + 40, 40);
+  ctx.fillStyle = "#62ffa1";
+  for (let i = 0; i < player.hp; i += 1) ctx.fillRect(12 + i * 16, H - 18, 10, 10);
+  ctx.restore();
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.035, (now - last) / 1000);
+  last = now;
+  waveTime += dt;
+  updatePlayer(dt);
+  updateBoss(dt);
+  updateMinions(dt);
+  updateInk(dt);
+  updateBullets(dt);
+  updateBombs(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// __END__
+</script>
+</body>
+</html>

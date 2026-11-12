@@ -1,6 +1,6 @@
 // Verifies the early-wave foe-shot speed curve and the viper's slower cadence.
 // Runs the REAL fireEnemyBullet (js/invaders.js) through the REAL
-// pushEnemyBullet/enemyShotSpeedScale (js/helpers.js), against the HEAD baseline,
+// pushEnemyBullet/enemyShotSpeedScale (js/helpers.js), against the v1.8.1 (fe5174c) baseline,
 // with a seeded RNG so both runs pick the same shooter. Then evaluates the REAL
 // shot-timer expression out of js/boss.js for every boss design.
 const fs = require("fs");
@@ -12,7 +12,7 @@ const inv = fs.readFileSync(REPO + "/js/invaders.js", "utf8");
 const helpers = fs.readFileSync(REPO + "/js/helpers.js", "utf8");
 const consts = fs.readFileSync(REPO + "/js/constants.js", "utf8");
 const bossSrc = fs.readFileSync(REPO + "/js/boss.js", "utf8");
-const headInv = execSync("git -C " + REPO + " show fe5174c:js/invaders.js", { encoding: "utf8" });
+const v181Inv = execSync("git -C " + REPO + " show fe5174c:js/invaders.js", { encoding: "utf8" });
 
 function sliceFn(src, name) {
   const start = src.indexOf("function " + name + "(");
@@ -91,7 +91,7 @@ console.log("\nfoe shot speed by wave (real fireEnemyBullet, crab shooter, aimed
 const base = {};
 [1, 2, 3, 4, 5, 6, 10].forEach((lv) => {
   const fixed = fireShot(inv, lv, 977);
-  const before = fireShot(headInv, lv, 977);
+  const before = fireShot(v181Inv, lv, 977);
   base[lv] = before;
   const speedRatio = fixed.speed / before.speed;
   const vxRatio = before.vx === 0 ? 1 : fixed.vx / before.vx;
@@ -131,7 +131,7 @@ const skull = designs.find((d) => d.name === "SKULL CRUISER");
 console.log("\nviper shot cadence (real timer-reset expression from js/boss.js)");
 check("WINGED VIPER carries shotMul 1.25", viper.shotMul === 1.25, "shotMul=" + viper.shotMul);
 let allRatios = [];
-[1, 3, 5, 8, 10].forEach((lv) => [1, 2, 3].forEach((ph) => {
+[1, 3, 5, 8, 9].forEach((lv) => [1, 2, 3].forEach((ph) => {
   const r = interval(viper, lv, ph) / interval(skull, lv, ph);
   allRatios.push(r);
 }));
@@ -141,9 +141,9 @@ check("viper's gap between shots is 1.25x the other bosses' at every wave and ph
 check("that is 20% fewer shots per second",
   Math.abs((1 / interval(viper, 5, 1)) / (1 / interval(skull, 5, 1)) - 0.8) < 1e-12,
   "shots/s " + (1 / interval(skull, 5, 1)).toFixed(3) + " -> " + (1 / interval(viper, 5, 1)).toFixed(3));
-check("the gap does not widen with the wave (same 1.25x on wave 1 and wave 10)",
-  Math.abs(interval(viper, 1, 1) / interval(skull, 1, 1) - interval(viper, 10, 3) / interval(skull, 10, 3)) < 1e-12,
-  "w1 " + interval(viper, 1, 1).toFixed(3) + "s vs w10 " + interval(viper, 10, 3).toFixed(3) + "s");
+check("the gap does not widen with the wave (same 1.25x on wave 1 and wave 9)",
+  Math.abs(interval(viper, 1, 1) / interval(skull, 1, 1) - interval(viper, 9, 3) / interval(skull, 9, 3)) < 1e-12,
+  "w1 " + interval(viper, 1, 1).toFixed(3) + "s vs w9 " + interval(viper, 9, 3).toFixed(3) + "s");
 check("every other design is unchanged (no shotMul)",
   designs.filter((d) => d !== viper).every((d) => !d.shotMul),
   designs.map((d) => d.name.split(" ")[1] + ":" + (d.shotMul || 1)).join(" "));

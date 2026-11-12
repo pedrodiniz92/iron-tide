@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iron Tide mockup — Winged Viper powers (wave 6)</title>
+    <style>
+      body { margin: 0; padding: 18px; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+      h1 { font-size: 17px; margin: 0 0 4px; color: #7dff66; letter-spacing: .08em; }
+      .sub { color: #6f8fa8; font-size: 12px; margin-bottom: 12px; max-width: 900px; line-height: 1.5; }
+      .stage { position: relative; width: 900px; height: 600px; border: 1px solid #23304a; background: #0d0d14; }
+      canvas { display: block; }
+      #panel { position: absolute; left: 10px; top: 10px; width: 236px; padding: 8px 10px;
+        border: 1px solid #2c4a3a; background: rgba(13, 13, 20, 0.82); }
+      #panel h2 { margin: 0 0 7px; font-size: 11px; color: #7dff66; letter-spacing: .1em; }
+      #panel label { display: block; font-size: 11px; line-height: 1.3; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+      #panel input { vertical-align: middle; margin-right: 6px; accent-color: #2fc96f; }
+      #panel .hint { color: #6f8fa8; font-size: 10px; line-height: 1.45; margin-top: 8px; }
+      .legend { width: 900px; color: #6f8fa8; font-size: 11px; line-height: 1.6; margin-top: 10px; }
+      .legend b { color: #cfefff; }
+      .legend code { color: #7dff66; }
+    </style>
+  </head>
+  <body>
+    <h1>WINGED VIPER — POWER SANDBOX (WAVE 6)</h1>
+    <div class="sub">
+      Playable and true-to-code: movement, strafing cadence, direct bombs and the VENOM DIVE state machine are
+      ported from <b>js/boss.js</b> at level 6 (42 HP). All four toggles OFF = the shipped kit.
+      Toggling mid-fight is fine. Sandbox: no lives, you respawn forever.
+    </div>
+    <div class="stage">
+      <canvas id="game" width="900" height="600"></canvas>
+      <div id="panel">
+        <h2>PROPOSED POWERS</h2>
+        <label><input type="checkbox" id="t1" />DIVE AS THE EVENT</label>
+        <label><input type="checkbox" id="t2" />VENOM POOLS</label>
+        <label><input type="checkbox" id="t3" />FEINT DIVES</label>
+        <label><input type="checkbox" id="t4" />STRUCTURED VOLLEYS</label>
+        <div class="hint">ARROWS / A D move · SPACE fires · R = restart<br />All OFF = current shipped kit.</div>
+      </div>
+    </div>
+    <div class="legend">
+      <b>Ported numbers</b> — boss vx <code>speed + level*8 = 170</code>, bounce at x&lt;=18 / x+w&gt;=W-18,
+      moveTimer <code>1.1+rand*1.2</code>, yMax <code>player.y-h-150</code>, phases 66%/33%,
+      shot timer <code>shotMul * max(0.45, 1.25 - level*0.04 - (phase-1)*0.14)</code>,
+      bomb timer <code>max(1.8, 3.8 - level*0.08 - (phase-1)*0.22)</code> (first at 3.35),
+      dive <code>vx = dir*170*1.6</code>, <code>vy = 300+level*10</code>, telegraph 0.6s,
+      venom bombs every 0.22s (max 4), bomb <code>vx = clamp(dx*0.85,±210)</code>,
+      <code>vy = min(135, -40+dy*0.45)</code>, radius 18, ttl 5.2, hp 2, fan spread 116, 2 per launch,
+      mines arm 1.2s / fuse 3.0s / blast 64 / pulse radius 116.
+      <br /><b>Dive drops in this mockup</b> — venom bombs on the way DOWN (js/boss.js:731-737, the shipped
+      behaviour) and spike mines on the way UP every 0.1s (max 4). The shipped viper has no mine spawner; the
+      mine is ported from the MINE SEED / ZONE DENIAL path (js/boss.js:146-165) so the climb can carry it.
+    </div>
+    <script>
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // js/constants.js:145-151 (WINGED VIPER), :440-441 (respawn), js/state.js:14 (2 HP)
+      const LEVEL = 6;
+      const DESIGN = {
+        name: "WINGED VIPER", hp: 18, hpScale: 4, speed: 122, bombTimer: 3.35,
+        color: "#2fc96f", accent: "#7dff66", ability: "VENOM DIVE",
+        bulletCap: 8, bombMax: 3, bombRadius: 34, laser: false,
+        bombsPerLaunch: 2, bombDirect: true, bombPlayerDamage: 1,
+        shotMul: 1.25, diveInterval: 4.6
+      };
+      const COLORS = { player: "#78ff78", hud: "#66ff66", bullet: "#ffffff", explosion: "#ff9c2b" };
+      const RESPAWN_PAUSE = 1.0;
+      const RESPAWN_INVULN = 1.5;
+      const MAX_HP = 2;
+
+      // js/silhouettes.js:18,41,46,44,70,74 + neon() :95-107
+      const SIL = {
+        classic: { bb: { x: -28, y: -11, w: 56, h: 22 }, path(c) {
+          c.beginPath(); c.moveTo(0, -11); c.lineTo(4, -3); c.lineTo(12, 1); c.lineTo(28, 7);
+          c.lineTo(16, 9); c.lineTo(6, 6); c.lineTo(-6, 6); c.lineTo(-16, 9);
+          c.lineTo(-28, 7); c.lineTo(-12, 1); c.lineTo(-4, -3); c.closePath(); } },
+        bullet: { bb: { x: -3, y: -8, w: 6, h: 16 }, path(c) {
+          c.beginPath(); c.moveTo(0, -8); c.quadraticCurveTo(3, -6, 3, 0); c.quadraticCurveTo(3, 8, 0, 8);
+          c.quadraticCurveTo(-3, 8, -3, 0); c.quadraticCurveTo(-3, -6, 0, -8); c.closePath(); } },
+        ebolt: { bb: { x: -4, y: -7, w: 8, h: 14 }, path(c) {
+          c.beginPath(); c.moveTo(0, -7); c.lineTo(4, 0); c.lineTo(0, 7); c.lineTo(-4, 0); c.closePath(); } },
+        bomb: { bb: { x: -9, y: -9, w: 18, h: 18 }, path(c) {
+          c.beginPath(); c.arc(0, 0, 9, 0, Math.PI * 2); c.closePath(); } },
+        viper: { bb: { x: -26, y: -12, w: 52, h: 26 }, path(c) {
+          c.beginPath(); c.moveTo(0, -12); c.lineTo(8, -4); c.lineTo(26, -9); c.lineTo(16, 2);
+          c.lineTo(6, 6); c.lineTo(0, 14); c.lineTo(-6, 6); c.lineTo(-16, 2); c.lineTo(-26, -9);
+          c.lineTo(-8, -4); c.closePath(); } },
+        mine: { bb: { x: -9, y: -9, w: 18, h: 18 }, path(c) {
+          c.beginPath();
+          for (let i = 0; i < 8; i += 1) {
+            const a = i * Math.PI / 4;
+            c.lineTo(Math.cos(a) * 9, Math.sin(a) * 9);
+            c.lineTo(Math.cos(a + Math.PI / 8) * 4.5, Math.sin(a + Math.PI / 8) * 4.5);
+          }
+          c.closePath(); } }
+      };
+
+      function neon(name, cx, cy, targetW, color, glow = 7) {
+        const s = SIL[name];
+        const scale = targetW / s.bb.w;
+        ctx.save();
+        ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+        ctx.scale(scale, scale);
+        ctx.shadowColor = color;
+        ctx.shadowBlur = glow;
+        s.path(ctx);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // js/helpers.js:13,37,98,366 · js/invaders.js:131-151,176-186
+      function clamp(value, min, max) { return value < min ? min : value > max ? max : value; }
+      function overlaps(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+      function addExplosion(x, y, color) { explosions.push({ x, y, color, ttl: 0.38 }); }
+      function addShockwave(x, y, maxRadius) {
+        shockwaves.push({ x, y, maxRadius, radius: 12, ttl: 0.48, maxTtl: 0.48 });
+      }
+      function addScreenShake(power) { screenShake = Math.min(18, screenShake + power); }
+      function addSpark(x, y, color, count = 6, power = 150) {
+        for (let i = 0; i < count; i += 1) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = power * (0.35 + Math.random() * 0.9);
+          sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, ttl: 0.22, color });
+        }
+      }
+      function playerCenterX() { return player.x + player.w / 2; }
+      function playerVelocityX() {
+        const left = keys.has("arrowleft") || keys.has("a");
+        const right = keys.has("arrowright") || keys.has("d");
+        return (right ? 1 : 0) * player.speed - (left ? 1 : 0) * player.speed;
+      }
+      function predictPlayerX(sx, sy, speed) {
+        const dx = playerCenterX() - sx;
+        const dy = player.y - sy;
+        const t = Math.max(0.1, Math.hypot(dx, dy) / speed);
+        return clamp(playerCenterX() + playerVelocityX() * t, 10 + player.w / 2, W - 10 - player.w / 2);
+      }
+      function aimJitter() { return (Math.random() - 0.5) * 0.22; }
+      function aimTargetX(sx, sy, speed) {
+        const mode = Math.random() < 0.34 ? 0 : Math.random() < 0.5 ? 1 : 2;
+        const current = playerCenterX();
+        const target = mode === 1 ? predictPlayerX(sx, sy, speed)
+          : mode === 2 ? (current + predictPlayerX(sx, sy, speed)) / 2
+          : current;
+        return clamp(target, sx - 260, sx + 260);
+      }
+      function aimVx(sx, sy, speed, limit) {
+        const base = clamp((aimTargetX(sx, sy, speed) - sx) * 1.5, -limit, limit);
+        const angle = Math.atan2(base, speed) + (aimJitter() || 0);
+        return clamp(speed * Math.tan(angle), -limit, limit);
+      }
+      // ---- sandbox state ----
+      const on = (id) => document.getElementById(id).checked;
+      const keys = new Set();
+      let player, boss, playerBullets, enemyBullets, enemyBombs, spikeMines, venomPools;
+      let explosions, shockwaves, sparks, pendingShots, stars;
+      let screenShake = 0, waveTime = 0, fireCooldown = 0, volleyAlt = 0, bossDeadT = 0;
+      const stats = { dives: 0, feints: 0, curtains: 0, pools: 0, mines: 0, shots: 0, bombs: 0, sniper: 0, fan: 0 };
+
+      // js/boss.js:548-623 (createBossFromDesign) with the wave-6 design
+      function createBoss() {
+        const hp = DESIGN.hp + LEVEL * DESIGN.hpScale; // 18 + 4*6 = 42
+        return {
+          designData: DESIGN, ability: DESIGN.ability,
+          bulletCap: DESIGN.bulletCap, bombMax: DESIGN.bombMax, bombRadius: DESIGN.bombRadius,
+          bombsPerLaunch: DESIGN.bombsPerLaunch, bombDirect: DESIGN.bombDirect,
+          bombPlayerDamage: DESIGN.bombPlayerDamage, minePulseRadius: 116,
+          diveState: "idle", diveTimer: DESIGN.diveInterval, diveTele: 0, diveTargetX: W / 2,
+          diveDropTimer: 0, diveCount: 0, climbMineTimer: 0, climbMines: 0, feintRoll: false, feintT: 0,
+          x: W / 2 - 64, y: 54, w: 128, h: 64,
+          vx: DESIGN.speed + LEVEL * 8, vy: 12 + LEVEL, moveTimer: 1.4,
+          hp, maxHp: hp, phase: 1, timer: 1.1, bombTimer: DESIGN.bombTimer, flash: 0, deadOnce: false
+        };
+      }
+
+      function reset() {
+        waveTime = 0; screenShake = 0; fireCooldown = 0; volleyAlt = 0; bossDeadT = 0;
+        player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290, hp: MAX_HP, invuln: RESPAWN_INVULN, respawn: 0, flash: 0 };
+        playerBullets = []; enemyBullets = []; enemyBombs = []; spikeMines = []; venomPools = [];
+        explosions = []; shockwaves = []; sparks = []; pendingShots = [];
+        Object.keys(stats).forEach((k) => { stats[k] = 0; });
+        boss = createBoss();
+      }
+      if (!stars) {
+        stars = [];
+        for (let i = 0; i < 70; i += 1) stars.push({ x: Math.random() * W, y: Math.random() * H, s: 0.4 + Math.random() * 1.2 });
+      }
+      reset();
+
+      document.getElementById("panel").addEventListener("click", (e) => e.stopPropagation());
+      window.addEventListener("keydown", (e) => {
+        const k = e.key.toLowerCase();
+        if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(k)) e.preventDefault();
+        keys.add(k);
+        if (k === "r") reset();
+      });
+      window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+      // ---- player (js/player.js:2,12,106,119 — 0.44s cadence, 4x12 @ 560) ----
+      function updatePlayer(dt) {
+        if (player.respawn > 0) {
+          player.respawn -= dt;
+          if (player.respawn <= 0) {
+            player.x = W / 2 - player.w / 2;
+            player.hp = MAX_HP;
+            player.invuln = RESPAWN_INVULN;
+          }
+          return;
+        }
+        const dir = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+        player.x = clamp(player.x + dir * player.speed * dt, 10, W - player.w - 10);
+        player.invuln = Math.max(0, player.invuln - dt);
+        player.flash = Math.max(0, player.flash - dt);
+        fireCooldown -= dt;
+        if (keys.has(" ") && fireCooldown <= 0) {
+          fireCooldown = 0.44;
+          playerBullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 4, h: 12, speed: 560, hp: 1 });
+        }
+      }
+
+      function hitPlayer(damage = 1) {
+        if (player.invuln > 0 || player.respawn > 0) return;
+        player.hp -= damage;
+        player.flash = 0.3;
+        addExplosion(playerCenterX(), player.y + player.h / 2, "#ff5a5a");
+        addScreenShake(8);
+        if (player.hp <= 0) player.respawn = RESPAWN_PAUSE;
+        else player.invuln = RESPAWN_INVULN;
+      }
+
+      function damageBoss(amount) {
+        if (boss.hp <= 0) return;
+        boss.hp -= amount;
+        boss.flash = 0.08;
+        addSpark(boss.x + boss.w / 2 + (Math.random() * 40 - 20), boss.y + boss.h - 6, "#ffffff", 4, 120);
+        if (boss.hp <= 0 && !boss.deadOnce) {
+          boss.deadOnce = true;
+          addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, DESIGN.color);
+          addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, DESIGN.accent);
+          addShockwave(boss.x + boss.w / 2, boss.y + boss.h / 2, 160);
+          addScreenShake(16);
+        }
+      }
+
+      // js/boss.js:1113-1123 (bossAimVx) — lead chance grows with phase
+      function bossAimVx(sx, sy, speed, limit) {
+        const phase = boss.phase || 1;
+        const leadChance = Math.min(0.8, 0.3 + phase * 0.18);
+        const current = playerCenterX();
+        const predicted = predictPlayerX(sx, sy, speed);
+        const roll = Math.random();
+        const target = roll < leadChance ? predicted
+          : roll < leadChance + 0.3 ? (current + predicted) / 2
+          : current;
+        return clamp((clamp(target, sx - 260, sx + 260) - sx) * 1.5, -limit, limit);
+      }
+
+      // js/boss.js:666-893 (updateBossUnit) — no stagger, no laser (viper has laser: false)
+      function updateBoss(dt) {
+        boss.flash = Math.max(0, boss.flash - dt);
+        if (boss.hp <= 0) {
+          bossDeadT += dt;
+          if (bossDeadT >= 1.2) {
+            boss = createBoss();
+            bossDeadT = 0;
+            enemyBullets = []; enemyBombs = []; spikeMines = []; venomPools = []; pendingShots = [];
+          }
+          return;
+        }
+
+        boss.x += boss.vx * dt;
+        boss.y += boss.vy * dt;
+        if (boss.x <= 18) { boss.x = 18; boss.vx = Math.abs(boss.vx); }
+        if (boss.x + boss.w >= W - 18) { boss.x = W - boss.w - 18; boss.vx = -Math.abs(boss.vx); }
+
+        const diving = boss.diveState === "dive" || boss.diveState === "climb";
+        boss.moveTimer -= dt;
+        if (boss.moveTimer <= 0 && !diving) {
+          boss.moveTimer = 1.1 + Math.random() * 1.2;
+          const inLowerHalf = boss.y + boss.h / 2 > H / 2;
+          const upChance = inLowerHalf ? 0.72 : 0.44;
+          const moveSpeed = 18 + LEVEL * 2;
+          boss.vy = Math.random() < upChance ? -moveSpeed : moveSpeed;
+        }
+
+        const yMax = diving ? H - boss.h - 24 : Math.min(H - boss.h - 24, player.y - boss.h - 150);
+        if (boss.y > yMax) boss.y = Math.max(yMax, boss.y - 260 * dt);
+        else boss.y = clamp(boss.y, 58, yMax);
+        boss.phase = boss.hp <= boss.maxHp * 0.33 ? 3 : boss.hp <= boss.maxHp * 0.66 ? 2 : 1;
+
+        // js/boss.js:712-752 — the VENOM DIVE state machine
+        if (boss.ability === "VENOM DIVE") {
+          const diveSpeed = boss.designData.speed + LEVEL * 8;
+          if (boss.diveState === "idle") {
+            boss.diveTimer -= dt;
+            if (boss.diveTimer <= 0) {
+              boss.diveState = "telegraph";
+              boss.diveTele = 0.6;
+              boss.diveTargetX = clamp(playerCenterX(), 60, W - 60);
+              boss.feintRoll = on("t3") && Math.random() < 0.25; // FEINT DIVES
+              addScreenShake(3);
+            }
+          } else if (boss.diveState === "telegraph") {
+            boss.diveTele -= dt;
+            if (boss.feintRoll && boss.diveTele <= 0.15) {
+              // the promise breaks in the last 0.15s: no dive, short reset
+              boss.diveState = "feint";
+              boss.feintRoll = false;
+              boss.feintT = 0.45;
+              boss.diveTimer = 1.8;
+              stats.feints += 1;
+              addSpark(boss.x + boss.w / 2, boss.y + boss.h, DESIGN.accent, 10, 130);
+            } else if (boss.diveTele <= 0) {
+              boss.diveState = "dive";
+              boss.diveDropTimer = 0.1;
+              boss.diveCount = 0;
+              boss.climbMineTimer = 0.1;
+              boss.climbMines = 0;
+              boss.vx = (boss.diveTargetX >= boss.x + boss.w / 2 ? 1 : -1) * diveSpeed * 1.6;
+              boss.vy = 300 + LEVEL * 10;
+              stats.dives += 1;
+              addScreenShake(5);
+              if (on("t1")) fireDiveCurtain(boss); // DIVE AS THE EVENT
+            }
+          } else if (boss.diveState === "dive") {
+            boss.diveDropTimer -= dt;
+            if (boss.diveDropTimer <= 0) {
+              boss.diveDropTimer = 0.22;
+              fireVenomBomb(boss);
+              boss.diveCount += 1;
+            }
+            if (boss.y + boss.h >= player.y - 130 || boss.diveCount >= 4) {
+              boss.diveState = "climb";
+              boss.vy = -(300 + LEVEL * 10);
+              addShockwave(boss.x + boss.w / 2, boss.y + boss.h, 70);
+            }
+          } else if (boss.diveState === "climb") {
+            boss.climbMineTimer -= dt;
+            if (boss.climbMineTimer <= 0 && boss.climbMines < 4) {
+              boss.climbMineTimer = 0.1;
+              fireSpikeMine(boss);
+              boss.climbMines += 1;
+            }
+            if (boss.y <= 58) {
+              boss.y = 58;
+              boss.diveState = "idle";
+              boss.vy = 12 + LEVEL;
+              boss.vx = diveSpeed * (Math.random() < 0.5 ? -1 : 1);
+              boss.diveTimer = Math.max(2.6, (boss.designData.diveInterval || 4.6) - (boss.phase - 1) * 0.8);
+            }
+          } else if (boss.diveState === "feint") {
+            boss.feintT -= dt;
+            if (boss.feintT <= 0) {
+              boss.diveState = "idle";
+              boss.vy = 12 + LEVEL;
+              boss.vx = diveSpeed * (Math.random() < 0.5 ? -1 : 1);
+            }
+          }
+        }
+
+        // delayed shots (the sniper pair's second bullet, STRUCTURED VOLLEYS)
+        pendingShots.forEach((s) => { s.t -= dt; if (s.t <= 0) s.fn(); });
+        pendingShots = pendingShots.filter((s) => s.t > 0);
+
+        boss.timer -= dt;
+        if (boss.timer <= 0) {
+          fireBossBullet(boss);
+          // js/boss.js:878-879 — shotMul is the viper's own 1.25; DIVE AS THE EVENT
+          // raises it to 1.6 so the strafing thins out between dives.
+          const mul = on("t1") ? 1.6 : (boss.designData.shotMul || 1);
+          boss.timer = mul * Math.max(0.45, 1.25 - LEVEL * 0.04 - (boss.phase - 1) * 0.14);
+        }
+
+        boss.bombTimer -= dt;
+        if (boss.bombTimer <= 0) {
+          fireBossBomb(boss);
+          boss.bombTimer = Math.max(1.8, 3.8 - LEVEL * 0.08 - (boss.phase - 1) * 0.22);
+        }
+      }
+      // ---- firing (js/boss.js:1271-1287, 1156-1170, 1193-1218, 1220-1269) ----
+      function addBossBullet(unit, x, y, vx, speed) {
+        if (enemyBullets.length >= (unit.bulletCap || 6)) return;
+        enemyBullets.push({
+          x, y, w: 5, h: 15, speed, vx, hp: 2, maxHp: 2,
+          color: DESIGN.accent, ttl: 6, fromBoss: true
+        });
+        stats.shots += 1;
+      }
+
+      // DIVE AS THE EVENT: the dive itself opens with a 5-shot V-curtain.
+      function fireDiveCurtain(unit) {
+        const cx = unit.x + unit.w / 2;
+        const cy = unit.y + unit.h;
+        const speed = 240;
+        [-170, -85, 0, 85, 170].forEach((vx) => addBossBullet(unit, cx - 2, cy, vx, speed));
+        stats.curtains += 1;
+        addSpark(cx, cy, DESIGN.accent, 10, 170);
+      }
+
+      function fireBossBullet(unit) {
+        const cx = unit.x + unit.w / 2;
+        const cy = unit.y + unit.h;
+        const phase = unit.phase || 1;
+        const speed = 190 + LEVEL * 16 + phase * 18;
+        const aim = (limit) => bossAimVx(cx, cy, speed, limit);
+
+        if (on("t4")) {
+          // STRUCTURED VOLLEYS: readable pair, then wide fan, alternating.
+          volleyAlt ^= 1;
+          if (volleyAlt === 0) {
+            const sniper = aim(45);
+            addBossBullet(unit, cx - 2, cy, sniper, speed * 1.15);
+            pendingShots.push({ t: 0.12, fn: () => addBossBullet(unit, cx - 2, cy, sniper, speed * 1.15) });
+            stats.sniper += 1;
+          } else {
+            const wide = Math.abs(aim(70));
+            [-1, -0.5, 0, 0.5, 1].forEach((k) => addBossBullet(unit, cx - 2, cy, wide * k, speed * 0.8));
+            stats.fan += 1;
+          }
+          return;
+        }
+
+        // shipped VENOM DIVE pattern: two random sideAim fans
+        const pattern = Math.floor(Math.random() * 2);
+        if (pattern === 0) {
+          const sideAim = Math.abs(aim(60));
+          addBossBullet(unit, cx - 2, cy, aim(40), speed * 0.95);
+          addBossBullet(unit, cx - 42, cy, -sideAim, speed * 0.85);
+          addBossBullet(unit, cx + 38, cy, sideAim, speed * 0.85);
+        } else {
+          const lead = aim(70);
+          addBossBullet(unit, cx - 24, cy, lead * 0.6, speed * 0.9);
+          addBossBullet(unit, cx + 20, cy, lead, speed * 0.9);
+          if (phase >= 3) addBossBullet(unit, cx - 2, cy, lead * 1.2, speed);
+        }
+      }
+
+      // venom bomb dropped during the dive (js/boss.js:1193-1218, no shields here)
+      function fireVenomBomb(unit) {
+        const cx = unit.x + unit.w / 2;
+        const cy = unit.y + unit.h;
+        const dx = playerCenterX() - cx;
+        enemyBombs.push({
+          x: cx - 7, y: cy, w: 14, h: 14,
+          vx: clamp(dx * 0.5 + unit.vx * 0.35, -160, 160), vy: 60,
+          ttl: 4.2, hp: 2, maxHp: 2, radius: 18, direct: true,
+          playerDamage: Math.max(1, unit.bombPlayerDamage || 1),
+          color: DESIGN.accent, fromBoss: true, trail: []
+        });
+        stats.bombs += 1;
+      }
+
+      // direct bombs (js/boss.js:1220-1269, bombDirect branch, 2 per launch)
+      function fireBossBomb(unit) {
+        const bombsToFire = unit.bombsPerLaunch;
+        const available = Math.max(0, unit.bombMax - enemyBombs.length);
+        const count = Math.min(bombsToFire, available);
+        if (count <= 0) return;
+
+        const originX = unit.x + unit.w / 2;
+        const originY = unit.y + unit.h;
+        const fanSpread = 116;
+        for (let i = 0; i < count; i += 1) {
+          const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (fanSpread / count);
+          const targetX = player.x + player.w / 2 + offset + (Math.random() * 14 - 7);
+          const targetY = player.y + player.h / 2 + (Math.random() * 18 - 9);
+          const dx = targetX - originX;
+          const dy = targetY - originY;
+          enemyBombs.push({
+            x: originX - 7, y: originY, w: 14, h: 14,
+            vx: clamp(dx * 0.85, -210, 210), vy: Math.min(135, -40 + dy * 0.45),
+            ttl: 5.2, hp: 2, maxHp: 2, radius: 18, direct: true,
+            playerDamage: Math.max(1, unit.bombPlayerDamage || 1),
+            color: DESIGN.accent, fromBoss: true, trail: []
+          });
+          stats.bombs += 1;
+        }
+      }
+
+      // spike mine (js/boss.js:146-165) — the climb carries these
+      function fireSpikeMine(unit, arm = 1.2, offset = 0) {
+        spikeMines.push({
+          x: unit.x + unit.w / 2 - 8 + offset, y: unit.y + unit.h, w: 16, h: 16,
+          vx: 0, vy: 112, ttl: 6.2, fuse: 3.0, blastRadius: 64, hp: 1, maxHp: 1,
+          arm, pulse: unit.phase >= 2, pulseTimer: 0.45, pulseRadius: unit.minePulseRadius
+        });
+        stats.mines += 1;
+      }
+
+      function fireMineShot(mine) {
+        const sx = mine.x + mine.w / 2;
+        const sy = mine.y + mine.h / 2;
+        const speed = 260;
+        if (enemyBullets.length >= DESIGN.bulletCap + 6) return;
+        enemyBullets.push({
+          x: sx - 2, y: sy - 2, w: 4, h: 12, speed, hp: 1, maxHp: 1,
+          vx: aimVx(sx, sy, speed, 150), color: "#62ffa1", ttl: 6, fromBoss: true
+        });
+        addExplosion(sx, sy, "#62ffa1");
+      }
+
+      // ---- bullets (js/boss.js:1271-1287 movers) ----
+      function updateBullets(dt) {
+        playerBullets.forEach((b) => { b.y -= b.speed * dt; });
+        playerBullets = playerBullets.filter((b) => b.y > -30);
+        enemyBullets.forEach((b) => {
+          b.x += b.vx * dt;
+          b.y += b.speed * dt;
+          b.ttl -= dt;
+        });
+        enemyBullets = enemyBullets.filter((b) => b.ttl > 0 && b.y < H + 20 && b.y > -30 && b.x > -20 && b.x < W + 20);
+      }
+
+      // player shots shoot bullets, bombs and mines (js/collisions.js behaviour)
+      function resolveShots() {
+        playerBullets.forEach((pb) => {
+          if (pb.hp <= 0) return;
+          enemyBullets.forEach((b) => {
+            if (pb.hp <= 0 || b.hp <= 0 || !overlaps(pb, b)) return;
+            b.hp -= 1; pb.hp -= 1;
+            addSpark(b.x + b.w / 2, b.y + b.h / 2, "#ffffff", 4, 110);
+            if (b.hp <= 0) addExplosion(b.x + b.w / 2, b.y + b.h / 2, b.color);
+          });
+          enemyBombs.forEach((bomb) => {
+            if (pb.hp <= 0 || bomb.hp <= 0 || !overlaps(pb, bomb)) return;
+            bomb.hp -= 1; pb.hp -= 1;
+            addSpark(bomb.x + bomb.w / 2, bomb.y + bomb.h / 2, "#ffffff", 4, 110);
+            if (bomb.hp <= 0) { explodeEnemyBomb(bomb); bomb.ttl = -1; }
+          });
+          spikeMines.forEach((mine) => {
+            if (pb.hp <= 0 || mine.hp <= 0 || !overlaps(pb, mine)) return;
+            mine.hp -= 1; pb.hp -= 1;
+            addSpark(mine.x + mine.w / 2, mine.y + mine.h / 2, "#ffffff", 4, 110);
+          });
+          if (pb.hp > 0 && boss.hp > 0 && overlaps(pb, boss)) {
+            pb.hp = 0;
+            damageBoss(1);
+          }
+        });
+        playerBullets = playerBullets.filter((b) => b.hp > 0);
+        enemyBullets = enemyBullets.filter((b) => b.hp > 0);
+        enemyBombs = enemyBombs.filter((b) => b.hp > 0 && b.ttl > 0);
+        spikeMines = spikeMines.filter((mine) => {
+          if (mine.hp > 0) return true;
+          explodeSpikeMine(mine);
+          return false;
+        });
+      }
+
+      // ---- bombs (js/boss.js:1-46) ----
+      function explodeEnemyBomb(bomb) {
+        const cx = bomb.x + bomb.w / 2;
+        const cy = bomb.y + bomb.h / 2;
+        addExplosion(cx, cy, COLORS.explosion);
+        addExplosion(cx, cy, bomb.color || COLORS.explosion);
+        addShockwave(cx, cy, bomb.direct ? 60 : bomb.radius);
+        addScreenShake(6);
+      }
+
+      function updateBombs(dt) {
+        enemyBombs = enemyBombs.filter((bomb) => {
+          bomb.vy += 280 * dt;
+          bomb.x += bomb.vx * dt;
+          bomb.y += bomb.vy * dt;
+          bomb.ttl -= dt;
+
+          bomb.trail.push({ x: bomb.x + bomb.w / 2, y: bomb.y + bomb.h / 2, ttl: 0.28 });
+          bomb.trail.forEach((p) => { p.ttl -= dt; });
+          bomb.trail = bomb.trail.filter((p) => p.ttl > 0);
+
+          // VENOM POOLS: a direct bomb that reaches the floor, or that runs out
+          // of life, leaves a puddle where it lands.
+          if (bomb.direct && on("t2") && bomb.y > H - 110) {
+            addVenomPool(bomb.x + bomb.w / 2);
+            explodeEnemyBomb(bomb);
+            return false;
+          }
+          if (bomb.y >= H - 42) { explodeEnemyBomb(bomb); return false; }
+          if (bomb.x < -20 || bomb.x > W + 20) return false;
+
+          if (bomb.ttl <= 0) {
+            if (!bomb.direct) explodeEnemyBomb(bomb);
+            else if (on("t2")) addVenomPool(bomb.x + bomb.w / 2);
+            return false;
+          }
+
+          if (overlaps(bomb, player) && player.respawn <= 0) {
+            addExplosion(bomb.x + bomb.w / 2, bomb.y + bomb.h / 2, bomb.color || COLORS.explosion);
+            hitPlayer(bomb.playerDamage);
+            return false;
+          }
+          return true;
+        });
+      }
+
+      // ---- spike mines (js/boss.js:48-104, 106-127) ----
+      function explodeSpikeMine(mine) {
+        const mx = mine.x + mine.w / 2;
+        const my = mine.y + mine.h / 2;
+        const r = mine.blastRadius || 64;
+        addExplosion(mx, my, "#ff6b6b");
+        addShockwave(mx, my, r);
+        addScreenShake(5);
+        const pdx = player.x + player.w / 2 - mx;
+        const pdy = player.y + player.h / 2 - my;
+        if (pdx * pdx + pdy * pdy <= r * r) hitPlayer(1);
+      }
+
+      function updateSpikeMines(dt) {
+        spikeMines = spikeMines.filter((mine) => {
+          mine.arm = Math.max(0, (mine.arm || 0) - dt);
+          if (mine.arm <= 0) {
+            const dx = (player.x + player.w / 2) - (mine.x + mine.w / 2);
+            const target = clamp(dx * 0.9, -90, 90);
+            const step = 140 * dt;
+            mine.vx = (mine.vx || 0) + clamp(target - (mine.vx || 0), -step, step);
+            mine.fuse = (mine.fuse === undefined ? 2.2 : mine.fuse) - dt;
+          }
+          mine.x += (mine.vx || 0) * dt;
+          mine.y += mine.vy * dt * (mine.arm > 0 ? 0.25 : 1);
+          mine.ttl -= dt;
+
+          if (mine.y >= H - 42 || mine.ttl <= 0 || (mine.fuse !== undefined && mine.fuse <= 0)) {
+            explodeSpikeMine(mine);
+            return false;
+          }
+
+          if (mine.pulse && mine.arm <= 0) {
+            mine.pulseTimer = (mine.pulseTimer === undefined ? 0.45 : mine.pulseTimer) - dt;
+            if (mine.pulseTimer <= 0) {
+              mine.pulseTimer = 1.1;
+              const mx = mine.x + mine.w / 2;
+              const my = mine.y + mine.h / 2;
+              if (Math.hypot(player.x + player.w / 2 - mx, player.y + player.h / 2 - my) < mine.pulseRadius) {
+                fireMineShot(mine);
+              }
+            }
+          }
+          if (mine.arm > 0) return true;
+
+          if (overlaps(mine, player) && player.respawn <= 0) {
+            hitPlayer(1);
+            addExplosion(mine.x + mine.w / 2, mine.y + mine.h / 2, "#62ffa1");
+            return false;
+          }
+          return true;
+        });
+      }
+
+      // ---- venom pools (proposed) ----
+      function addVenomPool(x) {
+        const cx = clamp(x, 40, W - 40);
+        venomPools.push({ x: cx, y: H - 42, w: 70, h: 20, ttl: 3.5, maxTtl: 3.5 });
+        stats.pools += 1;
+        addShockwave(cx, H - 42, 46);
+      }
+
+      function updateVenomPools(dt) {
+        venomPools = venomPools.filter((pool) => {
+          pool.ttl -= dt;
+          const box = { x: pool.x - pool.w / 2 + 6, y: pool.y - 12, w: pool.w - 12, h: 16 };
+          if (player.respawn <= 0 && overlaps(box, player)) hitPlayer(1);
+          return pool.ttl > 0;
+        });
+      }
+
+      // ---- fx ----
+      function updateFx(dt) {
+        explosions.forEach((e) => { e.ttl -= dt; });
+        explosions = explosions.filter((e) => e.ttl > 0);
+        sparks.forEach((s) => { s.x += s.vx * dt; s.y += s.vy * dt; s.ttl -= dt; });
+        sparks = sparks.filter((s) => s.ttl > 0);
+        shockwaves.forEach((w) => {
+          w.ttl -= dt;
+          w.radius = 12 + (1 - Math.max(0, w.ttl) / w.maxTtl) * (w.maxRadius - 12);
+        });
+        shockwaves = shockwaves.filter((w) => w.ttl > 0);
+        screenShake = Math.max(0, screenShake - 34 * dt);
+      }
+      // ---- drawing ----
+      function drawBackground() {
+        ctx.fillStyle = "#0d0d14";
+        ctx.fillRect(-30, -30, W + 60, H + 60);
+        ctx.fillStyle = "rgba(125, 255, 102, 0.16)";
+        stars.forEach((s) => {
+          const y = (s.y + waveTime * 14 * s.s) % H;
+          ctx.fillRect(s.x, y, s.s, s.s);
+        });
+        ctx.strokeStyle = "rgba(47, 201, 111, 0.25)";
+        ctx.beginPath();
+        ctx.moveTo(0, H - 42);
+        ctx.lineTo(W, H - 42);
+        ctx.stroke();
+      }
+
+      function drawPools() {
+        venomPools.forEach((pool) => {
+          const a = clamp(pool.ttl / 0.5, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = 0.55 * a;
+          ctx.fillStyle = "#2fc96f";
+          ctx.beginPath();
+          ctx.ellipse(pool.x, pool.y - 4, pool.w / 2, 11, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.9 * a;
+          ctx.strokeStyle = "#7dff66";
+          ctx.beginPath();
+          ctx.ellipse(pool.x, pool.y - 4, pool.w / 2, 11, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 0.35 * a;
+          ctx.fillStyle = "#7dff66";
+          for (let i = 0; i < 3; i += 1) {
+            const bx = pool.x - 20 + i * 20 + Math.sin(waveTime * 3 + i) * 4;
+            ctx.beginPath();
+            ctx.arc(bx, pool.y - 8 - Math.abs(Math.sin(waveTime * 2 + i * 2)) * 5, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+      }
+
+      function drawTelegraph() {
+        if (boss.ability !== "VENOM DIVE") return;
+        const feint = boss.diveState === "feint";
+        if (!feint && boss.diveState !== "telegraph") return;
+        const a = feint ? clamp(boss.feintT / 0.45, 0, 1) : 1;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.strokeStyle = feint ? "rgba(255, 156, 43, 0.8)" : "rgba(125, 255, 102, 0.7)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(boss.x + boss.w / 2, boss.y + boss.h);
+        ctx.lineTo(boss.diveTargetX, H - 60);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.strokeRect(boss.diveTargetX - 26, H - 86, 52, 26);
+        ctx.fillStyle = feint ? "#ff9c2b" : "#7dff66";
+        ctx.font = "12px 'Courier New', monospace";
+        ctx.fillText(feint ? "FEINT" : "DIVE", boss.diveTargetX - (feint ? 18 : 14), H - 92);
+        ctx.lineWidth = 1;
+        ctx.restore();
+      }
+
+      function drawBoss() {
+        if (boss.hp <= 0) return;
+        neon("viper", boss.x + boss.w / 2, boss.y + boss.h / 2, 128, boss.flash > 0 ? "#ffffff" : DESIGN.color, 10);
+        neon("viper", boss.x + boss.w / 2, boss.y + boss.h / 2, 60, boss.flash > 0 ? "#ffffff" : DESIGN.accent, 6);
+        if (boss.diveState === "dive" || boss.diveState === "climb") {
+          ctx.save();
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = DESIGN.accent;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, 46 + Math.sin(waveTime * 14) * 4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawPlayer() {
+        if (player.respawn > 0) return;
+        if (player.invuln > 0 && Math.floor(waveTime * 14) % 2 === 0) return;
+        neon("classic", player.x + player.w / 2, player.y + player.h / 2, 56,
+          player.flash > 0 ? "#ffffff" : COLORS.player, 8);
+      }
+
+      function drawFx() {
+        shockwaves.forEach((w) => {
+          ctx.save();
+          ctx.globalAlpha = clamp(w.ttl / w.maxTtl, 0, 1) * 0.8;
+          ctx.strokeStyle = "#7dff66";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        });
+        explosions.forEach((e) => {
+          const p = 1 - clamp(e.ttl / 0.38, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = 1 - p;
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, 6 + p * 26, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+        sparks.forEach((s) => {
+          ctx.save();
+          ctx.globalAlpha = clamp(s.ttl / 0.22, 0, 1);
+          ctx.fillStyle = s.color;
+          ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3);
+          ctx.restore();
+        });
+      }
+
+      function draw() {
+        ctx.save();
+        if (screenShake > 0.2) {
+          ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+        }
+        drawBackground();
+        drawPools();
+        drawTelegraph();
+
+        spikeMines.forEach((mine) => {
+          neon("mine", mine.x + mine.w / 2, mine.y + mine.h / 2, 18, mine.arm > 0 ? "#6f8fa8" : "#62ffa1", 7);
+          if (mine.arm > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+            ctx.strokeStyle = "#6f8fa8";
+            ctx.beginPath();
+            ctx.arc(mine.x + mine.w / 2, mine.y + mine.h / 2, 14, 0, Math.PI * 2 * (1 - mine.arm / 1.2));
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+
+        enemyBombs.forEach((bomb) => {
+          bomb.trail.forEach((p) => {
+            ctx.save();
+            ctx.globalAlpha = clamp(p.ttl / 0.28, 0, 1) * 0.5;
+            ctx.fillStyle = bomb.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          });
+          neon("bomb", bomb.x + bomb.w / 2, bomb.y + bomb.h / 2, 18, bomb.color, 9);
+          ctx.strokeStyle = "rgba(255,255,255,0.5)";
+          ctx.beginPath();
+          ctx.arc(bomb.x + bomb.w / 2, bomb.y + bomb.h / 2, 12, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        enemyBullets.forEach((b) => neon("bullet", b.x + b.w / 2, b.y + b.h / 2, 10, b.color, 6));
+        playerBullets.forEach((b) => neon("ebolt", b.x + b.w / 2, b.y + b.h / 2, 12, COLORS.bullet, 6));
+
+        drawBoss();
+        drawPlayer();
+        drawFx();
+        ctx.restore();
+
+        if (player.flash > 0) {
+          ctx.save();
+          ctx.globalAlpha = clamp(player.flash / 0.3, 0, 1) * 0.28;
+          ctx.fillStyle = "#ff3366";
+          ctx.fillRect(0, 0, W, H);
+          ctx.restore();
+        }
+
+        // ---- HUD ----
+        const ratio = clamp(boss.hp / boss.maxHp, 0, 1);
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        ctx.fillRect(W / 2 - 130, 14, 260, 10);
+        ctx.fillStyle = boss.phase === 3 ? "#ff2222" : boss.phase === 2 ? "#ff8844" : "#ff3366";
+        ctx.fillRect(W / 2 - 130, 14, 260 * ratio, 10);
+        ctx.strokeStyle = DESIGN.accent;
+        ctx.strokeRect(W / 2 - 130, 14, 260, 10);
+        ctx.font = "12px 'Courier New', monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = DESIGN.accent;
+        ctx.fillText(`WINGED VIPER - PHASE ${boss.phase}`, W / 2, 40);
+        ctx.fillStyle = "#6f8fa8";
+        ctx.fillText(`${Math.max(0, boss.hp).toFixed(0)} / ${boss.maxHp} HP   DIVE: ${boss.diveState.toUpperCase()} ${boss.diveTimer.toFixed(1)}s`, W / 2, 56);
+        ctx.textAlign = "left";
+        ctx.fillStyle = COLORS.hud;
+        for (let i = 0; i < MAX_HP; i += 1) {
+          if (i < player.hp) ctx.fillRect(12 + i * 16, H - 20, 10, 10);
+          else ctx.strokeRect(12 + i * 16, H - 20, 10, 10);
+        }
+        const active = [["t1", "DIVE EVENT"], ["t2", "POOLS"], ["t3", "FEINTS"], ["t4", "VOLLEYS"]]
+          .filter(([id]) => on(id)).map(([, label]) => label);
+        ctx.fillStyle = "#6f8fa8";
+        ctx.fillText("POWERS: " + (active.length ? active.join(" + ") : "SHIPPED KIT"), 12, H - 36);
+      }
+
+      function step(dt) {
+        waveTime += dt;
+        updatePlayer(dt);
+        updateBoss(dt);
+        updateBullets(dt);
+        updateBombs(dt);
+        updateSpikeMines(dt);
+        updateVenomPools(dt);
+        resolveShots();
+        updateFx(dt);
+      }
+
+      let last = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.035, (now - last) / 1000);
+        last = now;
+        step(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      // handle for the headless checks
+      window.SANDBOX = { step, reset, stats, on, state: () => ({ boss, player, enemyBullets, enemyBombs, spikeMines, venomPools }) };
+    </script>
+  </body>
+</html>

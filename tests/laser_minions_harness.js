@@ -1,5 +1,5 @@
 // Verifies minions block the laser beam: real findLaserTarget + damageLaserTarget
-// out of js/player.js, real killMinion out of js/boss.js, and the HEAD baseline
+// out of js/player.js, real killMinion out of js/boss.js, and the v1.8.1 (fe5174c) baseline
 // to prove the beam used to pass through them.
 const fs = require("fs");
 const vm = require("vm");
@@ -14,7 +14,7 @@ const helpers = fs.readFileSync(REPO + "/js/helpers.js", "utf8");
 const SHOT_HELPERS = fs.readFileSync(REPO + "/js/constants.js", "utf8")
   .match(/const ENEMY_SHOT_SPEED_SCALES = \{[^}]*\};/)[0] + "\n" +
   sliceFn(helpers, "enemyShotSpeedScale") + "\n" + sliceFn(helpers, "pushEnemyBullet");
-const head = execSync("git -C " + REPO + " show fe5174c:js/player.js", { encoding: "utf8" });
+const v181 = execSync("git -C " + REPO + " show fe5174c:js/player.js", { encoding: "utf8" });
 
 function sliceFn(src, name) {
   const start = src.indexOf("function " + name + "(");
@@ -142,7 +142,7 @@ check("the boss takes no beam damage while the idol shields it",
 
 const baseline = (() => {
   const c = makeCtx([minion("idol", 440, 300)]);
-  vm.runInContext(sliceFn(head, "findLaserTarget") + "\n" + KILL, c.sandbox);
+  vm.runInContext(sliceFn(v181, "findLaserTarget") + "\n" + KILL, c.sandbox);
   c.sandbox.BEAM_X = BEAM_X; c.sandbox.PLAYER_Y = PLAYER_Y;
   c.sandbox.bosses = [bossUnit()];
   return { c, t: vm.runInContext("findLaserTarget(BEAM_X, PLAYER_Y)", c.sandbox) };

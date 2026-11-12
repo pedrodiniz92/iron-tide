@@ -330,10 +330,24 @@ function updateMinions(dt) {
       } else {
         minion.x += Math.cos(minion.t * 1.1 + minion.phase) * 95 * dt;
         minion.y += Math.sin(minion.t * 1.9 + minion.phase) * 65 * dt;
+        // Pilgrimage drift: the flock eases toward the player's column and a
+        // hover band above the ship. The pull is phase-modulated and the roam
+        // is faster, so it reads as a tendency to follow, not a lock-on.
+        const pull = 46 + 18 * Math.sin(minion.t * 0.7 + minion.phase);
+        minion.x += clamp((player.x + player.w / 2 - (minion.x + minion.w / 2)) * 0.5, -pull, pull) * dt;
+        minion.y += clamp((player.y - 170 - minion.y) * 0.4, -30, 30) * dt;
       }
       minion.fire -= dt;
       if (minion.fire <= 0) {
-        minion.fire = 2.6 + Math.random() * 1.6;
+        // Phase 3: zealots that stay near the squid preach up close - their
+        // shots come 40% faster while they are inside the holy radius.
+        let gap = 2.6 + Math.random() * 1.6;
+        if (unit && unit.phase === 3 &&
+            Math.hypot(unit.x + unit.w / 2 - (minion.x + minion.w / 2),
+                       unit.y + unit.h / 2 - (minion.y + minion.h / 2)) < 150) {
+          gap *= 0.6;
+        }
+        minion.fire = gap;
         fireZealotShot(minion);
       }
     } else if (minion.type === "idol") {
@@ -392,13 +406,22 @@ function riteActive(boss) {
   return boss.callState === "slow" || boss.callState === "windup";
 }
 
+// The abyssal ward ignites 0.5s into the rite (0.3s left of the 0.8s slow
+// phase) and holds until the cast resolves, halving every point of damage
+// that lands.
+function riteShieldActive(boss) {
+  if (boss.ability !== "ABYSSAL RITE") return false;
+  if (boss.callState === "slow") return boss.callT <= 0.3;
+  return boss.callState === "windup";
+}
+
 function castCalling(boss) {
   const cx = boss.x + boss.w / 2;
   const cy = boss.y + boss.h / 2;
-  // Every 4th call raises the healing idol. The windup is a promise: the bar fills,
+  // Every 3rd call raises the healing idol. The windup is a promise: the bar fills,
   // the rings radiate, the player reads "summon coming". So when the idol is
   // already on screen the call is not wasted - it fills with zealots instead.
-  if (boss.callCount % 4 === 0 && !minions.some((m) => m.type === "idol")) {
+  if (boss.callCount % 3 === 0 && !minions.some((m) => m.type === "idol")) {
     spawnMinion("idol", 120 + Math.random() * (W - 240), 150 + Math.random() * (H - 410));
     addExplosion(cx, cy, "#ffd76a");
     return;
@@ -462,6 +485,53 @@ function updateBell(dt) {
   } else if (bellEffect.t > 4.5) {
     bellEffect = null;
   }
+}
+
+// INK BLIGHT: fire an ink blob at the ship (locked at launch, so it is
+// dodgeable). It grows from INK_R0 at the squid to INK_R1 on arrival, then
+// blooms into a cloud that drifts down and follows the ship's column in slow
+// pursuit (INK_PURSUIT px/s vs the ship's 290 - outrunnable, never standable).
+function updateInkBlight(boss, dt) {
+  if (!inkBlight) {
+    boss.inkTimer -= dt;
+    if (boss.inkTimer > 0) return;
+    const sx = boss.x + boss.w / 2;
+    const sy = boss.y + boss.h;
+    const tx = player.x + player.w / 2;
+    const ty = player.y + player.h / 2;
+    const d = Math.max(60, Math.hypot(tx - sx, ty - sy));
+    inkBlight = {
+      phase: "fly", x: sx, y: sy, r: INK_R0, dist: 0, total: d, t: 6,
+      vx: ((tx - sx) / d) * INK_FLY_SPEED,
+      vy: ((ty - sy) / d) * INK_FLY_SPEED
+    };
+    boss.inkTimer = INK_INTERVAL[0] + Math.random() * (INK_INTERVAL[1] - INK_INTERVAL[0]);
+    return;
+  }
+  inkBlight.t -= dt;
+  if (inkBlight.phase === "fly") {
+    inkBlight.x += inkBlight.vx * dt;
+    inkBlight.y += inkBlight.vy * dt;
+    inkBlight.dist += INK_FLY_SPEED * dt;
+    inkBlight.r = INK_R0 + (INK_R1 - INK_R0) * clamp(inkBlight.dist / inkBlight.total, 0, 1);
+    if (inkBlight.dist >= inkBlight.total || inkBlight.y >= player.y - 40) {
+      inkBlight.phase = "cloud";
+      inkBlight.t = INK_CLOUD_TTL;
+      inkBlight.cy = inkBlight.y;
+    }
+  } else {
+    inkBlight.cy += INK_FALL * dt;
+    inkBlight.x += clamp(player.x + player.w / 2 - inkBlight.x, -INK_PURSUIT * dt, INK_PURSUIT * dt);
+  }
+  if (inkBlight.t <= 0) inkBlight = null;
+}
+
+// True while the ship's center sits inside the cloud ellipse.
+function playerInInk() {
+  if (!inkBlight || inkBlight.phase !== "cloud") return false;
+  const px = player.x + player.w / 2;
+  const py = player.y + player.h / 2;
+  return Math.hypot((px - inkBlight.x) / INK_CLOUD_RX, (py - inkBlight.cy) / INK_CLOUD_RY) < 1;
 }
 
 function explodeEnemyBomb(bomb, hitShield = null) {
@@ -549,18 +619,6 @@ function createBossFromDesign(design, mini, x, y) {
     diveTargetX: W / 2,
     diveDropTimer: 0,
     diveCount: 0,
-    shellHp: design.shellHp || 0,
-    shellMaxHp: design.shellMaxHp || 0,
-    shellRegen: design.shellRegen || 15,
-    shellTimer: 0,
-    carapaceState: "idle",
-    carapaceTimer: design.carapaceInterval || 5.4,
-    carapaceT: 0,
-    carapaceVx0: 0,
-    carapaceDropped: 0,
-    carapaceDropT: 0,
-    carapaceMines: 0,
-    carapaceInvuln: 0,
     mineTimer: design.mineInterval || 0.9,
     mineShieldDamage: design.mineShieldDamage || 12,
     mineInterval: design.mineInterval || 0.9,
@@ -585,6 +643,8 @@ function createBossFromDesign(design, mini, x, y) {
     callingInterval: design.callingInterval || 7,
     bellTimer: design.bellInterval || 999,
     bellInterval: design.bellInterval || 13,
+    inkTimer: design.ability === "ABYSSAL RITE"
+      ? INK_INTERVAL[0] + Math.random() * (INK_INTERVAL[1] - INK_INTERVAL[0]) : 999,
     x,
     y,
     w: 128,
@@ -595,7 +655,6 @@ function createBossFromDesign(design, mini, x, y) {
     hp,
     maxHp: hp,
     phase: 1,
-    carapaceCast: 0,
     timer: 1.1,
     bombTimer: design.bombTimer,
     laser: {
@@ -701,55 +760,6 @@ function updateBossUnit(boss, dt) {
   if (staggered && boss.ability === "ABYSSAL RITE") updateBell(dt);
 
   if (staggered) return;
-
-  if (boss.ability === "CARAPACE BARRAGE") {
-    boss.carapaceInvuln = Math.max(0, boss.carapaceInvuln - dt);
-    if (boss.carapaceState === "idle") {
-      boss.carapaceTimer -= dt * bossSlow;
-      if (boss.carapaceTimer <= 0) {
-        boss.carapaceState = "slow";
-        boss.carapaceT = 0.8;
-        boss.carapaceVx0 = boss.vx;
-      }
-    } else if (boss.carapaceState === "slow") {
-      boss.carapaceT -= dt * bossSlow;
-      boss.vx = boss.carapaceVx0 * Math.max(0, boss.carapaceT / 0.8);
-      if (boss.carapaceT <= 0) {
-        boss.carapaceState = "windup";
-        boss.carapaceT = 0.9;
-        boss.vx = 0;
-        addScreenShake(4);
-      }
-    } else if (boss.carapaceState === "windup") {
-      boss.carapaceT -= dt * bossSlow;
-      boss.vx = 0;
-      screenShake = Math.max(screenShake, 3);
-      if (boss.carapaceT <= 0) {
-        boss.carapaceState = "drop";
-        boss.carapaceT = 1.6;
-        boss.carapaceDropT = 0.1;
-        boss.carapaceDropped = 0;
-        boss.carapaceCast = (boss.carapaceCast || 0) + 1;
-        boss.carapaceMines = Math.min(2 + boss.carapaceCast, 5);
-        boss.carapaceInvuln = 1.6;
-        addScreenShake(6);
-      }
-    } else if (boss.carapaceState === "drop") {
-      boss.carapaceT -= dt * bossSlow;
-      boss.carapaceDropT -= dt * bossSlow;
-      boss.vx = boss.carapaceVx0 * 0.5;
-      if (boss.carapaceDropT <= 0 && boss.carapaceDropped < boss.carapaceMines) {
-        boss.carapaceDropped += 1;
-        boss.carapaceDropT = 0.22;
-        fireSpikeMine(boss, 1.2, (boss.carapaceDropped - (boss.carapaceMines + 1) / 2) * 26);
-      }
-      if (boss.carapaceT <= 0) {
-        boss.carapaceState = "idle";
-        boss.carapaceTimer = Math.max(3.4, (boss.designData.carapaceInterval || 5.4) - (boss.phase - 1) * 0.6);
-        boss.vx = (boss.carapaceVx0 >= 0 ? 1 : -1) * (boss.designData.speed + level * 8);
-      }
-    }
-  }
 
   if (boss.ability === "VENOM DIVE") {
     const diveSpeed = boss.designData.speed + level * 8;
@@ -858,7 +868,7 @@ function updateBossUnit(boss, dt) {
       boss.vx += clamp(aimVx - boss.vx, -step, step);
       boss.vy += clamp(aimVy - boss.vy, -step, step);
     }
-    // Turtle-style rite: slow to a stop, hold the windup, then summon.
+    // Rite: slow to a stop, hold the windup, then summon.
     if (boss.callState === "idle") {
       boss.callTimer -= dt * bossSlow;
       if (boss.callTimer <= 0) {
@@ -876,8 +886,8 @@ function updateBossUnit(boss, dt) {
         boss.callState = "windup";
         boss.callT = 1.7;
         // boss.vx has been eased to exactly 0 by the line above, so read the
-        // direction off the velocity the rite slowed down (as the carapace
-        // barrage does with carapaceVx0), not off the eased value.
+        // direction off the velocity the rite slowed down (as the dive does
+        // with diveTargetX), not off the eased value.
         boss.callDir = boss.callVx0 >= 0 ? 1 : -1;
         boss.callCount += 1;
         boss.vx = 0;
@@ -903,14 +913,7 @@ function updateBossUnit(boss, dt) {
       boss.bellTimer = boss.bellInterval;
     }
     updateBell(dt);
-  }
-
-  if (boss.shellMaxHp > 0 && boss.shellHp <= 0 && boss.shellTimer > 0) {
-    boss.shellTimer = Math.max(0, boss.shellTimer - dt * bossSlow);
-    if (boss.shellTimer <= 0) {
-      boss.shellHp = boss.shellMaxHp;
-      addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#62ffa1");
-    }
+    updateInkBlight(boss, dt);
   }
 
   if (boss.laserEnabled === false) {
@@ -1219,21 +1222,6 @@ function fireBossBullet(boss) {
     return;
   }
 
-  if (design.ability === "CARAPACE BARRAGE") {
-    const pattern = Math.floor(Math.random() * 2);
-    if (pattern === 0) {
-      const sideAim = Math.abs(aim(22));
-      addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.82);
-      addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.82);
-    } else {
-      const sideAim = Math.abs(aim(18));
-      addBossBullet(boss, cx - 2, cy, 0, speed * 0.86);
-      if (phase >= 2) addBossBullet(boss, cx - 42, cy, -sideAim, speed * 0.76);
-      if (phase >= 3) addBossBullet(boss, cx + 38, cy, sideAim, speed * 0.76);
-    }
-    return;
-  }
-
   const pattern = Math.floor(Math.random() * 3);
   if (pattern === 0) {
     const wideAim = Math.abs(aim(55));
@@ -1292,7 +1280,7 @@ function fireBossBomb(boss) {
   const originX = boss.x + boss.w / 2;
   const originY = boss.y + boss.h;
   const direct = boss.bombDirect === true;
-  const fanSpread = direct ? 116 : design.ability === "CARAPACE BARRAGE" ? 22 : 58;
+  const fanSpread = direct ? 116 : 58;
 
   for (let i = 0; i < count; i += 1) {
     const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (fanSpread / count);
@@ -1366,22 +1354,11 @@ function bossHitReward(boss) {
 function damageBoss(unit, amount, opts = {}) {
   if (!unit) return;
   if (unit.hp <= 0) return;
-  if (unit.carapaceInvuln > 0) {
-    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#62ffa1");
-    playShieldHit();
-    return;
-  }
   comboAddHit();
   const design = unit.designData || BOSS_DESIGNS[0];
-  if (unit.shellHp > 0) {
-    unit.shellHp = Math.max(0, unit.shellHp - 1);
-    bossHitReward(unit);
-    addExplosion(unit.x + unit.w / 2, unit.y + unit.h / 2, "#62ffa1");
-    addScreenShake(4);
-    playShieldHit();
-    if (unit.shellHp <= 0) unit.shellTimer = unit.shellRegen || 15;
-    return;
-  }
+  // The abyssal ward halves all incoming damage. HP goes fractional on purpose:
+  // a single shot through the ward deals 0.5.
+  if (riteShieldActive(unit)) amount *= 0.5;
   if (unit.scrapShield > 0) {
     amount = Math.max(0, amount - 1);
     shedScrapFragment(unit);
@@ -1518,7 +1495,6 @@ function triggerBossStagger(boss) {
     unit.laser.timer = Math.max(3.2, unit.laser.timer + 2.4);
     unit.laser.hasHitShield = false;
     unit.laser.hasHitPlayer = false;
-    unit.carapaceInvuln = 0;
   });
 
   addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffe066");
@@ -1543,7 +1519,6 @@ function drawBossDesignShape(boss, design, tier, meshId) {
   ctx.save();
 
   const shapeName = design.name === "WINGED VIPER" ? "viper"
-    : design.name === "TURTLE BULWARK" ? "turtle"
     : design.name === "ABYSSAL SQUID" ? "squid"
     : design.name === "SCRAPLING" ? "scrap"
     : design.name === "SPINE SENTRY" ? "sentry" : "skull";
@@ -1704,39 +1679,6 @@ function drawBossUnit(boss, index) {
   const tier = boss.mini ? 0 : clamp(Math.floor((level - 3) / 3) + 1, 0, 3);
   drawBossDesignShape(boss, design, tier, "boss" + index);
 
-  if (boss.shellMaxHp > 0) {
-    const shellCx = boss.x + boss.w / 2;
-    const shellCy = boss.y + boss.h / 2;
-    const shellRadius = boss.w / 2 + 10;
-    const regen = Math.max(1, boss.shellRegen || 15);
-    const progress = boss.shellHp > 0 ? 1 : clamp(1 - boss.shellTimer / regen, 0, 1);
-    ctx.save();
-
-    ctx.strokeStyle = boss.shellHp > 0 ? "rgba(130, 255, 190, 0.82)" : "rgba(130, 255, 190, 0.22)";
-    ctx.lineWidth = boss.shellHp > 0 ? 4 : 3;
-    ctx.setLineDash(boss.shellHp > 0 ? [] : [7, 7]);
-    ctx.beginPath();
-    ctx.arc(shellCx, shellCy, shellRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    if (boss.shellHp <= 0 && progress > 0) {
-      ctx.strokeStyle = "rgba(130, 255, 190, 0.72)";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(shellCx, shellCy, shellRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = boss.shellHp > 0 ? "#62ffa1" : "#9aa6ad";
-    ctx.font = "12px 'Courier New', monospace";
-    const shellLabel = boss.shellHp > 0 ? `SHELL ${boss.shellHp}/${boss.shellMaxHp || 1}` : `SHELL ${Math.ceil(boss.shellTimer)}s`;
-    ctx.fillText(shellLabel, shellCx - 34, boss.y - 12);
-
-    ctx.lineWidth = 1;
-    ctx.restore();
-  }
-
   drawBossBar(boss, index);
 
   if (bossStagger > 0) {
@@ -1752,16 +1694,6 @@ function drawBossUnit(boss, index) {
     ctx.fillRect(barX, barY, barW, 4);
     ctx.fillStyle = "#ffe066";
     ctx.fillRect(barX, barY, barW * Math.max(0, bossStagger / STAGGER_DURATION), 4);
-    ctx.lineWidth = 1;
-  }
-
-  if (boss.carapaceState === "windup" || boss.carapaceState === "slow") {
-    ctx.strokeStyle = "rgba(130, 255, 190, 0.55)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(boss.x - 10, boss.y + boss.h - 6, boss.w + 20, 12);
-    ctx.fillStyle = "#62ffa1";
-    ctx.font = "12px 'Courier New', monospace";
-    ctx.fillText("WINDING UP", boss.x + boss.w / 2 - 40, boss.y + boss.h + 26);
     ctx.lineWidth = 1;
   }
 
@@ -1795,13 +1727,33 @@ function drawBossUnit(boss, index) {
     ctx.restore();
   }
 
-  if (boss.carapaceInvuln > 0) {
-    ctx.strokeStyle = "rgba(130, 255, 190, 0.85)";
-    ctx.lineWidth = 4;
+  if (riteShieldActive(boss)) {
+    // The ward bubble: a translucent violet dome that reads as "half damage".
+    const wardCx = boss.x + boss.w / 2;
+    const wardCy = boss.y + boss.h / 2;
+    const wardR = boss.w / 2 + 16 + Math.sin(waveTime * 6) * 3;
+    ctx.save();
+    ctx.fillStyle = "rgba(139, 92, 246, 0.18)";
+    ctx.strokeStyle = "rgba(201, 167, 255, 0.9)";
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, boss.w / 2 + 14, 0, Math.PI * 2);
+    ctx.arc(wardCx, wardCy, wardR, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
+    // Inner counter-rotating hex of arcs so the ward looks woven, not flat.
+    ctx.strokeStyle = "rgba(201, 167, 255, 0.45)";
+    ctx.lineWidth = 2;
+    for (let seg = 0; seg < 6; seg += 1) {
+      const a0 = waveTime * 1.8 + seg * (Math.PI / 3);
+      ctx.beginPath();
+      ctx.arc(wardCx, wardCy, wardR - 7, a0, a0 + 0.62);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#c9a7ff";
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText("WARD x1/2", wardCx - 38, boss.y - 12);
     ctx.lineWidth = 1;
+    ctx.restore();
   }
 
   if (boss.ability === "VENOM DIVE" && boss.diveState === "telegraph") {

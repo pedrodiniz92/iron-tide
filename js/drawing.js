@@ -30,6 +30,7 @@ function draw() {
   drawEnemyBombs();
   drawSpikeMines();
   drawBullets();
+  drawInkBlight();
   drawPlayer();
   drawShockwaves();
   drawExplosions();
@@ -787,6 +788,41 @@ function drawBullets() {
   });
 }
 
+// INK BLIGHT: drawn after the bullets so the cloud blacks out the shots inside
+// it - the denial is the point. The ship is drawn on top, never hidden.
+function drawInkBlight() {
+  if (!inkBlight) return;
+  ctx.save();
+  if (inkBlight.phase === "fly") {
+    for (let i = 3; i >= 1; i -= 1) {
+      const p = i / 4;
+      ctx.globalAlpha = 0.4 * (1 - p);
+      ctx.fillStyle = "#141026";
+      ctx.beginPath();
+      ctx.arc(inkBlight.x - inkBlight.vx * 0.035 * i, inkBlight.y - inkBlight.vy * 0.035 * i,
+        inkBlight.r * (1 - p * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#0a0813";
+    ctx.beginPath();
+    ctx.arc(inkBlight.x, inkBlight.y, inkBlight.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(139,92,246,0.55)";
+    ctx.beginPath();
+    ctx.arc(inkBlight.x, inkBlight.y, inkBlight.r, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const a = clamp(inkBlight.t / INK_CLOUD_TTL, 0, 1);
+    ctx.globalAlpha = 0.92 * Math.min(1, a * 2);
+    ctx.fillStyle = "#0a0813";
+    ctx.beginPath();
+    ctx.ellipse(inkBlight.x, inkBlight.cy, INK_CLOUD_RX, INK_CLOUD_RY, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawShields() {
   shields.forEach((shield) => {
     shield.cells.forEach((cell) => {
@@ -922,7 +958,7 @@ function renderStartBoard() {
   });
   if (!board.children.length) {
     const li = document.createElement("li");
-    li.textContent = t("no runs yet - beat the ABYSSAL SQUID on wave 10");
+    li.textContent = t("no runs yet - beat the ABYSSAL SQUID on wave 9");
     board.appendChild(li);
   }
 }
@@ -990,19 +1026,25 @@ function drawUpgradeChoices() {
   upgradeChoices.forEach((choice, index) => {
     const y = 225 + index * 70;
     const selected = index === upgradeSel;
-    ctx.fillStyle = selected ? "rgba(40,60,0,0.7)" : "rgba(0,40,0,0.55)";
+    ctx.fillStyle = choice.maxed ? "rgba(20,20,28,0.55)" : selected ? "rgba(40,60,0,0.7)" : "rgba(0,40,0,0.55)";
     ctx.fillRect(82, y - 28, W - 164, 54);
-    ctx.strokeStyle = selected ? "#ffe066" : "#66ff66";
+    ctx.strokeStyle = choice.maxed ? "#4a4f66" : selected ? "#ffe066" : "#66ff66";
     ctx.lineWidth = selected ? 3 : 1;
     ctx.strokeRect(82, y - 28, W - 164, 54);
     ctx.lineWidth = 1;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = choice.maxed ? "#8a90a8" : "#ffffff";
     ctx.font = "bold 18px 'Courier New', monospace";
     ctx.textAlign = "left";
     ctx.fillText(`${index + 1}. ${choice.text}`, 104, y - 4);
-    ctx.fillStyle = "#a6ffa6";
+    ctx.fillStyle = choice.maxed ? "#6f7aa5" : "#a6ffa6";
     ctx.font = "14px 'Courier New', monospace";
     ctx.fillText(choice.desc, 104, y + 16);
+    if (choice.maxed) {
+      ctx.textAlign = "right";
+      ctx.font = "bold 14px 'Courier New', monospace";
+      ctx.fillText(t("MAXED"), W - 104, y + 6);
+      ctx.textAlign = "left";
+    }
   });
 
   if (upgradeChoices.length) {

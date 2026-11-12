@@ -133,6 +133,7 @@ const MINIBOSS_DESIGNS = [
   }
 ];
 
+// The squid is the wave-9 finale; its hp is tuned to keep the old wave-10 total (hp + 9 * hpScale).
 const BOSS_DESIGNS = [
   {
     name: "SKULL CRUISER",
@@ -149,23 +150,15 @@ const BOSS_DESIGNS = [
     shotMul: 1.25, diveInterval: 4.6
   },
   {
-    name: "TURTLE BULWARK",
-    hp: 26, hpScale: 6, speed: 76, bombTimer: 3.25, color: "#2fc96f", accent: "#ffe066",
-    ability: "CARAPACE BARRAGE", bulletCap: 5, bombMax: 1, bombRadius: 72, laserFollow: 0,
-    laser: false, bombsPerLaunch: 1, bombShieldDamage: 18,
-    shellHp: 1, shellMaxHp: 2, shellRegen: 15,
-    carapaceInterval: 9, mineInterval: 0.72, mineShieldDamage: 18
-  },
-  {
     name: "ABYSSAL SQUID",
-    hp: 56, hpScale: 7, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    hp: 95, hpScale: 7, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 24,
     callingInterval: 7, bellInterval: 13, staggerEase: 1.125
   }
 ];
 
-const FINAL_STAGE_LEVEL = 10;
+const FINAL_STAGE_LEVEL = 9;
 const FINAL_BOSS_NAMES = ["ABYSSAL SQUID"];
 
 function isMinibossWave(level) {
@@ -203,7 +196,7 @@ const UPGRADE_TREES = [
     levels: [
       { label: "RAPID I", desc: "Faster firing" },
       { label: "RAPID II", desc: "Faster firing; unlocks W to detonate your bomb" },
-      { label: "DOUBLE CORE", desc: "Permanent double firing" }
+      { label: "DOUBLE CORE", desc: "Permanent double firing; costs 1 max HP" }
     ]
   },
   {
@@ -219,7 +212,7 @@ const UPGRADE_TREES = [
     id: "mobility",
     name: "UTILITY",
     levels: [
-      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload" },
+      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload; hull and ink slowdowns cannot touch you" },
       { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer" },
       { label: "SHARP DASH", desc: "Invulnerable while dashing, 210px, 2.5s reload" }
     ]
@@ -467,6 +460,28 @@ const HP_REGEN_TIME = 15;
 const HP_SLOW_START = 0.70;
 const HP_SLOW_EASE = 0.85;
 const HP_SLOW_EASE_TIME = 2;
+
+// INK BLIGHT (ABYSSAL SQUID): fires an expanding ink blob at the ship (locked
+// at launch, so it is dodgeable). It grows from INK_R0 at the squid to INK_R1
+// on arrival, then blooms into a cloud that drifts down and follows the ship's
+// column in slow pursuit. Standing in the cloud: fire 20% slower, move 15%
+// slower. Mobility I+ negates this and the cracked-hull slowdown.
+const INK_INTERVAL = [15, 18];
+const INK_FLY_SPEED = 330;
+const INK_R0 = 8;
+const INK_R1 = 64;
+const INK_CLOUD_TTL = 5;
+const INK_CLOUD_RX = 90;
+const INK_CLOUD_RY = 130;
+const INK_FALL = 26;
+const INK_PURSUIT = 45;
+const INK_FIRE_SLOW = 1.25; // cooldown multiplier (fire 20% slower)
+// Movement slow ramps with time spent in the cloud: -10% on entry, -20% after
+// INK_SLOW_RAMP seconds. It decays off the tail when the ship leaves, and the
+// cloud itself dies after INK_CLOUD_TTL - nothing here is permanent.
+const INK_MOVE_SLOW_START = 0.90;
+const INK_MOVE_SLOW_END = 0.80;
+const INK_SLOW_RAMP = 2.5;
 const CRACK_SHOW_TIME = 0.2;
 const CRACK_FADE_TIME = 0.55;
 const HULL_CHIP_TIME = 0.85;

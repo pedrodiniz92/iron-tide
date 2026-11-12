@@ -4,8 +4,8 @@
 - The player defends the bottom of the screen from waves of enemies.
 - A wave clears when all normal invaders are destroyed and no boss remains alive. On miniboss
   waves the boss spawns once about 10% of the invaders are left.
-- Waves 3, 6, and 9 are full bosses. Waves 7 and 8 are minibosses. Wave 10 is the final stage.
-- Clearing wave 10 (killing the final boss) wins the run and sends the score to the leaderboard.
+- Waves 3 and 6 are full bosses. Waves 7 and 8 are minibosses. Wave 9 is the final stage.
+- Clearing wave 9 (killing the ABYSSAL SQUID) wins the run and sends the score to the leaderboard.
 - Each wave clear awards 150 points.
 
 ## Controls
@@ -29,6 +29,7 @@
   respawn with HP refilled and 1.5s of invulnerability.
 - A hit that leaves the ship at 1 HP cracks the hull: green hull chips fly off, the crack draws in
   over 0.2s, and the ship moves 30% slower on the spot, easing back to 15% slower over 2s.
+  Mobility I+ negates the cracked-hull slowdown and the ink blight slowdown entirely.
 - The hull knits itself back to full HP after 15s at 1 HP (or on any HP gain); the crack fades out
   over 0.55s and the speed returns with it.
 - The hull crack is the crab's impact star, drawn at hull scale on the ship's hull plate.
@@ -93,18 +94,28 @@
   - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
   - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. It fires 25% less often
     than the other bosses (`shotMul`).
-  - TURTLE BULWARK uses a regenerating shell, a carapace barrage, and drifting spike mines.
-  - ABYSSAL SQUID is the wave-10 final boss, with the lowest base speed of any boss. THE CALLING is
-    telegraphed turtle-style: it eases to a stop, then holds a frozen windup behind a filling
-    charge bar, radiating rings and a "SUMMONING" label. Each call summons 2 zealots (never more
-    than 2 alive), and every 4th call raises the healing idol instead. If the idol is already on
-    screen, that 4th call fills with zealots instead, so the windup never promises a summon and
+  - ABYSSAL SQUID is the wave-9 final boss (158 HP at wave 9), with the lowest base speed of any
+    boss. THE CALLING is
+    telegraphed: it eases to a stop, then holds a frozen windup behind a filling
+    charge bar, radiating rings and a "SUMMONING" label. 0.5s into the channel the squid raises the
+    ABYSSAL WARD - a violet bubble ("WARD x1/2") that halves all damage it takes until the cast
+    resolves, so single shots land for 0.5. Each call summons 2 zealots (never more
+    than 2 alive), and every 3rd call raises the healing idol instead. If the idol is already on
+    screen, that call fills with zealots instead, so the windup never promises a summon and
     delivers nothing. The SIREN BELL freezes every
     enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
     shots level with or below the ship are released, never recruited, and every released shot gets a
-    fresh 2.4s life, so nothing lingers. Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
+    fresh 2.4s life, so nothing lingers. Every 15-18s the squid also fires INK BLIGHT: an ink blob
+    aimed at the ship's position at launch (dodgeable), growing from a small muzzle blob into a
+    64px one as it closes, then blooming into a 5s cloud that drifts down and follows the ship's
+    column in slow pursuit (45px/s vs the ship's 290). The cloud blacks out shots inside it, and
+    standing in it fires 20% slower and moves 10% slower on entry, ramping to 20% slower after 2.5s
+    inside (the slow wears off 0.5s after you leave, and the cloud itself dies after 5s).
+    Mobility I+ ignores all of it.
+    Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
     shootable and each drops loot; one bomb blast kills either, so the idol's heal can be broken.
-    Its minions die with it.
+    Zealots roam with a tendency to drift toward the player's column, and in phase 3 zealots that
+    stay within 150px of the squid fire 40% faster. Its minions die with it.
 - Bosses have three phases (at 66% and 33% HP) and a stagger meter; a staggered boss takes extra
   damage for a short window.
 - Minibosses never offer permanent upgrades. Full bosses offer a permanent upgrade after defeat.
@@ -121,11 +132,15 @@
 ## Upgrades
 - Three trees, each with three levels. The starting upgrade is chosen at the beginning of each run,
   and a permanent upgrade is offered after every full boss.
-- OFFENSE: RAPID I (faster firing), RAPID II (faster firing, unlocks `W` to detonate your bomb),
-  DOUBLE CORE (permanent double firing).
+- A maxed tree stays on the picker card list, drawn greyed with a "MAXED" tag, and cannot be
+  picked (click, number key and Enter all refuse; up/down skip it).
+- OFFENSE: RAPID I (fires 1.39x faster), RAPID II (fires 2x faster, unlocks `W` to detonate your
+  bomb), DOUBLE CORE (permanent double firing; a DOUBLE SHOT pickup on top of it fires a triple -
+  glass cannon: it costs 1 max HP, 2 to 1, for the rest of the run).
 - SHIELD (defense): RESTORE SHIELD (broken shield returns after 15s; respawn refills 1 charge),
   QUICK REPAIR (shield stack 2, restore 10s), TWIN SHIELDS (shield stack 2, restore 7s).
-- UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload), LONG DASH (3s reload;
+- UTILITY (mobility): QUICK DASH (`Shift`+arrow dashes 210px, 3.5s reload; cracked-hull and ink
+  blight slowdowns cannot touch you), LONG DASH (3s reload;
   powerups last 2x longer), SHARP DASH (invulnerable while dashing, 210px, 2.5s reload).
 
 ## UI rules

@@ -6,14 +6,14 @@ import { buildBanshee, buildStinger } from "../mockups/banshees3d.js";
 const RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
 const TARGET = 2.35;
 const FIT = 1.35;
-const FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, turtle: 1.12, stinger: 1.65,
+const FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, stinger: 1.65,
   squid: 1.15, zealot: 1.6, idol: 1.6, "ABYSSAL SQUID": 1.15 };
 const BUILDERS = Object.assign({}, BASE_MOBS, MOB_V2, { invSquid: BASE_MOBS.squid });
 
 const KEY = {
   squid: "invSquid", octopus: "invSquid", octo: "invSquid", crab: "crab_b",
   ufo: "ufo", player: "player",
-  scrap: "scrap", sentry: "sentry", skull: "skull", viper: "viper", turtle: "turtle",
+  scrap: "scrap", sentry: "sentry", skull: "skull", viper: "viper",
   "ABYSSAL SQUID": "squid", zealot: "zealot", idol: "idol",
   rapid: "drop_rapid", double: "drop_double", laser: "drop_laser", shield: "drop_shield",
   slow: "drop_slow", bomb: "drop_bomb", loot: "drop_loot",

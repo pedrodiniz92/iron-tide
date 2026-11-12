@@ -97,6 +97,10 @@ let permanentDoubleShots = false;
 let permanentFireRateBonus = 0;
 let permanentDamage = 0;
 let permanentLongPowerups = false;
+// INK BLIGHT (ABYSSAL SQUID): { phase: "fly" | "cloud", ... } or null.
+let inkBlight = null;
+// Seconds spent inside the ink cloud (drives the -10% -> -20% move-slow ramp).
+let inkSlowT = 0;
 let maxShieldHits = 1;
 let itemShieldHits = 0;
 let shieldWeakTtl = 0;
