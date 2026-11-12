@@ -12,7 +12,9 @@ function newWave() {
 
   for (let row = 0; row < rows; row += 1) {
     const byDepth = seq[row];
-    for (let col = 0; col < 11; col += 1) {
+    // Ghosts are the heavy phase unit now: one every two columns (6 per wave),
+    // 2 HP like crabs, worth 2x points.
+    for (let col = 0; col < 11; col += byDepth === "ghost" ? 2 : 1) {
       invaders.push({
         id: row * 11 + col,
         type: INVADER_TYPES.find((t) => t.name === byDepth),
@@ -22,8 +24,9 @@ function newWave() {
         w: 32,
         h: 32,
         row,
-        hp: byDepth === "crab" ? 2 : 1,
-        maxHp: byDepth === "crab" ? 2 : 1,
+        hp: byDepth === "crab" || byDepth === "ghost" ? 2 : 1,
+        maxHp: byDepth === "crab" || byDepth === "ghost" ? 2 : 1,
+        bank: byDepth === "ghost" ? [] : null,
         alive: true
       });
     }
@@ -31,6 +34,7 @@ function newWave() {
   ghostPhaseT = 0;
   screamTimer = 6;
   frenzyZones = [];
+  fledglings = [];
   applyRowRoles();
 
   for (let i = 0; i < 4; i += 1) {
@@ -232,6 +236,10 @@ function fireEnemyBullet() {
 
 function updateInvaders(dt) {
   const alive = invaders.filter((invader) => invader.alive);
+  // SPLIT GHOST: fledglings flee straight up (120 px/s vs the ship's 290 -
+  // pop them on the way, never chase). Escaping off the top costs nothing.
+  fledglings.forEach((fledgling) => { fledgling.y -= 120 * dt; });
+  fledglings = fledglings.filter((fledgling) => fledgling.alive && fledgling.y > -30);
   frenzyZones.forEach((zone) => {
     if (zone.b && !zone.b.alive) {
       if (!zone.fade) zone.fade = true;
@@ -258,11 +266,24 @@ function updateInvaders(dt) {
   alive.forEach((invader) => {
     if (invader.threatened > 0) invader.threatened = Math.max(0, invader.threatened - dt);
     if (invader.type.name === "ghost") {
+      const wasGhosted = invader.ghosted;
       invader.ghosted = ghosted;
       invader.ghostAlpha = ghostPhaseT < 3 ? 1
         : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
         : ghostPhaseT < 3.75 ? 0.18
         : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+      // PHASE BANK: shots swallowed while phased come back aimed, the instant
+      // it materializes. Shooting a phased ghost was never free - now it costs.
+      if (wasGhosted && !ghosted && invader.bank && invader.bank.length) {
+        const sx = invader.x + invader.w / 2;
+        const sy = invader.y + invader.h;
+        invader.bank.forEach(() => pushEnemyBullet({
+          x: sx - 2, y: sy, w: 4, h: 14, speed: 300,
+          vx: aimVx(invader, sx, sy, 300, 190),
+          hp: 2, maxHp: 2, color: invader.type.color, shooterId: invader.id
+        }));
+        invader.bank = [];
+      }
     }
     invader.frenzied = frenzyZones.some((zone) => !zone.fade && Math.hypot(
       invader.x + invader.w / 2 - zone.x, invader.y + invader.h / 2 - zone.y

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GHOST — power options v2 (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
+  .stage { position: relative; width: 900px; height: 600px; border: 1px solid #23304a; background: #0d0d14; margin: 0 16px; }
+  canvas { display: block; }
+  #panel { position: absolute; left: 10px; top: 10px; width: 260px; padding: 8px 10px;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.82); }
+  #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel label { display: block; font-size: 11px; line-height: 1.3; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>GHOST — POWER OPTIONS v2</h1>
+<div class="sub">Playable sandbox, true to js/invaders.js: 11 ghosts in one row (waves 5/7/8), 1 HP, synchronized
+4s phase cycle (ghosted 3.0-4.0, untargetable), the real fire machine (one global timer, ~1 aimed shot/s
+at wave 5, max 3 bullets on screen, 1 per shooter), shot clash (bullet x bullet = both die, +12).
+Toggle the proposed powers. R = restart.</div>
+<div class="stage">
+<canvas id="game" width="900" height="600"></canvas>
+<div id="panel">
+  <h2>PROPOSED POWERS</h2>
+  <label><input type="checkbox" id="t1"> PHASE BANK (phased ghosts absorb your shots, max 3, fire them back on materialize)</label>
+  <label><input type="checkbox" id="t2"> HEX MARK (phasing hexes your column; 1.5s later 3 shots rain at the mark)</label>
+  <label><input type="checkbox" id="t3"> TETHERED PAIR (kill one, the partner enrages; kill it within 1s = SEVERED +40)</label>
+  <label><input type="checkbox" id="t4"> FADE-THIEF (phased ghosts black out their column; kill 0.75s after materialize = UNVEILED +20)</label>
+  <label><input type="checkbox" id="t5"> SPLIT GHOST (solid kills leave a fleeing fledgling, 30 pts, 1 HP)</label>
+  <div class="hint">&larr;/&rarr; move &middot; SPACE fire &middot; R restart<br>All off = current shipped kit.</div>
+</div>
+</div>
+<script>
+"use strict";
+const W = 900, H = 600, LEVEL = 5;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const keys = new Set();
+const on = (id) => document.getElementById(id).checked;
+const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const overlapsPadded = (a, b, p) => overlaps({ x: a.x - p, y: a.y - p, w: a.w + p * 2, h: a.h + p * 2 }, b);
+
+// js/silhouettes.js:7 - the real ghost path
+const SIL = {
+  ghost: { bb: { x: -13, y: -14, w: 26, h: 28 }, path(c) {
+    c.beginPath(); c.moveTo(-12, 2); c.quadraticCurveTo(-13, -14, 0, -14);
+    c.quadraticCurveTo(13, -14, 12, 2);
+    c.lineTo(12, 10); c.lineTo(8, 6); c.lineTo(5, 12); c.lineTo(2, 6);
+    c.lineTo(-1, 12); c.lineTo(-4, 6); c.lineTo(-8, 12); c.lineTo(-12, 6);
+    c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+let t = 0, score = 0, screenShake = 0;
+let player, playerBullets, enemyBullets, ghosts, marks, fledglings, explosions, shockwaves, popups;
+let invaderDirection = 1, ghostPhaseT = 0, enemyFireTimer = 1.2;
+
+function reset() {
+  t = 0; score = 0; screenShake = 0; ghostPhaseT = 0; invaderDirection = 1;
+  player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290, hp: 2, invuln: 1.5, respawn: 0 };
+  playerBullets = []; enemyBullets = []; marks = []; fledglings = [];
+  explosions = []; shockwaves = []; popups = [];
+  ghosts = [];
+  // js/invaders.js:5,13-28 - the real wave-5/7/8 row: 11 ghosts, one row, 1 HP
+  for (let i = 0; i < 11; i += 1) {
+    ghosts.push({
+      x: 84 + i * 56, y: 110, w: 34, h: 28,
+      id: i, hp: 1, maxHp: 1, alive: true, pair: Math.floor(i / 2),
+      phaseOff: 0, ghosted: false, wasGhosted: false, alpha: 1,
+      bank: [], solidT: 9, enrage: 0, lastMate: -9
+    });
+  }
+  enemyFireTimer = 1.2; // js/invaders.js:81
+}
+reset();
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
+  keys.add(k);
+  if (k === "r") reset();
+});
+window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+const playerCenterX = () => player.x + player.w / 2;
+
+function addExplosion(x, y, color) { explosions.push({ x, y, t: 0.25, color }); }
+function addShockwave(x, y, r) { shockwaves.push({ x, y, r, t: 0.3 }); }
+function addPopup(x, y, text, color) { popups.push({ x, y, text, color, t: 0.9 }); }
+
+function hitPlayer() {
+  if (player.invuln > 0 || player.respawn > 0) return;
+  player.hp -= 1; screenShake = 8;
+  if (player.hp <= 0) player.respawn = 1;
+  else player.invuln = 1.5;
+}
+
+let fireCooldown = 0;
+function updatePlayer(dt) {
+  if (player.respawn > 0) {
+    player.respawn -= dt;
+    if (player.respawn <= 0) { player.x = W / 2 - 28; player.hp = 2; player.invuln = 1.5; }
+    return;
+  }
+  const dir = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+  player.x = clamp(player.x + dir * player.speed * dt, 10, W - player.w - 10);
+  player.invuln = Math.max(0, player.invuln - dt);
+  fireCooldown -= dt;
+  if (keys.has(" ") && fireCooldown <= 0) {
+    fireCooldown = 0.44;
+    playerBullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 4, h: 12, speed: 560 });
+  }
+}
+
+// js/invaders.js:131-186 the real aim: mode 0 current / 1 predicted / 2 midpoint
+// (ghost rolls all three, js/invaders.js:153), target clamped to sx±260,
+// vx = (target-sx)*1.5 clamped ±190, jitter ±0.11 rad, re-clamped.
+function playerVelocityX() {
+  const left = keys.has("arrowleft") || keys.has("a");
+  const right = keys.has("arrowright") || keys.has("d");
+  return (right ? 1 : 0) * player.speed - (left ? 1 : 0) * player.speed;
+}
+function predictPlayerX(sx, sy, speed) {
+  const dx = playerCenterX() - sx;
+  const dy = player.y - sy;
+  const ft = Math.max(0.1, Math.hypot(dx, dy) / speed);
+  return clamp(playerCenterX() + playerVelocityX() * ft, 10 + player.w / 2, W - 10 - player.w / 2);
+}
+function aimTargetX(sx, sy, speed) {
+  const roll = Math.random();
+  const mode = roll < 0.34 ? 0 : roll < 0.67 ? 1 : 2;
+  const current = playerCenterX();
+  const target = mode === 1 ? predictPlayerX(sx, sy, speed)
+    : mode === 2 ? (current + predictPlayerX(sx, sy, speed)) / 2
+    : current;
+  return clamp(target, sx - 260, sx + 260);
+}
+function aimVx(sx, sy, speed) {
+  const base = clamp((aimTargetX(sx, sy, speed) - sx) * 1.5, -190, 190);
+  const angle = Math.atan2(base, speed) + (Math.random() - 0.5) * 0.22;
+  return clamp(speed * Math.tan(angle), -190, 190);
+}
+// js/invaders.js:215 shot speed at wave 5: 560 * min(1, 0.85 + (level-1)*0.05)
+const SHOT_SPEED = 560 * Math.min(1, 0.85 + (LEVEL - 1) * 0.05);
+
+function fireGhostShot(g, speed) {
+  const sx = g.x + g.w / 2, sy = g.y + g.h;
+  const sp = speed || SHOT_SPEED;
+  enemyBullets.push({ x: sx - 2, y: sy, w: 4, h: 14, speed: sp,
+    vx: aimVx(sx, sy, sp), color: "#dfe9ff", ttl: 8, shooterId: g.id });
+}
+
+// js/invaders.js:124-128 + 194-231 the real fire machine: ONE global timer for
+// the whole formation, one shot per trigger, one bullet in flight per shooter,
+// hard cap of min(3, 2 + floor(level/3)) bullets on screen (3 at wave 5).
+function fireEnemyBullet() {
+  const maxBullets = Math.min(3, 2 + Math.floor(LEVEL / 3));
+  if (enemyBullets.length >= maxBullets) return false;
+  const alive = ghosts.filter((g) => g.alive);
+  if (!alive.length) return false;
+  const free = alive.filter((g) => !enemyBullets.some((b) => b.shooterId === g.id));
+  const pool = free.length ? free : alive;
+  fireGhostShot(pool[Math.floor(Math.random() * pool.length)]);
+  return true; // ghosts are "aimed" (js/invaders.js:211) -> 0.7x interval
+}
+function updateEnemyFire(dt) {
+  enemyFireTimer -= dt;
+  if (enemyFireTimer <= 0) {
+    const fired = fireEnemyBullet();
+    // js/invaders.js:127 aimed -> x0.7. Wave 5: [1.05, 1.80] x 0.7 = one shot ~1s.
+    // T3 enrage doubles the rate (the mockup's per-ghost 2x, on the global clock).
+    const enraged = ghosts.some((g) => g.alive && g.enrage > 0);
+    enemyFireTimer = Math.max(0.62, 2.15 - LEVEL * 0.07 - Math.random() * 0.75)
+      * (fired ? 0.7 : 1) * (enraged ? 0.5 : 1);
+  }
+}
+// ---- ghosts: real march + real 4s phase cycle (js/invaders.js) ----
+function updateGhosts(dt) {
+  const alive = ghosts.filter((g) => g.alive);
+  if (!alive.length && !fledglings.length) { const s = score; reset(); score = s; return; }
+  // js/invaders.js:332 march speed
+  const speed = 20 + LEVEL * 4 + (55 - alive.length) * 0.95;
+  if (alive.length) {
+    const w = Math.max(...alive.map((g) => g.x + g.w));
+    const minX = Math.min(...alive.map((g) => g.x));
+    if (invaderDirection > 0 && w + speed * dt >= W - 16) invaderDirection = -1;
+    else if (invaderDirection < 0 && minX - speed * dt <= 16) invaderDirection = 1;
+  }
+  // js/invaders.js:246 the real phase cycle
+  ghostPhaseT = (ghostPhaseT + dt) % 4;
+  alive.forEach((g) => {
+    const p = (ghostPhaseT + g.phaseOff) % 4;
+    g.p = p;
+    const ghosted = p >= 3;
+    // js/invaders.js:262 alpha ramp
+    g.alpha = p < 3 ? 1 : p < 3.25 ? 1 - ((p - 3) / 0.25) * 0.82
+      : p < 3.75 ? 0.18 : 0.18 + ((p - 3.75) / 0.25) * 0.82;
+    g.x += invaderDirection * speed * dt;
+    g.ghosted = ghosted;
+    g.solidT = ghosted ? 9 : g.solidT + dt;
+    if (g.enrage > 0) g.enrage -= dt;
+    // T1 PHASE BANK: materializing fires back everything it swallowed
+    if (g.wasGhosted && !ghosted && g.bank.length) {
+      g.bank.forEach(() => fireGhostShot(g, 300));
+      addPopup(g.x + g.w / 2, g.y - 6, "SPENT " + g.bank.length, "#ff8844");
+      g.bank = [];
+    }
+    // T2 HEX MARK: phasing hexes the player's current column
+    if (on("t2") && !g.wasGhosted && ghosted) {
+      marks.push({ x: playerCenterX(), t: 1.5, g });
+    }
+    if (g.wasGhosted) g.lastMate = t;
+    g.wasGhosted = ghosted;
+  });
+  // T2: marks count down; at zero the caster rains 3 shots at the mark
+  marks.forEach((m) => {
+    m.t -= dt;
+    if (m.t <= 0 && m.g.alive) {
+      const sx = m.g.x + m.g.w / 2, sy = m.g.y + m.g.h;
+      for (let i = -1; i <= 1; i += 1) {
+        const tx = m.x + i * 26;
+        const a = Math.atan2(tx - sx, player.y - sy);
+        enemyBullets.push({ x: sx - 2, y: sy, w: 5, h: 15,
+          speed: Math.cos(a) * 260, vx: Math.sin(a) * 260, color: "#c084fc", ttl: 8 });
+      }
+      addShockwave(m.x, H - 60, 60);
+    }
+  });
+  marks = marks.filter((m) => m.t > 0);
+  // T5: fledglings flee upward
+  fledglings.forEach((f) => { f.y -= 120 * dt; f.x += invaderDirection * speed * 0.5 * dt; });
+  fledglings = fledglings.filter((f) => f.alive && f.y > -30);
+}
+
+function killGhost(g, byPlayer) {
+  g.alive = false;
+  addExplosion(g.x + g.w / 2, g.y + g.h / 2, "#dfe9ff");
+  if (!byPlayer) return;
+  let pts = 60;
+  // T4 UNVEILED: kill within 0.75s of materializing
+  if (on("t4") && t - g.lastMate <= 0.75) {
+    pts += 20;
+    addPopup(g.x + g.w / 2, g.y - 6, "UNVEILED +20", "#ffd76a");
+  }
+  // T3 SEVERED: this ghost is the enraged partner - its twin died <1s ago
+  if (on("t3") && g.enrage > 2) {
+    pts += 40;
+    addPopup(g.x + g.w / 2, g.y - 20, "SEVERED +40", "#ff5566");
+  }
+  if (on("t3")) {
+    const partner = ghosts.find((p) => p.pair === g.pair && p !== g && p.alive);
+    if (partner) partner.enrage = 3;
+  }
+  score += pts;
+  addPopup(g.x + g.w / 2, g.y + 10, "+" + pts, "#ffffff");
+  // T5 SPLIT GHOST: leave a fleeing fledgling
+  if (on("t5")) fledglings.push({ x: g.x + 5, y: g.y + 4, w: 24, h: 20, hp: 1, alive: true });
+}
+
+function updateBullets(dt) {
+  playerBullets.forEach((b) => { b.y -= b.speed * dt; });
+  playerBullets = playerBullets.filter((b) => b.y > -20);
+  enemyBullets.forEach((b) => { b.x += b.vx * dt; b.y += b.speed * dt; b.ttl -= dt; });
+  enemyBullets = enemyBullets.filter((b) => b.ttl > 0 && b.y < H + 20 && b.x > -20 && b.x < W + 20);
+  explosions.forEach((x) => { x.t -= dt; });
+  explosions = explosions.filter((x) => x.t > 0);
+  shockwaves.forEach((x) => { x.t -= dt; });
+  shockwaves = shockwaves.filter((x) => x.t > 0);
+  popups.forEach((p) => { p.t -= dt; p.y -= 30 * dt; });
+  popups = popups.filter((p) => p.t > 0);
+}
+
+function checkCollisions() {
+  playerBullets = playerBullets.filter((b) => {
+    // T1 PHASE BANK: shots that pass through a phased ghost get absorbed (max 3)
+    if (on("t1")) {
+      const g = ghosts.find((gg) => gg.alive && gg.ghosted && overlapsPadded(b, gg, 2));
+      if (g) {
+        if (g.bank.length < 3) {
+          g.bank.push(1);
+          addExplosion(b.x + 2, b.y, "#8899bb");
+        }
+        return false; // the shot is gone either way - shooting a phased ghost costs you
+      }
+    }
+    // solid ghosts: killable as always
+    const g = ghosts.find((gg) => gg.alive && !gg.ghosted && overlaps(b, gg));
+    if (g) {
+      g.hp -= 1;
+      addExplosion(b.x + 2, b.y, "#dfe9ff");
+      if (g.hp <= 0) killGhost(g, true);
+      return false;
+    }
+    // T5: fledglings are shootable (30 pts)
+    const f = fledglings.find((fl) => fl.alive && overlaps(b, fl));
+    if (f) {
+      f.alive = false;
+      score += 30;
+      addExplosion(f.x + 12, f.y + 10, "#9db8e6");
+      addPopup(f.x + 12, f.y, "+30", "#9db8e6");
+      return false;
+    }
+    // SHOT CLASH (js/main.js): your shot and a foe shot cancel one for one, +12
+    const eb = enemyBullets.find((x) => overlapsPadded(b, x, 5));
+    if (eb) {
+      const cx = eb.x + eb.w / 2, cy = eb.y + eb.h / 2;
+      enemyBullets = enemyBullets.filter((x) => x !== eb);
+      addExplosion(cx, cy, "#ff8844");
+      addShockwave(cx, cy, 26);
+      score += 12;
+      addPopup(cx, cy, "+12", "#ff8844");
+      return false;
+    }
+    return b.y > -20;
+  });
+  enemyBullets.forEach((b) => {
+    if (player.respawn <= 0 && overlaps(b, player)) { hitPlayer(); b.ttl = 0; }
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (screenShake > 0) {
+    ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+    screenShake = Math.max(0, screenShake - 0.6);
+  }
+  // T4 FADE-THIEF: phased ghosts black out their column
+  if (on("t4")) {
+    ghosts.forEach((g) => {
+      if (!g.alive || !g.ghosted) return;
+      ctx.save();
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = "#05040c";
+      ctx.fillRect(g.x + g.w / 2 - 60, 0, 120, H);
+      ctx.restore();
+    });
+  }
+  // T3: tether between live pairs
+  if (on("t3")) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,85,102,0.35)";
+    for (let i = 0; i < ghosts.length; i += 2) {
+      const a = ghosts[i], b2 = ghosts[i + 1];
+      if (a.alive && b2 && b2.alive) {
+        ctx.beginPath();
+        ctx.moveTo(a.x + a.w / 2, a.y + a.h / 2);
+        ctx.lineTo(b2.x + b2.w / 2, b2.y + b2.h / 2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  // T2: hex marks on the floor
+  marks.forEach((m) => {
+    ctx.save();
+    ctx.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(t * 10));
+    ctx.strokeStyle = "#c084fc"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k += 1) {
+      const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
+      const hx = m.x + Math.cos(a) * 26, hy = H - 60 + Math.sin(a) * 14;
+      if (k === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.restore();
+  });
+  ghosts.forEach((g) => {
+    if (!g.alive) return;
+    neon("ghost", g.x + g.w / 2, g.y + g.h / 2, 30, g.enrage > 0 ? "#ff5566" : "#dfe9ff", 7, g.alpha);
+    // T1: banked shots orbit the ghost
+    if (on("t1") && g.bank.length) {
+      ctx.save();
+      ctx.fillStyle = "#ffd76a";
+      for (let i = 0; i < g.bank.length; i += 1) {
+        const a = t * 4 + (i / g.bank.length) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(g.x + g.w / 2 + Math.cos(a) * 22, g.y + g.h / 2 + Math.sin(a) * 16, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  });
+  fledglings.forEach((f) => neon("ghost", f.x + f.w / 2, f.y + f.h / 2, 22, "#9db8e6", 5, 0.9));
+  enemyBullets.forEach((b) => {
+    // T4: shots inside a blacked-out column are hidden
+    if (on("t4") && ghosts.some((g) => g.alive && g.ghosted && Math.abs(b.x + b.w / 2 - (g.x + g.w / 2)) < 58)) return;
+    ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+  });
+  ctx.fillStyle = "#9ae6ff";
+  playerBullets.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+  explosions.forEach((x) => {
+    ctx.save(); ctx.globalAlpha = x.t / 0.25; ctx.fillStyle = x.color;
+    ctx.beginPath(); ctx.arc(x.x, x.y, 6 + (0.25 - x.t) * 40, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+  shockwaves.forEach((x) => {
+    ctx.save(); ctx.globalAlpha = x.t / 0.3; ctx.strokeStyle = "#dfe9ff";
+    ctx.beginPath(); ctx.arc(x.x, x.y, x.r * (1 - x.t / 0.3), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  });
+  popups.forEach((p) => {
+    ctx.save(); ctx.globalAlpha = Math.min(1, p.t / 0.4); ctx.fillStyle = p.color;
+    ctx.font = "12px 'Courier New', monospace"; ctx.fillText(p.text, p.x - 24, p.y); ctx.restore();
+  });
+  if (player.respawn <= 0 && !(player.invuln > 0 && Math.floor(t * 12) % 2 === 0)) {
+    ctx.fillStyle = "#62ffa1";
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.w / 2, player.y - 8);
+    ctx.lineTo(player.x + player.w, player.y + player.h);
+    ctx.lineTo(player.x, player.y + player.h);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  // HUD
+  ctx.fillStyle = "#cfefff"; ctx.font = "12px 'Courier New', monospace";
+  const alive = ghosts.filter((g) => g.alive).length;
+  const g0 = ghosts.find((g) => g.alive);
+  const p0 = g0 ? g0.p : 0;
+  ctx.fillText("GHOSTS " + alive + "/11   SCORE " + score, 12, H - 30);
+  ctx.fillText("PHASE " + p0.toFixed(2) + "/4.00 - " + (p0 >= 3 ? "GHOSTED (untargetable)" : "SOLID"), 12, H - 14);
+  ctx.fillStyle = "#62ffa1";
+  for (let i = 0; i < player.hp; i += 1) ctx.fillRect(W - 20 - i * 16, H - 18, 10, 10);
+}
+
+function step(dt) {
+  t += dt;
+  updatePlayer(dt);
+  updateGhosts(dt);
+  updateEnemyFire(dt);
+  updateBullets(dt);
+  checkCollisions();
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.035, (now - last) / 1000);
+  last = now;
+  step(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.SANDBOX = { reset, step, on, state: () => ({ ghosts, enemyBullets, playerBullets, marks, fledglings, score, player }) };
+</script>
+</body>
+</html>

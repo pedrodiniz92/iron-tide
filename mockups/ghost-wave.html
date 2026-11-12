@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GHOST WAVE — wave 5, full mob roster + ghost rework (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
+  .stage { position: relative; width: 900px; height: 600px; border: 1px solid #23304a; background: #0d0d14; margin: 0 16px; }
+  canvas { display: block; }
+  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas */
+  #stage3d { position: absolute; left: 0; top: 0; z-index: 0; background: transparent; }
+  #game { position: absolute; left: 0; top: 0; z-index: 1; }
+  #panel { position: absolute; left: 10px; top: 10px; width: 260px; padding: 8px 10px; z-index: 2;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.82); }
+  #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel label { display: block; font-size: 11px; line-height: 1.3; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>GHOST WAVE &mdash; WAVE 5, FULL MOB ROSTER + GHOST REWORK</h1>
+<div class="sub">Playable sandbox, true to js/invaders.js newWave at level 5: 5 rows x 11 columns marching as one
+formation, the real fire machine (one global timer, ~1 aimed shot/s at wave 5, max 3 bullets on screen, 1 per
+shooter), banshee frenzy zones, shot clash (bullet x bullet = both die, +12, silent points). Ghost rework: 6
+ghosts (every two columns), 2 HP, 120 pts. 2.5D: mobs and the ship are the real Three.js toon models on
+<code>#stage3d</code> driven by <code>Iron3D.sync()/render()</code>; bullets, fledglings, popups and HUD stay
+2D, exactly as js/drawing.js splits them. Toggle the proposed powers. R = restart.</div>
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+<div id="panel">
+  <h2>GHOST REWORK POWERS</h2>
+  <label><input type="checkbox" id="t1" checked> PHASE BANK (phased ghosts absorb your shots, max 3, fire them all back aimed on materialize)</label>
+  <label><input type="checkbox" id="t2" checked> SPLIT GHOST (a solid kill leaves a fleeing fledgling; kill it for 40 pts + a 5-shot fan)</label>
+  <label><input type="checkbox" id="t3"> CRACK VISUAL (ghosts and crabs at 1 HP wear the renderer's crack texture, like the ship's cracked hull)</label>
+  <div class="hint">&larr;/&rarr; or A/D move &middot; SPACE fire &middot; R restart<br>
+    Row 0 GHOST 120 &middot; row 1 BANSHEE 25 &middot; row 2 STINGER 35 &middot; row 3 CRAB 40 &middot; row 4 SQUID 30<br>
+    The picked kit = PHASE BANK + SPLIT GHOST (on). CRACK VISUAL is a render toggle (off).</div>
+</div>
+</div>
+<!-- the shipping 2.5D renderer: Three.js toon models on #stage3d, driven by Iron3D.sync()/render() -->
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600, LEVEL = 5;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const keys = new Set();
+const on = (id) => document.getElementById(id).checked;
+const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const overlapsPadded = (a, b, p) => overlaps({ x: a.x - p, y: a.y - p, w: a.w + p * 2, h: a.h + p * 2 }, b);
+
+// js/silhouettes.js - the real silhouette paths for every mob in this wave
+const SIL = {
+  ghost: { bb: { x: -13, y: -14, w: 26, h: 28 }, path(c) {
+    c.beginPath(); c.moveTo(-12, 2); c.quadraticCurveTo(-13, -14, 0, -14);
+    c.quadraticCurveTo(13, -14, 12, 2);
+    c.lineTo(12, 10); c.lineTo(8, 6); c.lineTo(5, 12); c.lineTo(2, 6);
+    c.lineTo(-1, 12); c.lineTo(-4, 6); c.lineTo(-8, 12); c.lineTo(-12, 6);
+    c.closePath(); } },
+  banshee: { bb: { x: -11, y: -14, w: 22, h: 28 }, path(c) {
+    c.beginPath(); c.moveTo(0, -14); c.quadraticCurveTo(9, -10, 8, 0);
+    c.quadraticCurveTo(12, 8, 5, 14); c.lineTo(3, 9); c.lineTo(0, 14);
+    c.lineTo(-2, 9); c.lineTo(-6, 13); c.quadraticCurveTo(-11, 4, -8, 0);
+    c.quadraticCurveTo(-9, -10, 0, -14); c.closePath(); } },
+  stinger: { bb: { x: -14, y: -11, w: 28, h: 22 }, path(c) {
+    c.beginPath(); c.moveTo(0, -11); c.quadraticCurveTo(6, -9, 5, -1);
+    c.lineTo(14, 3); c.lineTo(6, 4); c.lineTo(3, 10); c.lineTo(0, 4);
+    c.lineTo(-3, 10); c.lineTo(-6, 4); c.lineTo(-14, 3); c.lineTo(-5, -1);
+    c.quadraticCurveTo(-6, -9, 0, -11); c.closePath(); } },
+  crab: { bb: { x: -18, y: -8, w: 36, h: 26 }, path(c) {
+    c.beginPath(); c.moveTo(-14, -8); c.lineTo(14, -8); c.quadraticCurveTo(18, 2, 12, 10);
+    c.lineTo(16, 18); c.lineTo(10, 12); c.lineTo(6, 18); c.lineTo(0, 12);
+    c.lineTo(-6, 18); c.lineTo(-10, 12); c.lineTo(-16, 18); c.lineTo(-12, 10);
+    c.quadraticCurveTo(-18, 2, -14, -8); c.closePath(); } },
+  squid: { bb: { x: -13, y: -16, w: 26, h: 34 }, path(c) {
+    c.beginPath(); c.moveTo(0, -16); c.quadraticCurveTo(13, -13, 12, 0); c.quadraticCurveTo(11, 8, 6, 9);
+    c.lineTo(8, 17); c.lineTo(4, 10); c.lineTo(2, 18); c.lineTo(-1, 10);
+    c.lineTo(-3, 18); c.lineTo(-6, 9); c.quadraticCurveTo(-11, 8, -12, 0);
+    c.quadraticCurveTo(-13, -13, 0, -16); c.closePath(); } },
+  classic: { bb: { x: -28, y: -11, w: 56, h: 22 }, path(c) {
+    c.beginPath(); c.moveTo(0, -11); c.lineTo(4, -3); c.lineTo(12, 1); c.lineTo(28, 7);
+    c.lineTo(16, 9); c.lineTo(6, 6); c.lineTo(-6, 6); c.lineTo(-16, 9);
+    c.lineTo(-28, 7); c.lineTo(-12, 1); c.lineTo(-4, -3); c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+// js/drawing.js:265/317 - the push3D pattern: mobs and the ship are the real toon models on
+// #stage3d; the 2D neon silhouette is only the fallback for when the WebGL layer is missing.
+let frame3D = [];
+const has3D = () => !!window.Iron3D;
+function push3D(e) {
+  if (window.Iron3D) frame3D.push(e);
+  return !!window.Iron3D;
+}
+
+// js/assets3d.js:38 crackTexture() - the crab's impact star: one core, five rays that taper
+// 85 -> 55 -> 30, an arc ring around the core. Same chain data, scaled down to a 32px shell.
+const CRACK_CHAINS = [
+  [-2.35, [[0.42, -0.25, 85], [0.5, 0.2, 55], [0.42, 0.05, 30]]],
+  [-1.5, [[0.36, 0.3, 85], [0.45, 0.15, 55], [0.4, 0.05, 30]]],
+  [-0.4, [[0.42, -0.15, 85], [0.36, 0.25, 55], [0.3, 0.1, 30]]],
+  [2.6, [[0.4, 0.18, 85], [0.36, -0.22, 55], [0.3, -0.1, 30]]],
+  [1.75, [[0.24, -0.3, 85], [0.2, 0.3, 55]]]
+];
+function drawCracks(cx, cy, w, color, alpha) {
+  const L = w * 0.16; // the texture's 0.42 unit ray is ~16% of the shell width
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = "rgba(8,6,4,0.92)";
+  ctx.lineCap = "round";
+  ctx.shadowColor = color; ctx.shadowBlur = 5; // the "subtle glow" the hull crack gets
+  CRACK_CHAINS.forEach(([ang, segs]) => {
+    let x = 0, y = 0, a = ang;
+    segs.forEach(([len, bend, lw], i) => {
+      const nx = x + Math.cos(a) * len * L, ny = y + Math.sin(a) * len * L;
+      ctx.lineWidth = (lw / 85) * 2.6;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+      x = nx; y = ny; a += bend;
+    });
+  });
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(0, 0, 0.42 * L, -2.5, -1.25, false); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// js/constants.js:88 INVADER_TYPES - scores as shipped; the ghost row is the rework
+const TYPES = {
+  ghost: { score: 120, color: "#dfe9ff", hp: 2 },   // REWORK: 6 per wave, 2 HP, 2x the old 60
+  banshee: { score: 25, color: "#ff6a3d", hp: 1 },
+  stinger: { score: 35, color: "#ffb04c", hp: 1 },
+  crab: { score: 40, color: "#ffd26b", hp: 2 },
+  squid: { score: 30, color: "#99d4ff", hp: 1 }
+};
+// js/invaders.js:4-11 - the level-5 seq is ghost, banshee, stinger, crab, squid (5 rows)
+const ROWS = ["ghost", "banshee", "stinger", "crab", "squid"];
+const GHOST_COLS = [0, 2, 4, 6, 8, 10]; // REWORK: one ghost every two columns
+
+let t = 0, score = 0, screenShake = 0;
+let player, playerBullets, enemyBullets, invaders, ghosts, fledglings, frenzyZones,
+    explosions, shockwaves, popups, stats;
+let invaderDirection = 1, ghostPhaseT = 0, enemyFireTimer = 1.2, screamTimer = 6, fledSeq = 0;
+
+function reset() {
+  t = 0; screenShake = 0; ghostPhaseT = 0; invaderDirection = 1;
+  player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290, hp: 2, invuln: 1.5, respawn: 0 };
+  playerBullets = []; enemyBullets = []; fledglings = []; frenzyZones = [];
+  explosions = []; shockwaves = []; popups = [];
+  invaders = []; ghosts = [];
+  // js/invaders.js:13-30 - the real wave-5 grid: x = 84 + col*56, y = 86 + row*46, w/h 32
+  for (let row = 0; row < ROWS.length; row += 1) {
+    const name = ROWS[row];
+    const type = TYPES[name];
+    const cols = name === "ghost" ? GHOST_COLS : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    cols.forEach((col) => {
+      invaders.push({
+        id: row * 11 + col,
+        type: name,
+        score: type.score,
+        x: 84 + col * 56, y: 86 + row * 46, w: 32, h: 32,
+        row,
+        // js/invaders.js:188-192 applyRowRoles: row 0 is the "last" (front) row, row 1 "second"
+        rowRole: row === 0 ? "last" : (row === 1 ? "second" : ""),
+        hp: type.hp, maxHp: type.hp,
+        alive: true,
+        // ghost-only state (the 4s phase cycle, PHASE BANK)
+        p: 0, ghosted: false, wasGhosted: false, alpha: 1, bank: [], lastMate: -9,
+        // js/drawing.js:320 - the shipped damage cue: maxHp >= 2 && hp < 2
+        cracked: false,
+        frenzied: false, frenzyLive: false
+      });
+    });
+  }
+  ghosts = invaders.filter((i) => i.type === "ghost");
+  screamTimer = 6;   // js/invaders.js:32
+  enemyFireTimer = 1.2; // js/invaders.js:81
+  stats = { shotsFired: 0, frenzyShots: 0, maxOnScreen: 0, shooterViolations: 0,
+            clashes: 0, absorbed: 0, spent: 0, bankFired: 0,
+            fledglingsSpawned: 0, fledglingsKilled: 0, fledglingsEscaped: 0, fansFired: 0 };
+}
+reset();
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
+  keys.add(k);
+  if (k === "r") { score = 0; reset(); } // R = full restart; a wave clear keeps the score
+});
+window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+const playerCenterX = () => player.x + player.w / 2;
+
+function addExplosion(x, y, color) { explosions.push({ x, y, t: 0.25, color }); }
+function addShockwave(x, y, r) { shockwaves.push({ x, y, r, t: 0.3 }); }
+function addPopup(x, y, text, color) { popups.push({ x, y, text, color, t: 0.9 }); }
+
+function hitPlayer() {
+  if (player.invuln > 0 || player.respawn > 0) return;
+  player.hp -= 1; screenShake = 8;
+  if (player.hp <= 0) player.respawn = 1;
+  else player.invuln = 1.5;
+}
+
+let fireCooldown = 0;
+function updatePlayer(dt) {
+  if (player.respawn > 0) {
+    player.respawn -= dt;
+    if (player.respawn <= 0) { player.x = W / 2 - 28; player.hp = 2; player.invuln = 1.5; }
+    return;
+  }
+  const dir = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+  player.x = clamp(player.x + dir * player.speed * dt, 10, W - player.w - 10);
+  player.invuln = Math.max(0, player.invuln - dt);
+  fireCooldown -= dt;
+  if (keys.has(" ") && fireCooldown <= 0) {
+    fireCooldown = 0.44;
+    playerBullets.push({ x: player.x + player.w / 2 - 2, y: player.y - 10, w: 4, h: 12, speed: 560 });
+  }
+}
+// js/invaders.js:131-186 the real aim: mode 0 current / 1 predicted / 2 midpoint
+// (stingers and ghosts roll all three, js/invaders.js:153-161), target clamped to sx±260,
+// vx = (target-sx)*1.5 clamped ±190, jitter ±0.11 rad, re-clamped.
+function playerVelocityX() {
+  const left = keys.has("arrowleft") || keys.has("a");
+  const right = keys.has("arrowright") || keys.has("d");
+  return (right ? 1 : 0) * player.speed - (left ? 1 : 0) * player.speed;
+}
+function predictPlayerX(sx, sy, speed) {
+  const dx = playerCenterX() - sx;
+  const dy = player.y - sy;
+  const ft = Math.max(0.1, Math.hypot(dx, dy) / speed);
+  return clamp(playerCenterX() + playerVelocityX() * ft, 10 + player.w / 2, W - 10 - player.w / 2);
+}
+function aimTargetX(sx, sy, speed) {
+  const roll = Math.random();
+  const mode = roll < 0.34 ? 0 : roll < 0.67 ? 1 : 2;
+  const current = playerCenterX();
+  const target = mode === 1 ? predictPlayerX(sx, sy, speed)
+    : mode === 2 ? (current + predictPlayerX(sx, sy, speed)) / 2
+    : current;
+  return clamp(target, sx - 260, sx + 260);
+}
+function aimVx(sx, sy, speed) {
+  const base = clamp((aimTargetX(sx, sy, speed) - sx) * 1.5, -190, 190);
+  const angle = Math.atan2(base, speed) + (Math.random() - 0.5) * 0.22;
+  return clamp(speed * Math.tan(angle), -190, 190);
+}
+// js/invaders.js:215 shot speed at wave 5: 560 * min(1, 0.85 + (level-1)*0.05)
+const SHOT_SPEED = 560 * Math.min(1, 0.85 + (LEVEL - 1) * 0.05);
+
+// Every foe shot is born here (js/helpers.js:28). The mockup tracks the fire-machine probes.
+function pushEnemyBullet(b) {
+  if (b.shooterId !== undefined && enemyBullets.some((x) => x.shooterId === b.shooterId)) {
+    stats.shooterViolations += 1;
+  }
+  enemyBullets.push(b);
+  stats.shotsFired += 1;
+  if (b.frenzy) stats.frenzyShots += 1;
+  stats.maxOnScreen = Math.max(stats.maxOnScreen, enemyBullets.length);
+}
+
+// js/invaders.js:194-231 the real fire machine: ONE global timer for the whole formation,
+// one shot per trigger, one bullet in flight per shooter, hard cap of min(3, 2+floor(level/3))
+// bullets on screen (3 at wave 5), front row preferred 70% of the time.
+function fireEnemyBullet() {
+  const maxBullets = Math.min(3, 2 + Math.floor(LEVEL / 3));
+  if (enemyBullets.length >= maxBullets) return false;
+  const alive = invaders.filter((i) => i.alive);
+  if (!alive.length) return false;
+  const free = alive.filter((i) => !enemyBullets.some((b) => b.shooterId === i.id));
+  const front = free.filter((i) => i.rowRole === "last");
+  const pool = front.length && Math.random() < 0.7 ? front : (free.length ? free : alive);
+  const source = pool[Math.floor(Math.random() * pool.length)];
+  // js/invaders.js:211-212 - aimed: the front row at level >= 2, stingers, ghosts, crabs.
+  // Banshees are the "second" row, so they drop straight; squids always do.
+  const aimed = (source.rowRole === "last" && LEVEL >= 2) ||
+    source.type === "stinger" || source.type === "ghost" || source.type === "crab";
+  const sx = source.x + source.w / 2, sy = source.y + source.h;
+  const inZone = frenzyZones.some((z) => !z.fade && z.arm <= 0 &&
+    Math.hypot(sx - z.x, sy - z.y) < z.r);
+  pushEnemyBullet({
+    x: sx - 2, y: sy, w: 4, h: 14,
+    speed: SHOT_SPEED,
+    vx: aimed ? aimVx(sx, sy, SHOT_SPEED) : 0,
+    color: TYPES[source.type].color, shooterId: source.id,
+    aimed, frenzy: inZone, ttl: 8
+  });
+  return inZone ? "frenzy" : aimed;
+}
+function updateEnemyFire(dt) {
+  enemyFireTimer -= dt;
+  if (enemyFireTimer <= 0) {
+    const fired = fireEnemyBullet();
+    // js/invaders.js:127 - wave 5 base [1.05, 1.80]s, aimed x0.7 (one shot ~1s),
+    // a shooter inside a live frenzy zone x0.3 (the wail's fire-rate buff).
+    enemyFireTimer = Math.max(0.62, 2.15 - LEVEL * 0.07 - Math.random() * 0.75)
+      * (fired === "frenzy" ? 0.3 : fired ? 0.7 : 1);
+  }
+}
+
+// js/invaders.js:308-327 the banshee wail: every 8s (6s first) one banshee screams and drops a
+// 210px frenzy zone that rides on her, arms after 0.8s, and buffs the fire rate of everyone inside.
+function updateFrenzy(dt) {
+  frenzyZones.forEach((z) => {
+    if (z.b && !z.b.alive) {
+      if (!z.fade) z.fade = true;
+      z.t = Math.min(z.t, 0.6);
+    }
+    z.t -= dt * (z.fade ? 3 : 1);
+    if (z.arm > 0) z.arm = Math.max(0, z.arm - dt);
+    if (z.b && z.b.alive) { z.x = z.b.x + z.b.w / 2; z.y = z.b.y + z.b.h / 2; }
+  });
+  frenzyZones = frenzyZones.filter((z) => z.t > 0);
+  invaders.forEach((i) => {
+    if (!i.alive) return;
+    i.frenzied = frenzyZones.some((z) => !z.fade &&
+      Math.hypot(i.x + i.w / 2 - z.x, i.y + i.h / 2 - z.y) < z.r);
+  });
+  screamTimer -= dt;
+  if (screamTimer > 0) return;
+  const wailing = invaders.filter((i) => i.alive && i.type === "banshee");
+  if (!wailing.length) { screamTimer = 1; return; }
+  const b = wailing[Math.floor(Math.random() * wailing.length)];
+  frenzyZones.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, r: 210, t: 2.4, arm: 0.8, b });
+  addShockwave(b.x + b.w / 2, b.y + b.h / 2, 210);
+  addShockwave(b.x + b.w / 2, b.y + b.h / 2, 165);
+  addShockwave(b.x + b.w / 2, b.y + b.h / 2, 120);
+  addPopup(b.x + b.w / 2, b.y - 8, "WAIL", "#ff6a3d");
+  screamTimer = 8;
+}
+
+// ---- the formation: real march + the real 4s phase cycle (js/invaders.js) ----
+function updateInvaders(dt) {
+  const alive = invaders.filter((i) => i.alive);
+  if (!alive.length && !fledglings.length) {
+    const s = score; reset(); score = s;
+    addPopup(W / 2 - 60, 280, "WAVE CLEAR", "#62ffa1");
+    return;
+  }
+  updateFrenzy(dt);
+  // js/invaders.js:332 march speed - the whole formation moves as one
+  const speed = 20 + LEVEL * 4 + (55 - alive.length) * 0.95;
+  if (alive.length) {
+    const w = Math.max(...alive.map((i) => i.x + i.w));
+    const minX = Math.min(...alive.map((i) => i.x));
+    if (invaderDirection > 0 && w + speed * dt >= W - 16) {
+      invaderDirection = -1; descendInvaders();
+    } else if (invaderDirection < 0 && minX - speed * dt <= 16) {
+      invaderDirection = 1; descendInvaders();
+    } else {
+      alive.forEach((i) => { i.x += invaderDirection * speed * dt; });
+    }
+  }
+  // js/invaders.js:246-265 the real phase cycle: ghosted 3.0-4.0, alpha ramp, all in step
+  ghostPhaseT = (ghostPhaseT + dt) % 4;
+  const ghosted = ghostPhaseT >= 3;
+  ghosts.forEach((g) => {
+    if (!g.alive) return;
+    g.p = ghostPhaseT;
+    g.alpha = ghostPhaseT < 3 ? 1 : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
+      : ghostPhaseT < 3.75 ? 0.18 : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+    g.ghosted = ghosted;
+    g.cracked = g.maxHp >= 2 && g.hp < g.maxHp;
+    // PHASE BANK: materializing fires back everything it swallowed, aimed, at 300
+    if (g.wasGhosted && !ghosted && g.bank.length) {
+      const sx = g.x + g.w / 2, sy = g.y + g.h;
+      g.bank.forEach(() => {
+        pushEnemyBullet({ x: sx - 2, y: sy, w: 4, h: 14, speed: 300,
+          vx: aimVx(sx, sy, 300), color: "#ffd76a", shooterId: g.id, aimed: true, ttl: 8 });
+        stats.bankFired += 1;
+      });
+      stats.spent += g.bank.length;
+      addPopup(g.x + g.w / 2, g.y - 6, "SPENT " + g.bank.length, "#ff8844");
+      g.bank = [];
+    }
+    if (g.wasGhosted) g.lastMate = t;
+    g.wasGhosted = ghosted;
+  });
+  invaders.forEach((i) => {
+    if (i.alive && i.type !== "ghost") i.cracked = i.maxHp >= 2 && i.hp < i.maxHp;
+  });
+  // SPLIT GHOST: fledglings flee upward, the formation drags them along at half speed
+  fledglings.forEach((f) => { f.y -= 120 * dt; f.x += invaderDirection * speed * 0.5 * dt; });
+  fledglings.forEach((f) => { if (f.y < -24) { f.alive = false; stats.fledglingsEscaped += 1; } });
+  fledglings = fledglings.filter((f) => f.alive);
+}
+
+function descendInvaders() {
+  invaders.forEach((i) => { i.y += 15; });
+  const bottom = Math.max(...invaders.filter((i) => i.alive).map((i) => i.y + i.h));
+  if (bottom >= player.y - 4) {
+    addPopup(W / 2 - 90, 300, "BASE OVERRUN", "#ff3366");
+    const s = score; reset(); score = s;
+  }
+}
+
+function killInvader(i, byPlayer) {
+  i.alive = false;
+  addExplosion(i.x + i.w / 2, i.y + i.h / 2, TYPES[i.type].color);
+  if (!byPlayer) return;
+  let pts = i.score;
+  // js/helpers.js:113-121 SILENCED: a banshee killed while her own wail zone is live pays double
+  if (i.type === "banshee" && frenzyZones.some((z) => z.b === i && z.t > 0)) {
+    pts *= 2;
+    addPopup(i.x + i.w / 2, i.y - 6, "SILENCED +50", "#ff6a3d");
+  }
+  score += pts;
+  addPopup(i.x + i.w / 2, i.y + 10, "+" + pts, "#ffffff");
+  // SPLIT GHOST: a solid ghost kill leaves a visible fledgling that runs for the top
+  if (i.type === "ghost" && on("t2")) {
+    fledglings.push({ id: fledSeq++, x: i.x + 5, y: i.y + 6, w: 22, h: 20, hp: 1, alive: true });
+    stats.fledglingsSpawned += 1;
+    addPopup(i.x + i.w / 2, i.y - 20, "FLED", "#9db8e6");
+  }
+}
+
+function updateBullets(dt) {
+  playerBullets.forEach((b) => { b.y -= b.speed * dt; });
+  playerBullets = playerBullets.filter((b) => b.y > -20);
+  enemyBullets.forEach((b) => { b.x += (b.vx || 0) * dt; b.y += b.speed * dt; b.ttl -= dt; });
+  enemyBullets = enemyBullets.filter((b) => b.ttl > 0 && b.y < H + 20 && b.y > -40 && b.x > -20 && b.x < W + 20);
+  explosions.forEach((x) => { x.t -= dt; });
+  explosions = explosions.filter((x) => x.t > 0);
+  shockwaves.forEach((x) => { x.t -= dt; });
+  shockwaves = shockwaves.filter((x) => x.t > 0);
+  popups.forEach((p) => { p.t -= dt; p.y -= 30 * dt; });
+  popups = popups.filter((p) => p.t > 0);
+}
+
+function checkCollisions() {
+  playerBullets = playerBullets.filter((b) => {
+    // PHASE BANK: shots that pass through a phased ghost get absorbed (max 3, orbiting dots)
+    if (on("t1")) {
+      const g = ghosts.find((gg) => gg.alive && gg.ghosted && overlapsPadded(b, gg, 2));
+      if (g) {
+        if (g.bank.length < 3) {
+          g.bank.push(1);
+          stats.absorbed += 1;
+          addExplosion(b.x + 2, b.y, "#8899bb");
+        }
+        return false; // the shot is gone either way - shooting a phased ghost costs you
+      }
+    }
+    // the formation: solid mobs are killable as always (ghosts are untargetable while phased)
+    const i = invaders.find((ii) => ii.alive && !(ii.type === "ghost" && ii.ghosted) && overlaps(b, ii));
+    if (i) {
+      i.hp -= 1;
+      // js/drawing.js:320 - the damage cue flips the moment a 2 HP shell drops below full
+      i.cracked = i.maxHp >= 2 && i.hp < i.maxHp;
+      addExplosion(b.x + 2, b.y, TYPES[i.type].color);
+      if (i.hp <= 0) killInvader(i, true);
+      return false;
+    }
+    // SPLIT GHOST: fledglings are shootable - 40 pts and a parting 5-shot fan
+    const f = fledglings.find((fl) => fl.alive && overlaps(b, fl));
+    if (f) {
+      f.alive = false;
+      fledglings = fledglings.filter((x) => x !== f);
+      score += 40;
+      stats.fledglingsKilled += 1;
+      addExplosion(f.x + f.w / 2, f.y + f.h / 2, "#9db8e6");
+      addPopup(f.x + f.w / 2, f.y, "+40", "#9db8e6");
+      const cx = f.x + f.w / 2, cy = f.y + f.h / 2;
+      [-120, -60, 0, 60, 120].forEach((vx) => {
+        pushEnemyBullet({ x: cx - 2, y: cy, w: 4, h: 12, speed: 240, vx,
+          color: "#9db8e6", ttl: 8, fan: true });
+        stats.fansFired += 1;
+      });
+      addShockwave(cx, cy, 40);
+      return false;
+    }
+    // SHOT CLASH (js/main.js): your shot and a foe shot cancel one for one, +12
+    const eb = enemyBullets.find((x) => overlapsPadded(b, x, 5));
+    if (eb) {
+      const cx = eb.x + eb.w / 2, cy = eb.y + eb.h / 2;
+      enemyBullets = enemyBullets.filter((x) => x !== eb);
+      addExplosion(cx, cy, "#ff8844");
+      addShockwave(cx, cy, 26);
+      score += 12; // js/main.js: clash points are silent - addScore(12) with no coordinates
+      stats.clashes += 1;
+      return false;
+    }
+    return b.y > -20;
+  });
+  enemyBullets.forEach((b) => {
+    if (player.respawn <= 0 && overlaps(b, player)) { hitPlayer(); b.ttl = 0; }
+  });
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  frame3D = [];
+  ctx.save();
+  if (screenShake > 0) {
+    ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+    screenShake = Math.max(0, screenShake - 0.6);
+  }
+  // banshee wail zones: the ring the buff is measured from
+  frenzyZones.forEach((z) => {
+    ctx.save();
+    const a = clamp(z.t / 2.4, 0, 1);
+    ctx.globalAlpha = (z.fade ? 0.12 : 0.2) * a + 0.05;
+    ctx.fillStyle = "#ff4455";
+    ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = (z.arm > 0 ? 0.35 : 0.7) * a + 0.1;
+    ctx.strokeStyle = "#ff2f4f"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(z.x, z.y, z.r * (z.arm > 0 ? 1 - z.arm / 0.8 : 1), 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
+  invaders.forEach((i) => {
+    if (!i.alive) return;
+    const cracked = i.cracked && on("t3");
+    // js/drawing.js:317-320 - the real renderer entry: alpha = the ghost phase fade,
+    // glow = frenzy-buffed, crack = a 2 HP shell below full (the impact-star hull texture)
+    if (!push3D({ id: "inv" + i.id, key: i.type, x: i.x, y: i.y, w: i.w, h: i.h,
+      color: TYPES[i.type].color, phase: i.x * 0.02, alpha: i.alpha,
+      glow: i.frenzied, crack: cracked })) {
+      const color = i.frenzied ? "#ff2f4f" : TYPES[i.type].color;
+      const fitW = i.h * (SIL[i.type].bb.w / SIL[i.type].bb.h);
+      ctx.save();
+      ctx.globalAlpha = i.alpha;
+      if (i.frenzied) { ctx.shadowColor = "#ff4455"; ctx.shadowBlur = 16; }
+      neon(i.type, i.x + i.w / 2, i.y + i.h / 2, Math.min(i.w, fitW * 1.35), color, 7, i.alpha);
+      // js/drawing.js:332-338 the eye pips
+      const eyeR = Math.max(2.1, i.w * 0.068);
+      ctx.globalAlpha = i.alpha;
+      ctx.shadowBlur = 0; ctx.shadowColor = "rgba(0,0,0,0)";
+      ctx.fillStyle = "#0d0d14";
+      ctx.beginPath();
+      ctx.arc(i.x + i.w * 0.33, i.y + i.h * 0.38, eyeR, 0, Math.PI * 2);
+      ctx.arc(i.x + i.w * 0.67, i.y + i.h * 0.38, eyeR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // CRACK VISUAL: the crab's toon model wears the real crack texture; the banshee-family
+    // ghost model has no crack surface, so it keeps the 2D impact star (js/assets3d.js:150)
+    if (cracked && (!has3D() || i.type === "ghost")) {
+      drawCracks(i.x + i.w / 2, i.y + i.h * 0.45, i.w, TYPES[i.type].color, i.alpha);
+    }
+    // PHASE BANK: swallowed shots orbit the ghost until it pays them out
+    if (on("t1") && i.bank.length) {
+      ctx.save();
+      ctx.fillStyle = "#ffd76a";
+      ctx.shadowColor = "#ffd76a"; ctx.shadowBlur = 6;
+      for (let k = 0; k < i.bank.length; k += 1) {
+        const a = t * 4 + (k / i.bank.length) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(i.x + i.w / 2 + Math.cos(a) * 22, i.y + i.h / 2 + Math.sin(a) * 16, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  });
+  // SPLIT GHOST: the fledgling, small and pale, running for the top
+  fledglings.forEach((f) => {
+    if (!push3D({ id: "fled" + f.id, key: "ghost", x: f.x, y: f.y, w: f.w, h: f.h,
+      color: "#9db8e6", phase: f.x * 0.02, alpha: 0.92 })) {
+      neon("ghost", f.x + f.w / 2, f.y + f.h / 2, 22, "#9db8e6", 6, 0.92);
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = "#9db8e6";
+    ctx.beginPath(); ctx.arc(f.x + f.w / 2, f.y - 6, 3, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
+  enemyBullets.forEach((b) => {
+    ctx.save();
+    ctx.shadowColor = b.color; ctx.shadowBlur = b.fan || b.frenzy ? 8 : 4;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.restore();
+  });
+  ctx.fillStyle = "#9ae6ff";
+  playerBullets.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+  explosions.forEach((x) => {
+    ctx.save(); ctx.globalAlpha = x.t / 0.25; ctx.fillStyle = x.color;
+    ctx.beginPath(); ctx.arc(x.x, x.y, 6 + (0.25 - x.t) * 40, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+  shockwaves.forEach((x) => {
+    ctx.save(); ctx.globalAlpha = x.t / 0.3; ctx.strokeStyle = "#dfe9ff";
+    ctx.beginPath(); ctx.arc(x.x, x.y, x.r * (1 - x.t / 0.3), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  });
+  popups.forEach((p) => {
+    ctx.save(); ctx.globalAlpha = Math.min(1, p.t / 0.4); ctx.fillStyle = p.color;
+    ctx.font = "12px 'Courier New', monospace"; ctx.fillText(p.text, p.x - 24, p.y); ctx.restore();
+  });
+  if (player.respawn <= 0 && !(player.invuln > 0 && Math.floor(t * 12) % 2 === 0)) {
+    const hullCrack = on("t3") && player.hp === 1;
+    // js/drawing.js:265-267 - the ship is the toon gunship, crackFade is the hull-crack fade
+    if (!push3D({ id: "player", key: "player", x: player.x, y: player.y, w: player.w, h: player.h,
+      color: "#62ffa1", rot: [-Math.PI / 2, 0, 0], tilt: 0,
+      crack: hullCrack, crackFade: hullCrack ? 1 : 0 })) {
+      neon("classic", player.x + player.w / 2, player.y + player.h / 2, player.w, "#62ffa1", 7);
+      if (hullCrack) drawCracks(player.x + player.w / 2, player.y + player.h / 2, player.w, "#62ffa1", 1);
+    }
+  }
+  ctx.restore();
+  // the 2.5D layer: mobs and the ship are toon models, everything above is 2D
+  if (window.Iron3D) { Iron3D.sync(frame3D); Iron3D.render(performance.now()); }
+  // HUD
+  ctx.fillStyle = "#cfefff"; ctx.font = "12px 'Courier New', monospace";
+  const alive = invaders.filter((i) => i.alive).length;
+  const gAlive = ghosts.filter((g) => g.alive).length;
+  ctx.fillText("WAVE 5 (ghost rework: 6 ghosts, 2 HP, 120 pts)", 12, 20);
+  ctx.fillText("MOBS " + alive + "/50   GHOSTS " + gAlive + "/6   FLEDGLINGS " + fledglings.length +
+    "   SCORE " + score, 12, H - 44);
+  ctx.fillText("PHASE " + ghostPhaseT.toFixed(2) + "/4.00 - " +
+    (ghostPhaseT >= 3 ? "GHOSTED (untargetable)" : "SOLID"), 12, H - 28);
+  ctx.fillText("WAIL " + Math.max(0, screamTimer).toFixed(1) + "s   ZONES " + frenzyZones.length +
+    "   SHOTS ON SCREEN " + enemyBullets.length + "/3", 12, H - 12);
+  ctx.fillStyle = "#62ffa1";
+  for (let i = 0; i < player.hp; i += 1) ctx.fillRect(W - 20 - i * 16, H - 18, 10, 10);
+}
+
+function step(dt) {
+  t += dt;
+  updatePlayer(dt);
+  updateInvaders(dt);
+  updateEnemyFire(dt);
+  updateBullets(dt);
+  checkCollisions();
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.035, (now - last) / 1000);
+  last = now;
+  step(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.SANDBOX = {
+  reset, step, on,
+  state: () => ({ ghosts, invaders, enemyBullets, playerBullets, fledglings, frenzyZones, score, player,
+    stats, ghostPhaseT, screamTimer, invaderDirection, t })
+};
+</script>
+</body>
+</html>

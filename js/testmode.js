@@ -107,6 +107,11 @@ function jumpToWave(target) {
     testJumpLevel = 0;
     newWave();
   }
+  // newWave() does not route through clearEnemyFire: a live ink cloud / venom
+  // pools / ink slow from the skipped wave would freeze onto the new wave's
+  // floor (only the old boss's update loop ticks them down).
+  clearEnemyFire();
+  inkSlowT = 0;
   nextWaveIsBoss = isFullBossWave(level);
   if (nextWaveIsBoss) {
     spawnBoss();

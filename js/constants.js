@@ -90,7 +90,7 @@ const INVADER_TYPES = [
   { rows: [2, 3], name: "crab", score: 40, sprite: SPRITES.crab, color: COLORS.crab },
   { rows: [4], name: "octopus", score: 10, sprite: SPRITES.octopus, color: COLORS.octopus },
   { rows: [], name: "banshee", score: 25, sprite: SPRITES.banshee, color: "#ff6a3d" },
-  { rows: [], name: "ghost", score: 60, sprite: SPRITES.ghost, color: "#dfe9ff" },
+  { rows: [], name: "ghost", score: 120, sprite: SPRITES.ghost, color: "#dfe9ff" },
   { rows: [], name: "stinger", score: 35, sprite: SPRITES.stinger, color: "#ffb04c" }
 ];
 

@@ -13,6 +13,8 @@ function startGame(skipStartingUpgrade = false) {
   state = "playing";
   score = 0;
   lives = 2;
+  // DOUBLE CORE's glass cannon is per-run only: restore max HP before baking playerHp
+  maxPlayerHp = 2;
   playerHp = maxPlayerHp;
   respawnTimer = 0;
   level = testJumpLevel || 1;
@@ -25,6 +27,9 @@ function startGame(skipStartingUpgrade = false) {
   laserBeams = [];
   enemyBombs = [];
   spikeMines = [];
+  inkBlight = null;
+  venomPools = [];
+  fledglings = [];
   shockwaves = [];
   scorePopups = [];
   bombInventory = 0;
@@ -74,6 +79,7 @@ function startGame(skipStartingUpgrade = false) {
   maxShieldHits = 1;
   shieldRestoreDelay = 0;
   shieldRestoreTimer = 0;
+  inkSlowT = 0;
   clearEnemyFirePending = false;
   clearPlayerBulletsPending = false;
   runTime = 0;
@@ -165,6 +171,17 @@ function update(dt) {
 
 function checkCollisions() {
   playerBullets = playerBullets.filter((bullet) => {
+    // PHASE BANK: a shot that passes through a phased ghost is swallowed
+    // (max 3 stored) and comes back aimed when it materializes. The shot is
+    // gone either way - shooting a phased ghost always costs you.
+    const banked = invaders.find((invader) => invader.alive && invader.ghosted &&
+      invader.type.name === "ghost" && overlaps(bullet, invader));
+    if (banked) {
+      if (banked.bank.length < 3) banked.bank.push(1);
+      addExplosion(bullet.x + bullet.w / 2, bullet.y, "#8899bb");
+      return false;
+    }
+
     const hitInvader = invaders.find((invader) => invader.alive && !invader.ghosted && overlaps(bullet, invader));
     if (hitInvader) {
       const damage = bullet.damage || 1;
@@ -180,9 +197,31 @@ function checkCollisions() {
       registerInvaderKill(hitInvader);
       addExplosion(hitInvader.x + hitInvader.w / 2, hitInvader.y + hitInvader.h / 2, hitInvader.type.color,
         { name: hitInvader.type.name === "octopus" ? "octo" : hitInvader.type.name, w: hitInvader.w, color: hitInvader.type.color });
+      // SPLIT GHOST: a solid ghost kill leaves a fledgling that flees upward.
+      if (hitInvader.type.name === "ghost") {
+        fledglings.push({ id: ++fledglingSeq, x: hitInvader.x + 6, y: hitInvader.y + 6,
+          w: 20, h: 18, hp: 1, alive: true });
+      }
       playHit();
       maybeDropPowerup(hitInvader);
       checkWaveClear();
+      return false;
+    }
+
+    // SPLIT GHOST: a fledgling dies to one shot - 40 pts and a parting
+    // 5-shot fan (straight, readable, not aimed: the gift of a dying mob).
+    const hitFledgling = fledglings.find((fledgling) => fledgling.alive && overlaps(bullet, fledgling));
+    if (hitFledgling) {
+      hitFledgling.alive = false;
+      const fx = hitFledgling.x + hitFledgling.w / 2;
+      const fy = hitFledgling.y + hitFledgling.h;
+      addScore(40, fx, hitFledgling.y);
+      addExplosion(fx, fy - 8, "#9db8e6");
+      [-120, -60, 0, 60, 120].forEach((vx) => pushEnemyBullet({
+        x: fx - 2, y: fy, w: 4, h: 14, speed: 240, vx,
+        hp: 2, maxHp: 2, color: "#9db8e6"
+      }));
+      playHit();
       return false;
     }
 
@@ -225,13 +264,15 @@ function checkCollisions() {
 
     const hitEnemyBullet = enemyBullets.find((enemyBullet) => overlapsPadded(bullet, enemyBullet, 5));
     if (hitEnemyBullet) {
-      hitEnemyBullet.hp = Math.max(0, (hitEnemyBullet.hp || 1) - 1);
-      addExplosion(hitEnemyBullet.x + hitEnemyBullet.w / 2, hitEnemyBullet.y + hitEnemyBullet.h / 2, "#ff8844");
+      // SHOT CLASH: any shot of yours cancels any foe shot on the spot - one
+      // for one, no hp checks, boss shots included.
+      const cx = hitEnemyBullet.x + hitEnemyBullet.w / 2;
+      const cy = hitEnemyBullet.y + hitEnemyBullet.h / 2;
+      enemyBullets = enemyBullets.filter((item) => item !== hitEnemyBullet);
+      addExplosion(cx, cy, "#ff8844");
+      addShockwave(cx, cy, 26);
+      addScore(12);
       playHit();
-      if (hitEnemyBullet.hp <= 0) {
-        enemyBullets = enemyBullets.filter((item) => item !== hitEnemyBullet);
-        addScore(12);
-      }
       return false;
     }
 

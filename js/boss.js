@@ -57,17 +57,20 @@ function spawnVenomPool(bomb) {
     w: 70,
     ry: 12,
     t: 1.5,
-    color: bomb.color || "#7dff66"
+    color: "#7dff66" // green puddle; the viper's bomb accent is yellow, pools read as poison
   });
 }
 
 function updateVenomPools(dt) {
   venomPools.forEach((pool) => {
     pool.t -= dt;
-    if (dashTimer > 0) return; // dash through: no damage
+    // dash through: no damage. One hit per pool - standing in it does not
+    // drain shields frame by frame (the pool itself is the consumed resource).
+    if (dashTimer > 0 || pool.hit) return;
     const px = player.x + player.w / 2;
     const py = player.y + player.h / 2;
     if (Math.hypot((px - pool.x) / (pool.w / 2), (py - pool.y) / pool.ry) < 1) {
+      pool.hit = true;
       hitPlayerWithEnemyBomb(1);
     }
   });
@@ -521,8 +524,11 @@ function updateBell(dt) {
 // blooms into a cloud that drifts down and follows the ship's column in slow
 // pursuit (INK_PURSUIT px/s vs the ship's 290 - outrunnable, never standable).
 function updateInkBlight(boss, dt) {
+  // The cadence clock runs on its own: blob-to-blob is INK_INTERVAL, not the
+  // interval plus the cloud's lifetime (the cloud ends ~7s in, well before the
+  // next 15-18s expiry, so the blob never waits on the old cloud).
+  boss.inkTimer -= dt;
   if (!inkBlight) {
-    boss.inkTimer -= dt;
     if (boss.inkTimer > 0) return;
     const sx = boss.x + boss.w / 2;
     const sy = boss.y + boss.h;
@@ -786,7 +792,13 @@ function updateBossUnit(boss, dt) {
   // the bullets frozen for the stagger on top of the 1.6 s telegraph, so the
   // bell would visibly overrun its 4.5 s lifetime. The squid itself stays
   // paused below, and the rite block keeps the normal (non-staggered) call.
-  if (staggered && boss.ability === "ABYSSAL RITE") updateBell(dt);
+  if (staggered && boss.ability === "ABYSSAL RITE") {
+    updateBell(dt);
+    // A live ink cloud ticks down through the stagger too (its 5s TTL is
+    // wall-clock). The fire path needs !inkBlight, so a staggered squid
+    // never launches a new blob.
+    if (inkBlight) updateInkBlight(boss, dt);
+  }
 
   if (staggered) return;
 
@@ -1264,8 +1276,11 @@ function fireBossBullet(boss) {
       addBossBullet(boss, cx - 2, cy, aim(70), speed * 1.15);
       boss.pendingShots = [{ t: 0.12, speed: speed * 1.15 }];
     } else {
-      const fan = Math.abs(aim(60));
-      [-1, -0.5, 0, 0.5, 1].forEach((k) => addBossBullet(boss, cx - 2, cy, fan * k, speed * 0.8));
+      // Fixed-width fan biased by the aim, not scaled by it: with the player
+      // under the boss the old proportional spread collapsed all 5 shots into
+      // one stacked column at the ship.
+      const base = aim(40);
+      [-1, -0.5, 0, 0.5, 1].forEach((k) => addBossBullet(boss, cx - 2, cy, clamp(base + k * 60, -190, 190), speed * 0.8));
     }
     return;
   }
@@ -1527,6 +1542,11 @@ function triggerBossStagger(boss) {
     unit.laser.timer = Math.max(3.2, unit.laser.timer + 2.4);
     unit.laser.hasHitShield = false;
     unit.laser.hasHitPlayer = false;
+    // A stagger breaks the squid's ABYSSAL RITE: the ward must not stay lit
+    // through the stagger and silently halve the bonus damage window.
+    unit.callState = "idle";
+    unit.callT = 0;
+    unit.callTimer = Math.max(unit.callTimer, 2.5);
   });
 
   addExplosion(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ffe066");

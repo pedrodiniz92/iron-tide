@@ -38,9 +38,9 @@ check("no spawner pushes enemyBullets directly (only the helper does)",
   pushers(helpers) === 1 && ["boss.js", "invaders.js", "player.js", "powerups.js", "main.js"]
     .every((f) => pushers(fs.readFileSync(REPO + "/js/" + f, "utf8")) === 0),
   "helpers=" + pushers(helpers));
-check("all 8 old spawners now call pushEnemyBullet",
+check("all spawners route through pushEnemyBullet (v1.10.2: +1 phase-bank return fire)",
   (bossSrc.match(/pushEnemyBullet\(\{/g) || []).length === 6 &&
-  (inv.match(/pushEnemyBullet\(\{/g) || []).length === 2,
+  (inv.match(/pushEnemyBullet\(\{/g) || []).length === 3,
   "boss=" + (bossSrc.match(/pushEnemyBullet\(\{/g) || []).length +
   " invaders=" + (inv.match(/pushEnemyBullet\(\{/g) || []).length);
 

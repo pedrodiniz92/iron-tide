@@ -103,6 +103,10 @@ let inkBlight = null;
 let inkSlowT = 0;
 // VENOM POOLS (WINGED VIPER): floor puddles left by direct bombs.
 let venomPools = [];
+// SPLIT GHOST: fledglings spawned by ghost kills. They flee upward; killing
+// one pays 40 and drops a 5-shot fan. Escaping off the top costs nothing.
+let fledglings = [];
+let fledglingSeq = 0;
 let maxShieldHits = 1;
 let itemShieldHits = 0;
 let shieldWeakTtl = 0;

@@ -20,6 +20,7 @@ function draw() {
   }
   drawShields();
   drawInvaders();
+  drawFledglings();
   drawFrenzy()
   drawBoss();
   drawMinions();
@@ -340,10 +341,51 @@ function drawInvaders() {
       ctx.shadowBlur = 0;
       ctx.shadowColor = "rgba(0,0,0,0)";
     }
-    if ((invader.hp || 1) > 1) {
-
+    // PHASE BANK: swallowed shots orbit the ghost - visible even while it is
+    // phased (the dots are the tell: this ghost has ammo banked).
+    if (invader.bank && invader.bank.length) {
+      ctx.save();
+      ctx.fillStyle = "#ffd76a";
+      for (let i = 0; i < invader.bank.length; i += 1) {
+        const a = waveTime * 4 + (i / invader.bank.length) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(invader.x + invader.w / 2 + Math.cos(a) * 22,
+          invader.y + invader.h / 2 + Math.sin(a) * 16, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
+    // 2D fallback crack for 2-HP mobs at 1 HP (the 3D layer gets a real crack
+    // texture through the crack: flag above). Crabs and ghosts both qualify.
+    if (!window.Iron3D && (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 90, 110, 0.85)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(invader.x + invader.w * 0.30, invader.y + invader.h * 0.18);
+      ctx.lineTo(invader.x + invader.w * 0.46, invader.y + invader.h * 0.44);
+      ctx.lineTo(invader.x + invader.w * 0.36, invader.y + invader.h * 0.66);
+      ctx.moveTo(invader.x + invader.w * 0.62, invader.y + invader.h * 0.26);
+      ctx.lineTo(invader.x + invader.w * 0.55, invader.y + invader.h * 0.52);
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+}
 
+// SPLIT GHOST: small pale ghosts fleeing upward (the 3D layer reuses the
+// ghost model at a smaller footprint).
+function drawFledglings() {
+  fledglings.forEach((fledgling) => {
+    if (!fledgling.alive) return;
+    if (push3D({ id: "fledg" + fledgling.id, key: "ghost", x: fledgling.x, y: fledgling.y,
+      w: fledgling.w, h: fledgling.h, color: "#9db8e6", phase: fledgling.x * 0.02,
+      alpha: 0.9 })) {
+      // model drawn on the 3D layer
+    } else {
+      neon("ghost", fledgling.x + fledgling.w / 2, fledgling.y + fledgling.h / 2,
+        fledgling.w, "#9db8e6");
+    }
   });
 }
 
@@ -769,7 +811,8 @@ function drawVenomPools() {
   });
 }
 
-function drawSpikeMines() {  spikeMines.forEach((mine) => {
+function drawSpikeMines() {
+  spikeMines.forEach((mine) => {
     const cx = mine.x + mine.w / 2;
     const cy = mine.y + mine.h / 2;
     const armed = (mine.arm || 0) <= 0;

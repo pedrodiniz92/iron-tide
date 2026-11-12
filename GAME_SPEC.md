@@ -71,18 +71,25 @@
 
 ## Enemies
 - Six invader types: octopus (10 pts), squid (30 pts), banshee (25 pts), stinger (35 pts),
-  crab (40 pts, 2 HP armor), ghost (60 pts).
+  crab (40 pts, 2 HP armor), ghost (120 pts, 2 HP).
 - Formation: crabs and squids appear every wave, stingers from wave 2, banshees from wave 4,
-  ghosts from wave 5.
+  ghosts from wave 5 - one every two columns (6 per wave), the heavy phase unit.
 - Basic invaders march in formation, drop a row when they hit a screen edge, and shoot downward.
 - Stingers, ghosts, crabs and the front row (from wave 2) use limited predictive aiming.
 - Enemy aim is limited to about 260px from the shooter.
 - Foe shots fly slower in the opening waves: 15% slower on wave 1, 10% on waves 2 and 3, 5% on
   wave 4, full speed from wave 5. The vertical and horizontal components are scaled together, so
   the shot is slower along exactly the same line of fire.
-- Ghosts phase through bullets on a cycle; bullets pass through them, but bombs and lasers still
-  kill them while phased.
+- SHOT CLASH: your shot and any foe shot (boss shots included) cancel each other out on contact -
+  one for one, no hp checks - with a mini explosion on the spot (+12 pts).
+- Ghosts phase through bullets on a cycle; bombs and lasers still kill them while phased.
+  PHASE BANK: a shot that passes through a phased ghost is swallowed (max 3, shown as orbiting
+  dots) and comes back aimed the instant the ghost materializes - shooting a phased ghost costs.
+  SPLIT GHOST: a solid ghost kill leaves a fledgling (small, 1 HP) that flees upward; killing it
+  pays 40 pts and drops a parting 5-shot fan; letting it escape costs nothing. 2-HP mobs show
+  cracks at 1 HP left (crack texture on the 3D models, jagged lines in the 2D fallback).
 - Banshees periodically scream, opening a frenzy zone that makes nearby invaders fire in bursts.
+  Killing a banshee while her own frenzy zone is live pays DOUBLE points ("BANSHEE SILENCED").
 
 ## Bosses and minibosses
 - Minibosses:
@@ -92,8 +99,9 @@
     and makes armored rolls.
 - Full bosses:
   - SKULL CRUISER is the laser boss: spread shots plus a piercing beam.
-  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. It fires 60% less often
-    than the other bosses (`shotMul` 1.6) - the dive is the attack, strafing is the breather.
+  - WINGED VIPER uses green shots, bombs, and a telegraphed venom dive. Its shots come 60% slower
+    than the other bosses (`shotMul` 1.6, i.e. 37.5% fewer per second) - the dive is the attack,
+    strafing is the breather.
     DIVE AS THE EVENT: the telegraphed dive opens with a 5-shot V-curtain on the way down and
     drops spike mines on the way back up. STRUCTURED VOLLEYS: strafing alternates two readable
     patterns - a 2-shot sniper pair aimed at the ship (second shot 0.12s behind, re-aimed when it
