@@ -262,16 +262,17 @@ function checkCollisions() {
       return false;
     }
 
-    const hitEnemyBullet = enemyBullets.find((enemyBullet) =>
-      overlapsPadded(bullet, enemyBullet, 5) && !(enemyBullet.clashT > 0));
+    const hitEnemyBullet = enemyBullets.find((enemyBullet) => overlapsPadded(bullet, enemyBullet, 5));
     if (hitEnemyBullet) {
-      // SHOT CLASH (2 HP): both shots take ONE hit per contact - two of yours
-      // kill one of theirs, two of theirs kill one of yours. Whoever fired
-      // first meets the other shot earlier and wins the duel. clashT keeps a
-      // single crossing from counting twice on consecutive frames.
+      // SHOT CLASH (absorption): your shot is consumed on contact - it does not
+      // keep flying. The foe's 2 HP shot takes one hit and survives, so two of
+      // yours kill one of theirs. Your shot is gone on the first contact, so a
+      // single crossing cannot count twice. (No clashT lockout: that was a
+      // v1.10.5 leftover for the model where your shot SURVIVED the clash, and
+      // here it made a foe shot immune to every shot for 0.15s, so a second
+      // shot passed straight through it - both kept flying.)
       const cx = hitEnemyBullet.x + hitEnemyBullet.w / 2;
       const cy = hitEnemyBullet.y + hitEnemyBullet.h / 2;
-      hitEnemyBullet.clashT = 0.15;
       hitEnemyBullet.hp = Math.max(0, (hitEnemyBullet.hp || 2) - 1);
       addExplosion(cx, cy, "#ff8844");
       playHit();
@@ -280,8 +281,7 @@ function checkCollisions() {
         addShockwave(cx, cy, 26);
         addScore(12);
       }
-      bullet.clashHp = (bullet.clashHp === undefined ? 2 : bullet.clashHp) - 1;
-      return bullet.clashHp > 0;
+      return false;
     }
 
     const hitEnemyBomb = enemyBombs.find((bomb) => overlaps(bullet, bomb));

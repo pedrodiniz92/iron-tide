@@ -327,7 +327,7 @@ function explodeBombShot(shot) {
     const dx = bullet.x + bullet.w / 2 - centerShotX;
     const dy = bullet.y + bullet.h / 2 - centerShotY;
     if (dx * dx + dy * dy > clearRadius * clearRadius) return true;
-    bullet.hp = Math.max(0, (bullet.hp || 1) - 1);
+    bullet.hp = Math.max(0, (bullet.hp || 2) - 2); // 2 dmg clears the uniform 2 HP foe shot in one bomb
     if (bullet.hp <= 0) {
       addScore(12);
       return false;

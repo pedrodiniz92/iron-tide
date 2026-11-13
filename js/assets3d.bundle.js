@@ -9522,6 +9522,7 @@ void main() {
   var SURF_FS = `
 uniform vec3 uLit, uMid, uShadow, uDeep, uKey, uRim, uBack;
 uniform float uToon, uSoft, uRimW, uBackW, uAlpha;
+uniform float uFill;
 uniform vec3 uTintMul;
 varying vec3 vN;
 varying vec3 vV;
@@ -9546,6 +9547,10 @@ void main() {
   vec3 c = mix(uShadow, uMid, t);
   c = mix(uDeep, c, d);
   c *= uTintMul;
+  // Fill from below: lifts the shadowed bottom half so a low-alpha phase reads
+  // as one uniform silhouette instead of a lit top over a vanished bottom.
+  float ndf = dot(N, vec3(0.0, -1.0, 0.0)) * 0.5 + 0.5;
+  c += uMid * ndf * uFill;
   #ifdef USE_MAP
   c *= mix(vec3(1.0), texture2D(uMap, vUv * uMapS + uMapO).rgb, uMapMix) * 1.25;
   #endif
@@ -9602,6 +9607,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         uSoft: { value: 0.035 },
         uRimW: { value: cfg.rim },
         uBackW: { value: cfg.backRim },
+        uFill: { value: cfg.fill === void 0 ? 0 : cfg.fill },
         uAlpha: { value: cfg.alpha === void 0 ? 1 : cfg.alpha }
       }
     });
@@ -11008,6 +11014,23 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         part(g, new id(0.15, 14, 10), body, cfg, s * 0.55, 0.06, 0.08, 8e-3, 0.55, 1, 0.8);
       }
       part(g, new id(0.08, 12, 10), DARK, cfg, 0, 0.04, 0.5, 4e-3, 0.8, 1.1, 0.5);
+      const plate = new Bs(
+        new pu(0.53, 0.53, 0.72, 24, 1, true, -Math.PI / 3, 2 * Math.PI / 3),
+        surfMaterial(body, Object.assign({}, cfg, {
+          map: new yi(),
+          mapS: new Jn(1.35, 1.35),
+          mapO: new Jn(0.017, -0.4225)
+        }))
+      );
+      plate.material.side = p;
+      plate.position.y = -0.05;
+      g.add(plate);
+      g.userData.shell = plate;
+      g.traverse((o) => {
+        if (o.isMesh && o.material.uniforms && o.material.uniforms.uFill) {
+          o.material.uniforms.uFill.value = 0.85;
+        }
+      });
     }
     finishMob(g, 1.05);
     return g;

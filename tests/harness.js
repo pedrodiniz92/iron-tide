@@ -73,7 +73,10 @@ const sandbox = {
   setTimeout: () => 0,
   clearTimeout() {},
   localStorage: {
-    store: {},
+    // Pre-seed the one-shot migration flags: the harnesses test gameplay, not
+    // the browser's first-open history (loadHighScore's hiscoreResetV3 seeds
+    // 56038 into a virgin profile, which would poison the hi-score baselines).
+    store: { hiscoreResetV2: "1", hiscoreResetV3: "1" },
     getItem(k) { return k in this.store ? this.store[k] : null; },
     setItem(k, v) { this.store[k] = String(v); },
     removeItem(k) { delete this.store[k]; }

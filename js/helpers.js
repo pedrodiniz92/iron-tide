@@ -31,6 +31,11 @@ function pushEnemyBullet(bullet) {
     bullet.speed = (bullet.speed || 0) * scale;
     bullet.vx = (bullet.vx || 0) * scale;
   }
+  // Every foe shot is 2 HP so the SHOT CLASH is uniform: two of yours kill one
+  // of theirs, boss shots included. (Boss/mine/minion shots were born 1 HP, so
+  // one of yours killed them instantly - inconsistent with the 2 HP invader shots.)
+  bullet.hp = 2;
+  bullet.maxHp = 2;
   enemyBullets.push(bullet);
 }
 
@@ -368,6 +373,12 @@ function loadHighScore() {
       localStorage.removeItem("invadersIronTideHighScore");
       localStorage.removeItem("spaceInvadersHighScore");
       localStorage.setItem("hiscoreResetV2", "1");
+    }
+    // One-shot (v1.0.2): wipe the 104563 test-run HI (PEDRO's removed board run)
+    // and restore the real best, 56038.
+    if (!localStorage.getItem("hiscoreResetV3")) {
+      localStorage.setItem("invadersIronTideHighScore", "56038");
+      localStorage.setItem("hiscoreResetV3", "1");
     }
     return Number(localStorage.getItem("invadersIronTideHighScore") || 0);
   } catch {

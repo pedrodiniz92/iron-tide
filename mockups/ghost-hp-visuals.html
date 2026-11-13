@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GHOST HP + PHASE VISUALS — side by side, no shooting (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
+  .stage { position: relative; width: 900px; height: 600px; border: 1px solid #23304a; background: #0d0d14; margin: 0 16px; }
+  canvas { display: block; }
+  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas */
+  #stage3d { position: absolute; left: 0; top: 0; z-index: 0; background: transparent; }
+  #game { position: absolute; left: 0; top: 0; z-index: 1; }
+  #panel { position: absolute; left: 10px; top: 10px; width: 300px; padding: 8px 10px; z-index: 2;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.82); }
+  #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel h2 + label { margin-top: 0; }
+  #panel label { display: block; font-size: 11px; line-height: 1.35; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>GHOST HP + PHASE VISUALS &mdash; SIDE BY SIDE, NO SHOOTING</h1>
+<div class="sub">Three ghosts, nothing to shoot. <b>LEFT</b>: 2 HP, exactly the shipped look.
+<b>MIDDLE</b>: the hit animation on a loop &mdash; solid 2 HP, takes a hit (flash + shockwave),
+shows the picked 1 HP visual, resets. <b>RIGHT</b>: 1 HP, the picked visual, held. All three run
+the phase cycle together so you can compare the phase look. The 2 HP state and the shipped FADE
+phase are true to code (js/invaders.js:255-275, js/drawing.js:318-321, the real crackTexture()).</div>
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+<div id="panel">
+  <h2>1 HP VISUAL (KEYS 1-4)</h2>
+  <label><input type="radio" name="v" id="v1" checked> 1 &middot; CRACK &mdash; the crab's impact star, real 3D (shell plate + crackTexture)</label>
+  <label><input type="radio" name="v" id="v2"> 2 &middot; HOLLOW &mdash; dimmed to 55% (wounded)</label>
+  <label><input type="radio" name="v" id="v3"> 3 &middot; FLICKER &mdash; unstable ~8Hz shimmer</label>
+  <label><input type="radio" name="v" id="v4"> 4 &middot; CRACK + HOLLOW &mdash; texture at 70% (most readable)</label>
+  <h2>PHASE LOOK (KEYS Q/W/E/T)</h2>
+  <label><input type="radio" name="p" id="p1" checked> Q &middot; FADE &mdash; shipped fade, now uniform (fill-from-below lifts the bottom half)</label>
+  <label><input type="radio" name="p" id="p2"> W &middot; FLICKER &mdash; the shipped flicker flag (0.35-1.0 pulse)</label>
+  <label><input type="radio" name="p" id="p3"> E &middot; TINT &mdash; spectral violet at 50%</label>
+  <label><input type="radio" name="p" id="p4"> T &middot; TINT + FADE &mdash; spectral violet at 35%</label>
+  <div class="hint">PHASE: the shipped FADE looked top-heavy - the toon key light comes from above, so
+  at 0.18 alpha the lit top half still read while the shadowed bottom half vanished. The ghost now
+  carries a fill-from-below light so the whole silhouette fades as one. FLICKER never drops below
+  0.35; TINT shifts the hue so the whole silhouette reads as one spectral shape.<br><br>
+  CRACK: the ghost now carries a shell plate (the crab's trick - <code>userData.shell</code> +
+  <code>uMap</code> swap), so the real <code>crackTexture()</code> (the crab's impact star) maps onto
+  the body in 3D. No 2D overlay.</div>
+</div>
+</div>
+<!-- the shipping 2.5D renderer: Three.js toon models on #stage3d, driven by Iron3D.sync()/render() -->
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// js/silhouettes.js - the real ghost silhouette path (2D fallback only)
+const SIL = {
+  ghost: { bb: { x: -13, y: -14, w: 26, h: 28 }, path(c) {
+    c.beginPath(); c.moveTo(-12, 2); c.quadraticCurveTo(-13, -14, 0, -14);
+    c.quadraticCurveTo(13, -14, 12, 2);
+    c.lineTo(12, 10); c.lineTo(8, 6); c.lineTo(5, 12); c.lineTo(2, 6);
+    c.lineTo(-1, 12); c.lineTo(-4, 6); c.lineTo(-8, 12); c.lineTo(-12, 6);
+    c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+// js/drawing.js:317-321 - the push3D pattern: ghosts are the real toon models on #stage3d;
+// the 2D neon silhouette is only the fallback for when the WebGL layer is missing.
+let frame3D = [];
+const has3D = () => !!window.Iron3D;
+function push3D(e) {
+  if (window.Iron3D) frame3D.push(e);
+  return !!window.Iron3D;
+}
+
+// js/constants.js:93 - the ghost as shipped: 2 HP, color #dfe9ff
+const GHOST_COLOR = "#dfe9ff";
+const PHASE_COLOR = "#b9a7ff"; // spectral violet for the TINT phase variants
+
+// 1 HP variants: 1 = the shipped crack (true to code), 2-4 = proposals
+const HPV = {
+  1: { name: "CRACK", alpha: () => 1, crack: true },
+  2: { name: "HOLLOW", alpha: () => 0.55, crack: false },
+  3: { name: "FLICKER", alpha: (t) => 0.35 + 0.6 * (0.5 + 0.5 * Math.sin(t * 50)), crack: false },
+  4: { name: "CRACK+HOLLOW", alpha: () => 0.7, crack: true }
+};
+// Phase variants: 1 = the shipped fade (true to code), 2-4 = proposals.
+// FLICKER uses the shipped flicker flag (js/assets3d.js:284: 0.35-1.0 pulse).
+const PHV = {
+  1: { name: "FADE (shipped)", tint: false, flicker: false, floor: 0.18 },
+  2: { name: "FLICKER", tint: false, flicker: true, floor: 0.35 },
+  3: { name: "TINT", tint: true, flicker: false, floor: 0.5 },
+  4: { name: "TINT+FADE", tint: true, flicker: false, floor: 0.35 }
+};
+let hpVariant = 1, phaseVariant = 1;
+
+let t = 0, ghostPhaseT = 0, hitT = 0;
+let explosions = [], shockwaves = [], popups = [];
+const GHOST_Y = 130, GHOST_SIZE = 32;
+const SLOTS = [
+  { id: "gA", x: 168, label: "2 HP - SHIPPED" },
+  { id: "gB", x: 434, label: "HIT - WATCH THE TRANSITION" },
+  { id: "gC", x: 700, label: "1 HP - PICKED VISUAL" }
+];
+// the middle ghost's hit loop: 2s solid -> hit -> 2.5s wounded -> 0.5s reset
+const HIT_LOOP = 5;
+
+function slotHp(slot) {
+  if (slot.id === "gA") return 2;
+  if (slot.id === "gC") return 1;
+  // gB: the hit animation
+  if (hitT < 2) return 2;
+  if (hitT < 4.5) return 1;
+  return 2;
+}
+
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (k >= "1" && k <= "4") setHpVariant(Number(k));
+  if (k === "q") setPhaseVariant(1);
+  if (k === "w") setPhaseVariant(2);
+  if (k === "e") setPhaseVariant(3);
+  if (k === "t") setPhaseVariant(4);
+});
+function setHpVariant(n) {
+  hpVariant = clamp(n, 1, 4);
+  for (let i = 1; i <= 4; i += 1) document.getElementById("v" + i).checked = i === hpVariant;
+}
+function setPhaseVariant(n) {
+  phaseVariant = clamp(n, 1, 4);
+  for (let i = 1; i <= 4; i += 1) document.getElementById("p" + i).checked = i === phaseVariant;
+}
+for (let i = 1; i <= 4; i += 1) {
+  document.getElementById("v" + i).addEventListener("change", () => setHpVariant(i));
+  document.getElementById("p" + i).addEventListener("change", () => setPhaseVariant(i));
+}
+
+function addExplosion(x, y, color) { explosions.push({ x, y, t: 0.25, color }); }
+function addShockwave(x, y, r) { shockwaves.push({ x, y, r, t: 0.3 }); }
+function addPopup(x, y, text, color) { popups.push({ x, y, text, color, t: 0.9 }); }
+
+function step(dt) {
+  t += dt;
+  // js/invaders.js:255-275 - the real 4s phase cycle, verbatim (all three ghosts together)
+  ghostPhaseT = (ghostPhaseT + dt) % 4;
+  const ghostAlpha = ghostPhaseT < 3 ? 1
+    : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
+    : ghostPhaseT < 3.75 ? 0.18
+    : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+  // the middle ghost's hit loop
+  const wasHitT = hitT;
+  hitT = (hitT + dt) % HIT_LOOP;
+  const mid = SLOTS[1];
+  if (wasHitT < 2 && hitT >= 2) {
+    addExplosion(mid.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, "#8b5cf6");
+    addShockwave(mid.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, 46);
+    addPopup(mid.x + GHOST_SIZE / 2, GHOST_Y - 26, "HIT", "#ffe066");
+  }
+  explosions.forEach((e) => { e.t -= dt; });
+  explosions = explosions.filter((e) => e.t > 0);
+  shockwaves.forEach((s) => { s.t -= dt; });
+  shockwaves = shockwaves.filter((s) => s.t > 0);
+  popups.forEach((p) => { p.t -= dt; });
+  popups = popups.filter((p) => p.t > 0);
+  return { ghostAlpha, phaseWindow: ghostPhaseT >= 3 };
+}
+
+// js/assets3d.js:38 crackTexture() - the crab's impact star: one core, five rays that taper
+// 85 -> 55 -> 30, an arc ring around the core. Same chain data, scaled to the ghost's shell.
+const CRACK_CHAINS = [
+  [-2.35, [[0.42, -0.25, 85], [0.5, 0.2, 55], [0.42, 0.05, 30]]],
+  [-1.5, [[0.36, 0.3, 85], [0.45, 0.15, 55], [0.4, 0.05, 30]]],
+  [-0.4, [[0.42, -0.15, 85], [0.36, 0.25, 55], [0.3, 0.1, 30]]],
+  [2.6, [[0.4, 0.18, 85], [0.36, -0.22, 55], [0.3, -0.1, 30]]],
+  [1.75, [[0.24, -0.3, 85], [0.2, 0.3, 55]]]
+];
+function drawCrackStar(cx, cy, w, color, alpha) {
+  const L = w * 0.16; // the texture's 0.42 unit ray is ~16% of the shell width
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = "rgba(8,6,4,0.92)";
+  ctx.lineCap = "round";
+  ctx.shadowColor = color; ctx.shadowBlur = 5; // the "subtle glow" the hull crack gets
+  CRACK_CHAINS.forEach(([ang, segs]) => {
+    let x = 0, y = 0, a = ang;
+    segs.forEach(([len, bend, lw]) => {
+      const nx = x + Math.cos(a) * len * L, ny = y + Math.sin(a) * len * L;
+      ctx.lineWidth = (lw / 85) * 2.6;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+      x = nx; y = ny; a += bend;
+    });
+  });
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(0, 0, 0.42 * L, -2.5, -1.25, false); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawGhost(slot, hp, ghostAlpha, phaseWindow) {
+  const p = PHV[phaseVariant];
+  const hv = HPV[hpVariant];
+  const wounded = hp < 2;
+  let alpha = 1, crack = wounded && hv.crack, flicker = 0, color = GHOST_COLOR, id = slot.id;
+  if (phaseWindow) {
+    if (p.flicker) {
+      flicker = 1; // the shipped flicker flag drives 0.35-1.0 in the bundle
+    } else if (p.tint) {
+      id = slot.id + "p"; // the pooled spectral-violet twin
+      color = PHASE_COLOR;
+      alpha = p.floor;
+    } else {
+      alpha = ghostAlpha; // the shipped fade value
+    }
+  }
+  if (wounded && !p.flicker) alpha *= hv.alpha(t);
+  const cx = slot.x + GHOST_SIZE / 2, cy = GHOST_Y + GHOST_SIZE / 2;
+  if (!push3D({ id, key: "ghost", x: slot.x, y: GHOST_Y, w: GHOST_SIZE, h: GHOST_SIZE,
+    color, phase: slot.x * 0.02, alpha, crack, crackFade: 1, flicker })) {
+    neon("ghost", cx, cy, GHOST_SIZE, color, 7, alpha);
+  }
+  // The 3D crack is now REAL: the ghost model carries a shell plate (the crab's trick -
+  // userData.shell + uMap swap), so the bundle's crackTexture() maps the impact star onto
+  // the body in 3D. The 2D star below is only the no-WebGL fallback.
+  if (crack && !has3D()) {
+    drawCrackStar(slot.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, GHOST_SIZE, color, alpha);
+  }
+  // label + HP pips
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "11px 'Courier New', monospace";
+  const label = slot.label + (wounded ? "  [" + HPV[hpVariant].name + "]" : "");
+  ctx.fillText(label, cx - ctx.measureText(label).width / 2, GHOST_Y + GHOST_SIZE + 22);
+  for (let i = 0; i < 2; i += 1) {
+    ctx.fillStyle = i < hp ? "#7dff66" : "#2a3550";
+    ctx.beginPath();
+    ctx.arc(cx - 8 + i * 16, GHOST_Y + GHOST_SIZE + 36, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  frame3D = [];
+  const { ghostAlpha, phaseWindow } = stepState;
+  SLOTS.forEach((slot) => drawGhost(slot, slotHp(slot), ghostAlpha, phaseWindow));
+  // effects
+  explosions.forEach((e) => {
+    ctx.globalAlpha = e.t / 0.25;
+    ctx.fillStyle = e.color;
+    ctx.beginPath(); ctx.arc(e.x, e.y, 16 * (1 - e.t / 0.25) + 6, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  shockwaves.forEach((s) => {
+    ctx.globalAlpha = s.t / 0.3;
+    ctx.strokeStyle = "#ffe066"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r * (1 - s.t / 0.3) + 8, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+  popups.forEach((p) => {
+    ctx.globalAlpha = Math.min(1, p.t / 0.4);
+    ctx.fillStyle = p.color;
+    ctx.font = "bold 14px 'Courier New', monospace";
+    ctx.fillText(p.text, p.x - 14, p.y - (0.9 - p.t) * 26);
+    ctx.globalAlpha = 1;
+  });
+  // HUD
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("1 HP: " + HPV[hpVariant].name, W - 190, 22);
+  ctx.fillText("PHASE: " + PHV[phaseVariant].name, W - 190, 38);
+  ctx.fillText("PHASE WINDOW: " + (phaseWindow ? "ON" : "off"), W - 190, 54);
+  if (!has3D()) {
+    ctx.fillStyle = "#ff6a3d";
+    ctx.fillText("NO WEBGL - 2D FALLBACK (neon + fallback crack)", 10, H - 12);
+  }
+}
+
+let stepState = { ghostAlpha: 1, phaseWindow: false };
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  stepState = step(dt);
+  draw();
+  if (window.Iron3D) { Iron3D.sync(frame3D); Iron3D.render(performance.now()); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// probe surface for CDP checks
+window.SANDBOX = {
+  get state() {
+    return {
+      hpVariant, hpVariantName: HPV[hpVariant].name,
+      phaseVariant, phaseVariantName: PHV[phaseVariant].name,
+      ghostPhaseT: +ghostPhaseT.toFixed(2), phaseWindow: ghostPhaseT >= 3,
+      hitT: +hitT.toFixed(2),
+      hp: { left: slotHp(SLOTS[0]), mid: slotHp(SLOTS[1]), right: slotHp(SLOTS[2]) },
+      has3D: has3D()
+    };
+  },
+  setHpVariant,
+  setPhaseVariant
+};
+</script>
+</body>
+</html>

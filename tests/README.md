@@ -1,7 +1,8 @@
 # tests/ — headless harnesses for Iron Tide 2.5
 
-There is no browser in this repo, so every gameplay change is checked two ways: these
-harnesses, and a live check by hand (see HANDOFF.md for the live-check list).
+There is no browser in this repo's CI, so every gameplay change is checked three ways: these
+harnesses, a live probe through headless Chrome (CDP - load `file:///.../index.html` and drive
+the real page functions), and a live check by hand (see HANDOFF.md for the live-check list).
 
 Run everything from the repo root:
 
@@ -36,7 +37,7 @@ They exit non-zero on failure, so they chain in CI: `for h in tests/*_harness.js
 | `bomb_minions_harness.js` | a bomb blast kills minions (4 HP, nearest-impact-first) and clears the zealot's death volley in the same blast |
 | `laser_minions_harness.js` | the player laser stops on minions (`minion` kind in `findLaserTarget`/`damageLaserTarget`, 1 HP per 0.5s tick) |
 | `wave_speed_harness.js` | foe shot speed −15% wave 1, −10% waves 2–3, −5% wave 4, full from wave 5, applied at the one choke point `pushEnemyBullet` with `vx` scaled together with `speed` (line of fire preserved) |
-| `idol_cast_harness.js` | the squid's every-4th cast raises the healing idol, and fills with zealots when the idol is already up (the 1.7s telegraph never promises a summon and delivers nothing) |
+| `idol_cast_harness.js` | the squid's every-4th cast raises the healing idol (from phase 2 - the v1.10.5 ladder), and fills with zealots when the idol is already up (the 1.7s telegraph never promises a summon and delivers nothing) |
 | `panel_pause_harness.js` | the test panel pauses the run including between waves, resumes the exact state it froze, never a `p` pause, and leaves every wave able to clear |
 | `scoring_gate_harness.js` | any test entry (`?boss=`, panel jump, panel boss pick, `?selftest`) writes no hi-score and no board row; a clean run writes both; the taint is one-way inside a run |
 | `smoke_harness.js` | 27,000 real `update()` frames across waves 1–10: no exception, no NaN in minion/bullet/bomb/powerup state, zealot cap 2, minion cap 3, the scoring gate (a panel-jumped run is tainted and writes no hi-score; a clean run still does) |

@@ -87,10 +87,9 @@
 - Foe shots fly slower in the opening waves: 15% slower on wave 1, 10% on waves 2 and 3, 5% on
   wave 4, full speed from wave 5. The vertical and horizontal components are scaled together, so
   the shot is slower along exactly the same line of fire.
-- SHOT CLASH (2 HP): your shot and any foe shot (boss shots included) trade one hit per contact -
-  both shots are 2 HP, so two of yours kill one of theirs and two of theirs kill one of yours
-  (+12 pts on the kill, paid silently). Whoever fired first meets the other shot earlier and wins
-  the duel.
+- SHOT CLASH (absorption): your shot is consumed on contact with any foe shot (boss shots included) -
+  it does not keep flying. The foe shot is 2 HP and takes one hit per absorbed shot, so two of yours
+  kill one of theirs (+12 pts on the kill, paid silently).
 - Ghosts phase through bullets on a cycle; bombs and lasers still kill them while phased.
   PHASE BANK: a shot that passes through a phased ghost is swallowed (max 3, shown as orbiting
   dots) and comes back aimed the instant the ghost materializes - shooting a phased ghost costs.
@@ -118,7 +117,7 @@
     than the other bosses (`shotMul` 1.6, i.e. 37.5% fewer per second) - the dive is the attack,
     strafing is the breather.
     DIVE AS THE EVENT: the telegraphed dive opens with a 5-shot V-curtain on the way down and
-    drops spike mines on the way back up. STRUCTURED VOLLEYS: strafing alternates two readable
+    drops spike mines on the way back up (phase 3 only - see the ladder). STRUCTURED VOLLEYS: strafing alternates two readable
     patterns - a 2-shot sniper pair aimed at the ship (second shot 0.12s behind, re-aimed when it
     fires) and a wide 5-shot fan at 0.8x speed. VENOM POOLS: a direct bomb that lands (or expires)
     leaves a 1.5s venom puddle on the floor - touching it is one hit, dashing through it is free.
@@ -126,36 +125,33 @@
     (V-curtain, clean climb, no mines) and bombs at half rate. Phase 3 is the full kit: dives
     seed spike mines on the climb and bombs run at full cadence. Barrier damage softened: bombs
     chew 10 (was 16) and mines 7 (was 12) of barrier per blast.
-  - ABYSSAL SQUID is the wave-9 final boss (130 HP, flat - it does not scale with level), with the lowest base speed of any
-    boss. THE CALLING is
-    telegraphed: it eases to a stop, then holds a frozen windup behind a filling
-    charge bar, radiating rings and a "SUMMONING" label. 0.5s into the channel the squid raises the
-    ABYSSAL WARD - a violet bubble ("WARD x1/2") that halves all damage it takes until the cast
-    resolves, so single shots land for 0.5. Each call summons 2 zealots (never more
-    than 2 alive), and every 3rd call raises the healing idol instead (from phase 2 - see the
-    ladder below). If the idol is already on
-    screen, that call fills with zealots instead, so the windup never promises a summon and
-    delivers nothing. THE LADDER: phase 1 is zealots only; phase 2 adds the idol; phase 3 adds
-    INK BLIGHT (its 15-18s clock starts when phase 3 begins). The SIREN BELL freezes every
-    enemy shot for 1.6s, then re-aims up to 8 of the shots that are above the ship at the player;
-    shots level with or below the ship are released, never recruited, and every released shot gets a
-    fresh 2.4s life, so nothing lingers. Every 15-18s the squid also fires INK BLIGHT: an ink blob
-    aimed at the ship's position at launch (dodgeable), growing from a small muzzle blob into a
-    64px one as it closes, then blooming into a 5s cloud (a tall 90x180-radius ellipse) that
-    drifts down and follows the ship's
-    column in slow pursuit (45px/s vs the ship's 290). The cloud is OPAQUE - enemy bullets inside
-    it are truly invisible - and
-    standing in it fires 20% slower and moves 15% slower on entry, ramping to 30% slower after 2.5s
-    inside (Mobility I+ halves the ink move penalty and ignores the fire slow; the slow wears off
-    0.5s after you leave, and the cloud itself dies after 5s).
-    Mobility I+ ignores all of it.
-    Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are
-    shootable and each drops loot; one bomb blast kills either, so the idol's heal can be broken.
-    Zealots roam with a tendency to drift toward the player's column, and in phase 3 zealots that
-    stay within 150px of the squid fire 40% faster. Its minions die with it.
+  - ABYSSAL SQUID is the wave-9 final boss (130 HP, flat - it does not scale with level), with the
+    lowest base speed of any boss. THE CALLING is telegraphed: it eases to a stop, then holds a
+    frozen windup behind a filling charge bar, radiating rings and a "SUMMONING" label. 0.5s into
+    the channel the squid raises the ABYSSAL WARD - a violet bubble ("WARD x1/2") that halves all
+    damage it takes until the cast resolves, so single shots land for 0.5. Each call summons 2
+    zealots (never more than 2 alive), and every 3rd call raises the healing idol instead (from
+    phase 2 - see the ladder below). If the idol is already on screen, that call fills with zealots
+    instead, so the windup never promises a summon and delivers nothing. THE LADDER: phase 1 is
+    zealots only; phase 2 adds the idol; phase 3 adds INK BLIGHT (its 15-18s clock starts when
+    phase 3 begins). The SIREN BELL freezes every enemy shot for 1.6s, then re-aims up to 8 of the
+    shots that are above the ship at the player; shots level with or below the ship are released,
+    never recruited, and every released shot gets a fresh 2.4s life, so nothing lingers. Every
+    15-18s the squid also fires INK BLIGHT: an ink blob aimed at the ship's position at launch
+    (dodgeable), growing from a small muzzle blob into a 64px one as it closes, then blooming into
+    a 5s cloud (a tall 90x180-radius ellipse) that drifts down and follows the ship's column in
+    slow pursuit (45px/s vs the ship's 290). The cloud is OPAQUE - enemy bullets inside it are
+    truly invisible - and standing in it fires 20% slower and moves 15% slower on entry, ramping
+    to 30% slower after 2.5s inside (Mobility I+ halves the ink move penalty and ignores the fire
+    slow; the slow wears off 0.5s after you leave, and the cloud itself dies after 5s).
+    Zealots (4 HP, 40 pts) and the idol (3 HP, 60 pts) are shootable and each drops loot; one bomb
+    blast kills either, so the idol's heal can be broken. Zealots roam with a tendency to drift
+    toward the player's column, and in phase 3 zealots that stay within 150px of the squid fire
+    40% faster. Its minions die with it.
 - Bosses have three phases (at 66% and 33% HP) and a stagger meter; a staggered boss takes extra
   damage for a short window.
-- Minibosses never offer permanent upgrades. Full bosses offer a permanent upgrade after defeat.
+- Every boss and miniboss kill offers a permanent upgrade pick and ends the wave (minibosses
+  joined in v1.10.6).
 - Defeated bosses and minibosses do not respawn.
 
 ## Drops
@@ -168,7 +164,7 @@
 
 ## Upgrades
 - Three trees, each with three levels. The starting upgrade is chosen at the beginning of each run,
-  and a permanent upgrade is offered after every full boss.
+  and a permanent upgrade is offered after every boss and miniboss kill (waves 3, 6, 7 and 8).
 - A maxed tree stays on the picker card list, drawn greyed with a "MAXED" tag, and cannot be
   picked (click, number key and Enter all refuse; up/down skip it).
 - OFFENSE: RAPID I (2.4 shots/s), RAPID II (2.8 shots/s, unlocks `W` to detonate your

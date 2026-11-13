@@ -64,6 +64,7 @@ void main() {
 const SURF_FS = `
 uniform vec3 uLit, uMid, uShadow, uDeep, uKey, uRim, uBack;
 uniform float uToon, uSoft, uRimW, uBackW, uAlpha;
+uniform float uFill;
 uniform vec3 uTintMul;
 varying vec3 vN;
 varying vec3 vV;
@@ -88,6 +89,10 @@ void main() {
   vec3 c = mix(uShadow, uMid, t);
   c = mix(uDeep, c, d);
   c *= uTintMul;
+  // Fill from below: lifts the shadowed bottom half so a low-alpha phase reads
+  // as one uniform silhouette instead of a lit top over a vanished bottom.
+  float ndf = dot(N, vec3(0.0, -1.0, 0.0)) * 0.5 + 0.5;
+  c += uMid * ndf * uFill;
   #ifdef USE_MAP
   c *= mix(vec3(1.0), texture2D(uMap, vUv * uMapS + uMapO).rgb, uMapMix) * 1.25;
   #endif
@@ -235,6 +240,7 @@ function surfMaterial(color, cfg) {
       uRim: { value: r.rim }, uBack: { value: r.back },
       uToon: { value: cfg.toon ? 1 : 0 }, uSoft: { value: 0.035 },
       uRimW: { value: cfg.rim }, uBackW: { value: cfg.backRim },
+      uFill: { value: cfg.fill === undefined ? 0 : cfg.fill },
       uAlpha: { value: cfg.alpha === undefined ? 1 : cfg.alpha }
     }
   });
