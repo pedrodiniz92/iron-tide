@@ -32,6 +32,7 @@ function newWave() {
     }
   }
   ghostPhaseT = 0;
+  ghostFlickerT = 0;
   screamTimer = 6;
   frenzyZones = [];
   fledglings = [];
@@ -253,6 +254,7 @@ function updateInvaders(dt) {
   if (!alive.length) return;
 
   ghostPhaseT = (ghostPhaseT + dt) % 4;
+  ghostFlickerT += dt;
   const ghosted = ghostPhaseT >= 3;
   const armedZones = frenzyZones.filter((zone) => zone.arm <= 0 && !zone.fade);
   frenzyZones.forEach((zone) => {
@@ -269,10 +271,16 @@ function updateInvaders(dt) {
     if (invader.type.name === "ghost") {
       const wasGhosted = invader.ghosted;
       invader.ghosted = ghosted;
-      invader.ghostAlpha = ghostPhaseT < 3 ? 1
+      const baseAlpha = ghostPhaseT < 3 ? 1
         : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
         : ghostPhaseT < 3.75 ? 0.18
         : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+      // FADE strength for the 3D layer (0 solid -> 1 fully phased, floor 0.18):
+      // the fused-silhouette mask sprite (js/assets3d.js)
+      invader.ghostPhaseU = clamp((1 - baseAlpha) / 0.82, 0, 1);
+      // SHIMMER: a wounded (1 HP) ghost flickers 0.70..1.0 - the damage tell
+      invader.ghostAlpha = baseAlpha * ((invader.hp || 1) < (invader.maxHp || 2)
+        ? 0.70 + 0.30 * (0.5 + 0.5 * Math.sin(ghostFlickerT * 22)) : 1);
       // PHASE BANK: shots swallowed while phased come back aimed, the instant
       // it materializes. Shooting a phased ghost was never free - now it costs.
       if (wasGhosted && !ghosted && invader.bank && invader.bank.length) {

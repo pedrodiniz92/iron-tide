@@ -265,6 +265,7 @@ function drawPlayer() {
   }
   if (!push3D({ id: "player", key: "player", x: player.x, y: player.y, w: player.w, h: player.h,
     color: COLORS.player, rot: [-Math.PI / 2, 0, 0], tilt: 0,
+    guns: effects.double > 0 || permanentDoubleShots ? 1 : 0,
     crack: crackFade > 0.02, crackFade })) {
     neon("classic", player.x + player.w / 2, player.y + player.h / 2, player.w, COLORS.player);
   }
@@ -318,7 +319,13 @@ function drawInvaders() {
     if (push3D({ id: "inv" + invader.id, key: invader.type.name, x: invader.x, y: invader.y,
       w: invader.w, h: invader.h, color: invader.type.color, phase: invader.x * 0.02,
       alpha: invader.ghostAlpha === undefined ? 1 : invader.ghostAlpha, glow: invader.frenzied,
-      crack: (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2 })) {
+      // PHASE visuals (js/assets3d.js): FADE = fused-silhouette mask sprite during
+      // the phase window; SHIMMER = the same sprite at the flickering alpha
+      phaseU: invader.ghostPhaseU === undefined ? 0 : invader.ghostPhaseU,
+      shimmer: invader.type.name === "ghost" && (invader.hp || 1) < (invader.maxHp || 2) ? 1 : 0,
+      // the ghost wears NO crack (user call: spectral ghosts show no damage plate);
+      // other 2-HP mobs (crab) still crack at 1 HP
+      crack: invader.type.name !== "ghost" && (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2 })) {
       // model drawn on the 3D layer
     } else {
       const shapeName = invader.type.name === "octopus" ? "octo" : invader.type.name;
@@ -356,8 +363,8 @@ function drawInvaders() {
       ctx.restore();
     }
     // 2D fallback crack for 2-HP mobs at 1 HP (the 3D layer gets a real crack
-    // texture through the crack: flag above). Crabs and ghosts both qualify.
-    if (!window.Iron3D && (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2) {
+    // texture through the crack: flag above). Crabs qualify; ghosts do not.
+    if (!window.Iron3D && invader.type.name !== "ghost" && (invader.maxHp || 1) >= 2 && (invader.hp || 1) < 2) {
       ctx.save();
       ctx.strokeStyle = "rgba(255, 90, 110, 0.85)";
       ctx.lineWidth = 1.4;
@@ -794,20 +801,127 @@ function drawEnemyBombs() {
 }
 
 // VENOM POOLS: green floor puddles, fading out over their last 0.5s.
-function drawVenomPools() {
-  venomPools.forEach((pool) => {
-    ctx.save();
-    ctx.globalAlpha = 0.75 * Math.min(1, pool.t / 0.5);
-    ctx.fillStyle = pool.color;
+// The hazard read: a glow bed, a pulsing bright rim, rising bubbles, and one skull that
+// drifts up out of the puddle. The footprint, the 1.5s life and the fade are the shipped
+// ones (js/boss.js:53-61), so the hit box never moves. The glow is a single cached sprite
+// (built once, like the crack textures in js/assets3d.js) - the viper drops pools in
+// groups, so the draw path allocates nothing per frame.
+let venomGlowSprite = null;
+function venomGlowTexture() {
+  if (venomGlowSprite) return venomGlowSprite;
+  const cv = document.createElement("canvas");
+  cv.width = 128; cv.height = 128;
+  const g2 = cv.getContext("2d");
+  const grad = g2.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grad.addColorStop(0, "rgba(216, 255, 150, 0.95)");
+  grad.addColorStop(0.45, "rgba(125, 255, 102, 0.8)");
+  grad.addColorStop(1, "rgba(47, 201, 111, 0)");
+  g2.fillStyle = grad;
+  g2.fillRect(0, 0, 128, 128);
+  venomGlowSprite = cv;
+  return venomGlowSprite;
+}
+
+// the wobbling rim + the rising bubbles. Deterministic from the pool's own x, so a pool
+// needs no extra fields and nothing is allocated per frame.
+function drawVenomBubbles(pool, fade) {
+  const rx = pool.w / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, rx, pool.ry * 2, 0, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = pool.color;
+  ctx.lineWidth = 2.5;
+  ctx.globalAlpha = 0.6 * fade;
+  ctx.beginPath();
+  for (let i = 0; i <= 30; i += 1) {
+    const a = (i / 30) * Math.PI * 2;
+    const wob = 1 + 0.11 * Math.sin(a * 3 + waveTime * 5 + pool.x * 0.05) +
+      0.06 * Math.sin(a * 5 - waveTime * 3.4);
+    const x = pool.x + Math.cos(a) * rx * wob;
+    const y = pool.y + Math.sin(a) * pool.ry * wob;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  for (let i = 0; i < 7; i += 1) {
+    const ph = (waveTime * 0.85 + i * 0.37 + pool.x * 0.0065) % 1;
+    const bx = pool.x + Math.sin(i * 2.3 + pool.x * 0.05) * rx * 0.72;
+    const by = pool.y + pool.ry * 0.5 - ph * pool.ry * 2;
+    ctx.globalAlpha = (1 - ph) * 0.9 * fade;
+    ctx.fillStyle = i % 3 === 0 ? "#e8ffb0" : "#a8ff7e";
     ctx.beginPath();
-    ctx.ellipse(pool.x, pool.y, pool.w / 2, pool.ry, 0, 0, Math.PI * 2);
+    ctx.arc(bx, by, 1.4 + (i % 3) * 0.9, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 0.35 * Math.min(1, pool.t / 0.5);
+  }
+  ctx.restore();
+}
+
+// One skull per pool (the pool object is the unit, so a group of bombs makes one skull
+// each). It drifts up over the pool's whole 1.5s life (js/boss.js:59), wobbles a couple
+// of pixels side to side, and fades out as it goes. No crossbones - dropped by request.
+function drawVenomSkull(pool, fade) {
+  const u = clamp((1.5 - pool.t) / 1.5, 0, 1);
+  const s = 17;
+  const y = pool.y - 2 - Math.sin(u * Math.PI * 0.5) * 46;
+  const x = pool.x + Math.sin(u * 3.6 + pool.x * 0.05) * 2.5;
+  const alpha = Math.min(1, u * 7) * (1 - u * u) * fade;
+  if (alpha <= 0.01) return;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = pool.color;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = "#eaffc4";
+  ctx.beginPath();
+  ctx.arc(x, y, s * 0.5, Math.PI, Math.PI * 2);
+  ctx.rect(x - s * 0.5, y, s, s * 0.34);
+  ctx.fill();
+  ctx.fillRect(x - s * 0.28, y + s * 0.34, s * 0.56, s * 0.2);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#0d0d14";
+  ctx.beginPath();
+  ctx.arc(x - s * 0.21, y - s * 0.06, s * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + s * 0.21, y - s * 0.06, s * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x - s * 0.06, y + s * 0.36, s * 0.12, s * 0.16);
+  ctx.restore();
+}
+
+function drawVenomPools() {
+  const glow = venomGlowTexture();
+  venomPools.forEach((pool) => {
+    const fade = Math.min(1, pool.t / 0.5);
+    const rx = pool.w / 2;
+    const pulse = 0.5 + 0.5 * Math.sin(waveTime * 7 + pool.x * 0.05);
+
+    ctx.save();
+    ctx.globalAlpha = 0.6 * fade;
     ctx.fillStyle = "#0d0d14";
     ctx.beginPath();
-    ctx.ellipse(pool.x - 8, pool.y - 2, pool.w / 5, pool.ry / 2.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(pool.x, pool.y, rx, pool.ry, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.globalAlpha = fade;
+    ctx.drawImage(glow, pool.x - rx, pool.y - pool.ry, rx * 2, pool.ry * 2);
+
+    ctx.shadowColor = pool.color;
+    ctx.shadowBlur = 8 + pulse * 10;
+    ctx.strokeStyle = "#e8ffb0";
+    ctx.lineWidth = 2.5;
+    ctx.globalAlpha = (0.55 + 0.45 * pulse) * fade;
+    ctx.beginPath();
+    ctx.ellipse(pool.x, pool.y, rx + pulse * 2, pool.ry + pulse * 1.2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
     ctx.restore();
+
+    drawVenomBubbles(pool, fade);
+    drawVenomSkull(pool, fade);
   });
 }
 

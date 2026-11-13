@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WINGED VIPER — 3 LOOKS + VENOM POOLS ON THE FLOOR (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 10px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 6px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
+  .wrap { position: relative; width: min(900px, calc(100vw - 32px)); margin: 0 16px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 3 / 2; border: 1px solid #23304a; background: #0d0d14; }
+  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas.
+     The canvases MUST have a CSS size: Iron3D calls setPixelRatio(dpr), so the 3D
+     backing store is 900*dpr wide, and without an explicit CSS size the canvas
+     displays at that full backing size (2x on a retina screen) - the 3D layer
+     then renders at 2x scale, offset from the 2D labels. style.css:87 pins the
+     game's #stage3d the same way. */
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #panel { position: absolute; right: 10px; top: 10px; width: 250px; max-height: calc(100% - 20px);
+    overflow-y: auto; padding: 8px 10px; z-index: 2; box-sizing: border-box;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.92); }
+  @media (max-width: 940px) {
+    /* the panel is a sibling of .stage inside .wrap, so static puts it BELOW the stage */
+    #panel { position: static; width: auto; max-height: none; margin-top: 8px; }
+  }
+  #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel h2 + label { margin-top: 0; }
+  #panel label { display: block; font-size: 11px; line-height: 1.35; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>WINGED VIPER &mdash; 3 LOOKS &middot; VENOM POOLS</h1>
+<div class="sub">Wave-5 boss as shipped. A direct venom bomb that lands leaves a 1.5s pool (w 70, ry 12, y 548): touch = hit, dash = free.</div>
+<div class="wrap">
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+</div>
+<div id="panel">
+  <h2>VIPER LOOK (KEYS 1-3)</h2>
+  <label><input type="radio" name="v" id="v1" checked> 1 &middot; SHIPPED &mdash; the current model, #2fc96f</label>
+  <label><input type="radio" name="v" id="v2"> 2 &middot; SLICK &mdash; leaner body, accent-green wings</label>
+  <label><input type="radio" name="v" id="v3"> 3 &middot; COBRA &mdash; spread hood + green skull face</label>
+  <h2>VENOM POOL (KEYS Q/W/E)</h2>
+  <label><input type="radio" name="p" id="p1" checked> Q &middot; SHIPPED &mdash; flat ellipse + dark inner</label>
+  <label><input type="radio" name="p" id="p2"> W &middot; BUBBLE &mdash; rising bubbles + wobbling rim</label>
+  <label><input type="radio" name="p" id="p3"> E &middot; HAZARD &mdash; glow + bubbles + rising skull</label>
+  <div class="hint">ALL THREE pool looks keep the shipped footprint (<b>w 70 / ry 12 at y 548</b>),
+  the <b>1.5s</b> life and the fade over the last <b>0.5s</b>
+  (<b>js/drawing.js:798-811</b>). W adds bubbles + a wobbling rim; E adds a radial glow and a
+  pulsing rim on top of those bubbles, plus <b>one skull per spawn</b> that drifts
+  up out of the puddle over <b>1.8s</b> with a <b>slight</b> side-to-side wobble and fades near the
+  top. None of them changes the hit box.<br><br>
+  LOOKS 2-3 are built only from bundle keys (<b>viper</b>, <b>skull</b>) + <b>fit</b> +
+  colour, composed as body + wing/hood layers, and all three sit at the shipped
+  <b>~180 px</b> span. <b>glow</b> is not used: in the runtime it drives the model to <b>red</b>
+  (js/assets3d.js:245-268), not a green glow.<br><br>
+  The viper strafes the left two thirds so it never flies under this panel. Bomb cadence here is
+  <b>2.5s</b> (the shipped viper's bombTimer is 3.35s).<br><br>
+  <b>SANDBOX</b>: setLook / setPool / setBombT(v) (arms the timer <i>and</i> drops the pair now) /
+  setPlayerX / dash / spawnPool / probe / state.</div>
+</div>
+</div>
+<!-- the shipping 2.5D renderer: Three.js toon models on #stage3d, driven by Iron3D.sync()/render() -->
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// js/silhouettes.js - the real 2D paths (fallback only, when the WebGL layer is missing)
+const SIL = {
+  classic: { bb: { x: -28, y: -11, w: 56, h: 22 }, path(c) {
+    c.beginPath(); c.moveTo(0, -11); c.lineTo(4, -3); c.lineTo(12, 1); c.lineTo(28, 7);
+    c.lineTo(16, 9); c.lineTo(6, 6); c.lineTo(-6, 6); c.lineTo(-16, 9);
+    c.lineTo(-28, 7); c.lineTo(-12, 1); c.lineTo(-4, -3); c.closePath(); } },
+  viper: { bb: { x: -26, y: -12, w: 52, h: 26 }, path(c) {
+    c.beginPath(); c.moveTo(0, -12); c.lineTo(8, -4); c.lineTo(26, -9); c.lineTo(16, 2);
+    c.lineTo(6, 6); c.lineTo(0, 14); c.lineTo(-6, 6); c.lineTo(-16, 2); c.lineTo(-26, -9);
+    c.lineTo(-8, -4); c.closePath(); } },
+  bomb: { bb: { x: -9, y: -9, w: 18, h: 18 }, path(c) {
+    c.beginPath(); c.arc(0, 0, 9, 0, Math.PI * 2); c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+// js/drawing.js:3-6 - the push3D pattern: toon models on #stage3d, 2D neon as the fallback
+let frame3D = [];
+const has3D = () => !!window.Iron3D;
+function push3D(e) {
+  if (window.Iron3D) frame3D.push(e);
+  return !!window.Iron3D;
+}
+
+// js/constants.js:146-152 - WINGED VIPER, verbatim
+const VIPER = {
+  color: "#2fc96f", accent: "#7dff66", speed: 122, bombTimer: 3.35,
+  bombsPerLaunch: 2, bombMax: 3, bombRadius: 34, bombDirect: true
+};
+const BOMB_INTERVAL = 2.5;   // review cadence (shipped bombTimer is 3.35s)
+const BOMB_FAN = 116;        // js/boss.js:1350 - direct bombs use the wide 116 fan
+const FLOOR = H - 42;        // js/boss.js:14 - a bomb lands at y >= H-42
+
+// js/boss.js:53-61 - the venom pool, verbatim numbers
+const POOL = { w: 70, ry: 12, t: 1.5, y: H - 52, color: "#7dff66" };
+
+// js/player.js:7-13 - the ship as shipped (56x22 at y H-70, 290 px/s), js/main.js:17 (2 HP),
+// js/constants.js:442 (1.5s respawn invuln). The dash is the mockup's own 0.25s / 210px.
+const player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290 };
+const PLAYER_COLOR = "#78ff78";
+const MAX_HP = 2, RESPAWN_INVULN = 1.5;
+const DASH_TIME = 0.25, DASH_DIST = 210, DASH_CD = 1.2;
+
+// ---- VIPER LOOKS -------------------------------------------------------------
+// Look 1 is the shipped push (js/boss.js:1601-1603): key "viper", box +13, colour
+// design.color, phase 1.1, tilt 0.2 (fit comes from FIT_KEY.viper = 1.2).
+// Looks 2-3 compose two push3D layers out of bundle keys only. The runtime's `glow`
+// flag drives the model's ramp to RED (js/assets3d.js:245-268), so the accent layers
+// get their brightness from the accent colour itself, and sit behind the body on z
+// (the ortho camera reads larger z as nearer, so z > 0 is the back layer).
+const LOOKS = {
+  1: {
+    name: "SHIPPED",
+    parts(b) {
+      return [{ id: "vBody", key: "viper", x: b.x - 13, y: b.y - 13,
+        w: b.w + 26, h: b.h + 26, color: VIPER.color, phase: 1.1, tilt: 0.2 }];
+    }
+  },
+  2: {
+    name: "SLICK",
+    parts(b) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      return [
+        // bright accent-green wing plate, laid flat behind the body
+        // (fit 1.0 + w 150 keeps the span at the shipped model's ~185 px)
+        { id: "vWing", key: "viper", x: cx - 75, y: cy - 28, w: 150, h: 56,
+          color: VIPER.accent, rot: [-0.35, 0, 0], phase: 1.1, tilt: 0.2, z: 10, alpha: 0.95 },
+        // leaner body: fit 1.0 against the shipped 1.2, cleaner green
+        { id: "vBody", key: "viper", x: b.x - 2, y: b.y - 2, w: b.w + 4, h: b.h + 4,
+          color: "#1ee07a", fit: 1.0, phase: 1.1, tilt: 0.2 }
+      ];
+    }
+  },
+  3: {
+    // COBRA: the shipped ship, with a raised cobra head facing the player.
+    // Shape facts (JEB 213(9):1521 "functional morphology of hooding in cobras"; Britannica
+    // "cobra"): the hood is a LATERAL flare, compressed front-to-back, WIDEST at the cranial
+    // end and tapering caudally, carried JUST BELOW the raised head; the head is broad and
+    // distinct from the neck, eyes high and lateral; the display faces the threat.
+    name: "COBRA",
+    parts(b) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const PI = Math.PI;
+      return [
+        // the ship, at the shipped scale, riding below the display (back of the stack)
+        { id: "vBody", key: "viper", x: b.x - 13, y: b.y + 14, w: b.w + 26, h: b.h + 26,
+          color: VIPER.color, fit: 1.2, phase: 1.1, tilt: 0.2 },
+        // the hood: a wide flat flare, pitched back so it reads compressed front-to-back,
+        // wider than the head and carried just below it (never wider than the ship, so the
+        // ship's wings still frame the display)
+        { id: "vHood", key: "viper", x: cx - 66, y: cy - 66, w: 132, h: 66,
+          color: VIPER.accent, rot: [-0.45, 0, 0], phase: 1.1, tilt: 0.2, z: 6 },
+        // the head: raised above the hood, facing the camera (front of the stack). The
+        // skull kit model is built jaw-up, so it is rolled 180 deg about the camera axis -
+        // that puts the cranium on top and the jaw and fangs below while keeping the face
+        // turned at the player and the crossed bones behind it.
+        { id: "vHead", key: "skull", x: cx - 52, y: cy - 112, w: 104, h: 104,
+          color: VIPER.color, fit: 1.0, rot: [0, 0, PI], phase: 1.1, tilt: 0.2, z: 46 }
+      ];
+    }
+  }
+};
+
+// ---- STATE ------------------------------------------------------------------
+let viperLook = 1, poolLook = 1;
+let t = 0, bombTimer = 0.35;
+let playerHp = MAX_HP, invulnT = RESPAWN_INVULN, respawnT = 0;
+let dashTimer = 0, dashCooldown = 0, dashFrom = 0, dashTo = 0, dashDir = 1;
+let flash = 0, hitFlash = 0;
+let bombs = [], pools = [], dashGhosts = [], popups = [], splashes = [];
+let poolSeed = 0;
+const keys = {};
+
+const boss = { x: 220, y: 92, w: 128, h: 64, vx: VIPER.speed, vy: 20, moveTimer: 1.4 };
+
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k >= "1" && k <= "3") setLook(Number(k));
+  if (k === "q") setPool(1);
+  if (k === "w") setPool(2);
+  if (k === "e") setPool(3);
+  if (k === " ") { startDash(); e.preventDefault(); }
+  if (k === "arrowleft" || k === "arrowright") e.preventDefault();
+});
+window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+function setLook(n) {
+  viperLook = clamp(n, 1, 3);
+  for (let i = 1; i <= 3; i += 1) document.getElementById("v" + i).checked = i === viperLook;
+}
+function setPool(n) {
+  poolLook = clamp(n, 1, 3);
+  for (let i = 1; i <= 3; i += 1) document.getElementById("p" + i).checked = i === poolLook;
+}
+for (let i = 1; i <= 3; i += 1) {
+  document.getElementById("v" + i).addEventListener("change", () => setLook(i));
+  document.getElementById("p" + i).addEventListener("change", () => setPool(i));
+}
+
+function startDash() {
+  if (dashTimer > 0 || dashCooldown > 0 || respawnT > 0) return;
+  dashTimer = DASH_TIME;
+  dashCooldown = DASH_CD;
+  dashFrom = player.x;
+  dashTo = clamp(player.x + dashDir * DASH_DIST, 8, W - player.w - 8);
+}
+function addPopup(x, y, text, color) { popups.push({ x, y, text, color, t: 0.9 }); }
+function addSplash(x, y) { splashes.push({ x, y, t: 0.3 }); }
+
+// js/boss.js:1340-1386 - fireBossBomb for a bombDirect design: bombsPerLaunch 2 across the
+// wide 116 fan, aimed at the ship, vx = dx*0.85 clamped, vy = min(135, -40 + dy*0.45).
+function fireBossBomb() {
+  const count = Math.min(VIPER.bombsPerLaunch, Math.max(0, VIPER.bombMax - bombs.length));
+  const originX = boss.x + boss.w / 2, originY = boss.y + boss.h;
+  for (let i = 0; i < count; i += 1) {
+    const offset = count === 1 ? 0 : (i - (count - 1) / 2) * (BOMB_FAN / count);
+    const targetX = player.x + player.w / 2 + offset + (Math.random() * 14 - 7);
+    const targetY = player.y + player.h / 2 + (Math.random() * 18 - 9);
+    const dx = targetX - originX, dy = targetY - originY;
+    bombs.push({
+      x: originX - 7, y: originY, w: 14, h: 14,
+      vx: clamp(dx * 0.85, -210, 210), vy: Math.min(135, -40 + dy * 0.45),
+      ttl: 5.2, direct: true, color: VIPER.accent, trail: []
+    });
+  }
+}
+
+// js/boss.js:53-61 - the pool, verbatim
+function spawnVenomPool(bomb) {
+  pools.push({
+    x: bomb.x + bomb.w / 2, y: POOL.y, w: POOL.w, ry: POOL.ry, t: POOL.t,
+    color: POOL.color, hit: false, dashShown: false, seed: (poolSeed += 1) * 7.13
+  });
+}
+
+function hitPlayer() {
+  if (invulnT > 0 || dashTimer > 0 || respawnT > 0) return;
+  playerHp -= 1;
+  hitFlash = 0.3;
+  flash = 0.22;
+  addPopup(player.x + player.w / 2, player.y - 26, "HIT", "#ffe066");
+  if (playerHp <= 0) {
+    // knockback-free respawn: the ship flashes in place, js/constants.js:442 invuln
+    respawnT = 1.0;
+    playerHp = MAX_HP;
+    addPopup(player.x + player.w / 2, player.y - 44, "RESPAWN", "#78ff78");
+  } else {
+    invulnT = 1.0;
+  }
+}
+
+// ---- SIMULATION -------------------------------------------------------------
+function step(dt) {
+  t += dt;
+
+  // js/boss.js:764-788 - strafe + bounce, y bob. Kept inside x 18..560 so the model
+  // never flies under the control panel.
+  boss.x += boss.vx * dt;
+  if (boss.x <= 18) { boss.x = 18; boss.vx = Math.abs(boss.vx); }
+  if (boss.x + boss.w >= 560) { boss.x = 560 - boss.w; boss.vx = -Math.abs(boss.vx); }
+  boss.moveTimer -= dt;
+  if (boss.moveTimer <= 0) {
+    boss.moveTimer = 1.1 + Math.random() * 1.2;
+    boss.vy = Math.random() < 0.5 ? -20 : 20;
+  }
+  boss.y = clamp(boss.y + boss.vy * dt, 96, 168);
+
+  // ship: js/player.js (290 px/s), dash 0.25s / 210px, invulnerable while dashing
+  if (respawnT > 0) respawnT -= dt;
+  const left = keys["arrowleft"] || keys["a"];
+  const right = keys["arrowright"] || keys["d"];
+  if (left) dashDir = -1;
+  if (right) dashDir = 1;
+  if (dashTimer > 0) {
+    dashTimer -= dt;
+    const u = 1 - Math.max(0, dashTimer) / DASH_TIME;
+    player.x = dashFrom + (dashTo - dashFrom) * u;
+    dashGhosts.push({ x: player.x, y: player.y, ttl: 0.25 });
+  } else if (respawnT <= 0 && left !== right) {
+    player.x = clamp(player.x + (right ? 1 : -1) * player.speed * dt, 8, W - player.w - 8);
+  }
+  if (dashCooldown > 0) dashCooldown -= dt;
+  if (invulnT > 0) invulnT -= dt;
+  dashGhosts.forEach((g) => { g.ttl -= dt; });
+  dashGhosts = dashGhosts.filter((g) => g.ttl > 0);
+
+  // bombs: js/boss.js:1-25 - gravity 280, 0.28s trail, lands at y >= H-42 -> venom pool
+  bombTimer -= dt;
+  if (bombTimer <= 0) {
+    bombTimer = BOMB_INTERVAL;
+    fireBossBomb();
+  }
+  bombs.forEach((bomb) => {
+    bomb.vy += 280 * dt;
+    bomb.x += bomb.vx * dt;
+    bomb.y += bomb.vy * dt;
+    bomb.ttl -= dt;
+    bomb.trail.push({ x: bomb.x + bomb.w / 2, y: bomb.y + bomb.h / 2, ttl: 0.28 });
+    bomb.trail.forEach((p) => { p.ttl -= dt; });
+    bomb.trail = bomb.trail.filter((p) => p.ttl > 0);
+    if (bomb.y >= FLOOR) { spawnVenomPool(bomb); addSplash(bomb.x + bomb.w / 2, FLOOR); bomb.ttl = -1; }
+    else if (bomb.ttl <= 0) { spawnVenomPool(bomb); bomb.ttl = -1; }
+  });
+  bombs = bombs.filter((b) => b.ttl > 0);
+
+  // js/boss.js:64-77 - the pool tick: one hit per pool, dashing through is free
+  pools.forEach((pool) => {
+    pool.t -= dt;
+    const px = player.x + player.w / 2, py = player.y + player.h / 2;
+    const inside = Math.hypot((px - pool.x) / (pool.w / 2), (py - pool.y) / pool.ry) < 1;
+    if (inside && dashTimer > 0 && !pool.dashShown) {
+      pool.dashShown = true;
+      addPopup(pool.x, pool.y - 34, "DASH!", "#7dff66");
+    }
+    if (dashTimer > 0 || pool.hit) return;
+    if (inside) { pool.hit = true; hitPlayer(); }
+  });
+  pools = pools.filter((p) => p.t > 0);
+
+  splashes.forEach((s) => { s.t -= dt; });
+  splashes = splashes.filter((s) => s.t > 0);
+  popups.forEach((p) => { p.t -= dt; });
+  popups = popups.filter((p) => p.t > 0);
+  if (flash > 0) flash -= dt;
+  if (hitFlash > 0) hitFlash -= dt;
+}
+
+// ---- VENOM POOL LOOKS (all three: w 70 / ry 12 at y 548, 1.5s, fade over 0.5s) ----
+// js/drawing.js:798-811 - the shipped pool, verbatim
+function poolShipped(pool) {
+  ctx.save();
+  ctx.globalAlpha = 0.75 * Math.min(1, pool.t / 0.5);
+  ctx.fillStyle = pool.color;
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, pool.w / 2, pool.ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.35 * Math.min(1, pool.t / 0.5);
+  ctx.fillStyle = "#0d0d14";
+  ctx.beginPath();
+  ctx.ellipse(pool.x - 8, pool.y - 2, pool.w / 5, pool.ry / 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// the wobbling rim + rising bubbles - shared by the BUBBLE and HAZARD looks
+function poolBubbles(pool) {
+  const fade = Math.min(1, pool.t / 0.5), rx = pool.w / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, rx, pool.ry * 2, 0, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = pool.color;
+  ctx.lineWidth = 2.5;
+  ctx.globalAlpha = 0.6 * fade;
+  ctx.beginPath();
+  for (let i = 0; i <= 30; i += 1) {
+    const a = (i / 30) * Math.PI * 2;
+    const wob = 1 + 0.11 * Math.sin(a * 3 + t * 5 + pool.seed) + 0.06 * Math.sin(a * 5 - t * 3.4);
+    const x = pool.x + Math.cos(a) * rx * wob, y = pool.y + Math.sin(a) * pool.ry * wob;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  for (let i = 0; i < 7; i += 1) {
+    const ph = (t * 0.85 + i * 0.37 + pool.seed * 0.13) % 1;
+    const bx = pool.x + Math.sin(i * 2.3 + pool.seed) * rx * 0.72;
+    const by = pool.y + pool.ry * 0.5 - ph * pool.ry * 2;
+    ctx.globalAlpha = (1 - ph) * 0.9 * fade;
+    ctx.fillStyle = i % 3 === 0 ? "#e8ffb0" : "#a8ff7e";
+    ctx.beginPath();
+    ctx.arc(bx, by, 1.4 + (i % 3) * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// W - the shipped base, plus the wobbling rim and rising bubbles
+function poolBubble(pool) {
+  poolShipped(pool);
+  poolBubbles(pool);
+}
+
+// the danger tell: ONE skull per pool spawn - it drifts up out of the puddle over 1.8s
+// (slower than the pool's 1.5s life, so it leaves with the fade), with a slight
+// side-to-side drift, and fades out near the top
+function poolSkull(pool) {
+  const u = clamp((POOL.t - pool.t) / 1.8, 0, 1);
+  if (u >= 1) return;
+  const s = 17;
+  const y = pool.y - 2 - Math.sin(u * Math.PI * 0.5) * 46;
+  const x = pool.x + Math.sin(u * 3.6 + pool.seed) * 2.5;
+  const alpha = Math.min(1, u * 7) * (1 - u * u) * Math.min(1, pool.t / 0.5);
+  if (alpha <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = pool.color;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = "#eaffc4";
+  ctx.beginPath();
+  ctx.arc(x, y, s * 0.5, Math.PI, Math.PI * 2);
+  ctx.rect(x - s * 0.5, y, s, s * 0.34);
+  ctx.fill();
+  ctx.fillRect(x - s * 0.28, y + s * 0.34, s * 0.56, s * 0.2);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#0d0d14";
+  ctx.beginPath(); ctx.arc(x - s * 0.21, y - s * 0.06, s * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + s * 0.21, y - s * 0.06, s * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(x - s * 0.06, y + s * 0.36, s * 0.12, s * 0.16);
+  // bones: user opted out - keep code for later (skull only, this round)
+  // const by = y + s * 1.02;
+  // ctx.strokeStyle = "#eaffc4";
+  // ctx.lineCap = "round";
+  // for (const a of [0.38, -0.38]) {
+  //   ctx.save();
+  //   ctx.translate(x, by);
+  //   ctx.rotate(a);
+  //   ctx.lineWidth = 3;
+  //   ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.stroke();
+  //   ctx.lineWidth = 2.4;
+  //   ctx.beginPath(); ctx.moveTo(-10.5, -2); ctx.lineTo(-8.5, 2); ctx.stroke();
+  //   ctx.beginPath(); ctx.moveTo(8.5, -2); ctx.lineTo(10.5, 2); ctx.stroke();
+  //   ctx.restore();
+  // }
+  ctx.restore();
+}
+
+// E - hazard: radial glow in the same footprint, pulsing bright rim, the W bubbles,
+// and the rising skull
+function poolHazard(pool) {
+  const fade = Math.min(1, pool.t / 0.5), rx = pool.w / 2;
+  const pulse = 0.5 + 0.5 * Math.sin(t * 7 + pool.seed);
+  ctx.save();
+  ctx.globalAlpha = 0.6 * fade;
+  ctx.fillStyle = "#0d0d14";
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, rx, pool.ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(pool.x, pool.y);
+  ctx.scale(1, pool.ry / rx);
+  const g = ctx.createRadialGradient(0, 0, 2, 0, 0, rx);
+  g.addColorStop(0, "rgba(216,255,150," + (0.95 * fade).toFixed(3) + ")");
+  g.addColorStop(0.45, "rgba(125,255,102," + (0.8 * fade).toFixed(3) + ")");
+  g.addColorStop(1, "rgba(47,201,111,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, rx, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.shadowColor = pool.color;
+  ctx.shadowBlur = 8 + pulse * 10;
+  ctx.strokeStyle = "#e8ffb0";
+  ctx.lineWidth = 2.5;
+  ctx.globalAlpha = (0.55 + 0.45 * pulse) * fade;
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, rx + pulse * 2, pool.ry + pulse * 1.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = pool.color;
+  ctx.lineWidth = 5;
+  ctx.globalAlpha = 0.16 * (1 - pulse) * fade;
+  ctx.beginPath();
+  ctx.ellipse(pool.x, pool.y, rx + 6, pool.ry + 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  poolBubbles(pool);
+  poolSkull(pool);
+}
+const POOL_DRAW = { 1: poolShipped, 2: poolBubble, 3: poolHazard };
+
+// ---- DRAW ------------------------------------------------------------------
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  frame3D = [];
+
+  // js/drawing.js:232-239 - the ground line
+  ctx.save();
+  ctx.strokeStyle = "#246b24";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 38);
+  ctx.lineTo(W, H - 38);
+  ctx.stroke();
+  ctx.restore();
+
+  // the viper (js/boss.js:1600-1603)
+  const parts = LOOKS[viperLook].parts(boss);
+  if (has3D()) parts.forEach((p) => push3D(p));
+  else parts.slice().reverse().forEach((p) => {
+    neon("viper", p.x + p.w / 2, p.y + p.h / 2, Math.max(p.w, p.h) * 0.88,
+      p.color, 8, p.alpha === undefined ? 1 : p.alpha);
+  });
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "11px 'Courier New', monospace";
+  const tag = "WINGED VIPER - " + LOOKS[viperLook].name + " - VENOM DIVE";
+  ctx.fillText(tag, boss.x + boss.w / 2 - ctx.measureText(tag).width / 2, boss.y + boss.h + 46);
+
+  // js/drawing.js:776-793 - the bombs: 0.28s trail dots + the neon bomb
+  bombs.forEach((bomb) => {
+    const cx = bomb.x + bomb.w / 2, cy = bomb.y + bomb.h / 2;
+    (bomb.trail || []).forEach((pt) => {
+      const a = Math.max(0, pt.ttl / 0.28);
+      ctx.fillStyle = "rgba(125, 255, 102, " + (a * 0.55).toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4 + a * 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    neon("bomb", cx, cy, bomb.w, bomb.color);
+  });
+
+  // the venom pools on the floor
+  pools.forEach((pool) => POOL_DRAW[poolLook](pool));
+
+  // landing splash
+  splashes.forEach((s) => {
+    const u = 1 - s.t / 0.3;
+    ctx.save();
+    ctx.globalAlpha = s.t / 0.3;
+    ctx.strokeStyle = "#7dff66";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(s.x, POOL.y, 8 + u * 34, 3 + u * 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // js/drawing.js:241-301 - the ship
+  if (respawnT > 0) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(120, 255, 120, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = "#66ff66";
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText("RESPAWNING", player.x + player.w / 2 - 36, player.y - 10);
+    ctx.restore();
+  } else {
+    const invulnBlink = invulnT > 0 && Math.floor(invulnT * 14) % 2 === 0;
+    ctx.save();
+    dashGhosts.forEach((g) => {
+      ctx.globalAlpha = (g.ttl / 0.25) * 0.35;
+      neon("classic", g.x + player.w / 2, g.y + 15, player.w, PLAYER_COLOR);
+    });
+    ctx.globalAlpha = invulnBlink ? 0.42 : 1;
+    if (!push3D({ id: "player", key: "player", x: player.x, y: player.y, w: player.w, h: player.h,
+      color: PLAYER_COLOR, rot: [-Math.PI / 2, 0, 0], tilt: 0 })) {
+      neon("classic", player.x + player.w / 2, player.y + player.h / 2, player.w, PLAYER_COLOR);
+    }
+    if (invulnT > 0) {
+      ctx.strokeStyle = "rgba(120, 255, 120, 0.75)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(player.x - 10, player.y - 10, player.w + 20, player.h + 20);
+      ctx.lineWidth = 1;
+    }
+    if (dashTimer > 0) {
+      ctx.strokeStyle = "#7dff66";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(player.x - 4, player.y - 4, player.w + 8, player.h + 8);
+    }
+    ctx.restore();
+  }
+
+  // popups
+  popups.forEach((p) => {
+    ctx.globalAlpha = Math.min(1, p.t / 0.4);
+    ctx.fillStyle = p.color;
+    ctx.font = "bold 14px 'Courier New', monospace";
+    ctx.fillText(p.text, p.x - ctx.measureText(p.text).width / 2, p.y - (0.9 - p.t) * 26);
+    ctx.globalAlpha = 1;
+  });
+
+  // the hit flash
+  if (hitFlash > 0) {
+    ctx.fillStyle = "rgba(255, 90, 90, " + (hitFlash / 0.3 * 0.28).toFixed(3) + ")";
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // HUD
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("VIPER LOOK: " + LOOKS[viperLook].name, 14, H - 76);
+  ctx.fillText("POOL LOOK: " + ["SHIPPED", "BUBBLE", "HAZARD"][poolLook - 1], 14, H - 60);
+  ctx.fillText("POOLS: " + pools.length + "  BOMBS: " + bombs.length, 14, H - 44);
+  ctx.fillText("HITS: " + playerHp + "/" + MAX_HP + "  DASH: " +
+    (dashTimer > 0 ? "DASHING" : dashCooldown > 0 ? dashCooldown.toFixed(1) + "s" : "READY"), 14, H - 28);
+  ctx.fillText("SPACE dash = free through a pool  |  1/2/3 viper  Q/W/E pool", 14, H - 12);
+  if (!has3D()) {
+    ctx.fillStyle = "#ff6a3d";
+    ctx.fillText("NO WEBGL - 2D FALLBACK", 560, H - 12);
+  }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  step(dt);
+  draw();
+  if (window.Iron3D) {
+    Iron3D.sync(frame3D);
+    Iron3D.render(performance.now());
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// probe surface for CDP checks
+window.SANDBOX = {
+  get state() {
+    return {
+      viperLook, viperName: LOOKS[viperLook].name,
+      poolLook, poolName: ["SHIPPED", "BUBBLE", "HAZARD"][poolLook - 1],
+      pools: pools.map((p) => ({ x: Math.round(p.x), y: p.y, w: p.w, ry: p.ry,
+        t: +p.t.toFixed(2), hit: !!p.hit, dashShown: !!p.dashShown })),
+      bombs: bombs.map((b) => ({ x: Math.round(b.x), y: Math.round(b.y), vy: Math.round(b.vy) })),
+      bombTimer: +bombTimer.toFixed(2),
+      boss: { x: Math.round(boss.x), y: Math.round(boss.y) },
+      playerX: Math.round(player.x), hp: playerHp,
+      dash: +Math.max(0, dashTimer).toFixed(2), invuln: +Math.max(0, invulnT).toFixed(2),
+      respawn: +Math.max(0, respawnT).toFixed(2),
+      has3D: has3D(), meshes: has3D() ? Iron3D.count() : 0
+    };
+  },
+  setLook, setPool,
+  // arms the bomb timer AND drops the pair now, so a probe right after sees the drop
+  setBombT(v) { bombTimer = clamp(v, 0, 5); fireBossBomb(); },
+  setPlayerX(v) { player.x = clamp(v, 8, W - player.w - 8); },
+  setBossX(v) { boss.x = clamp(v, 18, 560 - boss.w); },
+  dash: startDash,
+  spawnPool(x) { spawnVenomPool({ x: (x === undefined ? boss.x + boss.w / 2 : x) - 7, w: 14 }); },
+  probe() {
+    return {
+      pools: pools.length, live: pools.map((p) => +p.t.toFixed(2)),
+      meshes: has3D() ? Array.from(Iron3D.pool.keys()) : [],
+      floor: FLOOR, poolY: POOL.y, poolW: POOL.w, poolRy: POOL.ry, poolLife: POOL.t
+    };
+  }
+};
+</script>
+</body>
+</html>

@@ -7,7 +7,9 @@ const overlaySub = document.getElementById("overlaySub");
 const W = canvas.width;
 const H = canvas.height;
 
-const SLOW_FACTORS = { enemy: 0.42, ufo: 0.42, boss: 0.71 };
+// TIME WARP (slow powerup) speed multipliers. 0.42 was too oppressive - the
+// screen froze and cleared itself; the powerup should help, not play the game.
+const SLOW_FACTORS = { enemy: 0.62, ufo: 0.62, boss: 0.85 };
 
 const COLORS = {
   player: "#78ff78",

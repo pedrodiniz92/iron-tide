@@ -1,7 +1,7 @@
-function damageShield(shield, bullet) {
+function damageShield(shield, bullet, damage = 1) {
   shield.cells = shield.cells.filter((cell) => {
     if (!overlaps(bullet, cell)) return true;
-    cell.hp -= 1;
+    cell.hp -= damage;
     return cell.hp > 0;
   });
 

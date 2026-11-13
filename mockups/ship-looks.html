@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLAYER SHIP — 2 NEW MODELS + shipped hull: one item each, palettes + bulwark guns (playable mockup)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 980px; }
+  /* panel NEVER overlaps the stage: flex row (stage + panel side by side),
+     stacked below the stage under 940px. */
+  .wrap { display: flex; gap: 14px; align-items: flex-start;
+    width: min(1240px, calc(100vw - 32px)); margin: 0 16px 16px; }
+  .stage { position: relative; flex: 1 1 600px; max-width: 900px; aspect-ratio: 3 / 2;
+    border: 1px solid #23304a; background: #0a0e18; }
+  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas.
+     The canvases MUST have a CSS size: Iron3D calls setPixelRatio(dpr), so the 3D
+     backing store is 900*dpr wide, and without an explicit CSS size the canvas
+     displays at that full backing size (2x on a retina screen) - the 3D layer
+     then renders at 2x scale, offset from the 2D labels. */
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #panel { flex: 0 0 300px; box-sizing: border-box; padding: 8px 10px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.92); }
+  @media (max-width: 940px) {
+    .wrap { flex-direction: column; }
+    .stage { flex: none; width: 100%; }
+    #panel { flex: none; width: 100%; }
+  }
+  #panel h2 { margin: 12px 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel h2:first-child { margin-top: 0; }
+  #panel label { display: block; font-size: 11px; line-height: 1.35; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.45; }
+  #panel .hint b { color: #9fc4dd; }
+  /* clickable palette + gun buttons (palette swaps live here, never as stage items) */
+  #panel button { display: block; width: 100%; box-sizing: border-box; margin: 0 0 5px;
+    padding: 5px 7px; text-align: left; cursor: pointer; font: 11px 'Courier New', monospace;
+    color: #9fb8d0; background: #131826; border: 1px solid #2c3550; }
+  #panel button:hover { border-color: #5a6c92; color: #dfe9ff; }
+  #panel button[aria-pressed="true"] { color: #0d0d14; background: #cfefff; border-color: #dfe9ff; }
+  #panel button .sw { display: inline-block; width: 22px; height: 9px; margin-right: 7px;
+    vertical-align: -1px; border: 1px solid rgba(0, 0, 0, 0.55); }
+  #panel button .k { color: #6f8fa8; margin-right: 5px; }
+  #panel button[aria-pressed="true"] .k { color: #33507a; }
+  #panel #gunBtn { margin-top: 2px; border-color: #4a5a80; color: #dfe9ff; }
+</style>
+</head>
+<body>
+<h1>PLAYER SHIP &mdash; ONE ITEM PER SHIP, PALETTES IN THE PANEL, BULWARK GUNS</h1>
+<div class="sub">Three ships, <b>one item each</b> &mdash; <b>keys 1/2/3</b> select (brackets + full
+alpha, the others dim). A colour variant is <b>not</b> a separate ship any more: the panel's
+palette buttons repaint the ship you have selected (<b>keys Z/X/C/V/B/N/M/,</b>). The HORNET is gone.
+The BULWARK carries a nose gun rig that fits out a second gun and stows it again &mdash;
+<b>button in the panel, key G</b>; the two gun positions are the real DOUBLE-shot offsets
+(js/player.js:131, &plusmn;14px), and the tracers under the selected ship are drawn at those
+same game offsets. Every ship keeps the shipped on-screen footprint (56px hitbox, ~75px drawn)
+and faces up.</div>
+<div class="wrap">
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+</div>
+<div id="panel">
+  <h2>SHIP (KEYS 1-3)</h2>
+  <label><input type="radio" name="m" id="m1"> 1 &middot; SHIPPED &mdash; the hull in play today, for reference</label>
+  <label><input type="radio" name="m" id="m2" checked> 2 &middot; BULWARK &mdash; heavy bomber, twin nose guns</label>
+  <label><input type="radio" name="m" id="m3"> 3 &middot; WRAITH &mdash; needle scout</label>
+  <h2>PALETTE OF THE SELECTED SHIP (KEYS Z X C V B N M ,)</h2>
+  <div id="pals"></div>
+  <h2>BULWARK NOSE GUNS (KEY G)</h2>
+  <button id="gunBtn" type="button">GUNS: SINGLE &middot; press to fit out the second gun</button>
+  <div class="hint">
+    ONE ITEM PER SHIP: a colour variant is a palette button, not a stage slot. Selecting a ship
+    re-lists its palettes here; the stage keeps one slot per ship.<br><br>
+    <b>Jade family</b> (the BULWARK's last five): <b>DARK STEEL + JADE</b> steel hull, jade trim
+    &middot; <b>JADE BULKHEAD</b> jade hull, jade-dark booms &middot; <b>JADE LANTERN</b>
+    jade-dominant, the brightest &middot; <b>JADE DEEPWORKS</b> steel hull, jade booms / pods /
+    gun bar &middot; <b>JADE INLAY</b> dark steel, jade rim-light and mint trim &middot;
+    <b>IRON JADE</b> steel-dominant, dim jade. All cool mint-jade, so none reads as the venom
+    green (#7dff66).<br><br>
+    <b>Guns:</b> the BULWARK stows one centreline gun and fits out a pair. The pair sits at
+    <b>&plusmn;14px</b> from the centreline &mdash; the real DOUBLE-shot offsets
+    (<b>js/player.js:131</b>, <code>offsets = [-14, 14]</code>), scaled into model space at
+    <b>1.05px per model unit</b> (75.6px drawn / 72-unit hull) = <b>&plusmn;13.3 units</b>. The
+    tracers drawn under the selected ship use the same game offsets, so the guns line up with
+    where the double shots fire.<br><br>
+    The shipped model is <b>buildPlayerC</b> (js/assets3d.bundle.js:14739): box hull, plane crack
+    plate, box wings + pods, cone engine glows, cylinder gun. The new models are assembled the
+    same way &mdash; the page cannot call <b>new THREE.X</b> (the bundle is an IIFE), so every
+    part is a <b>clone of a shipped part</b> (box/cylinder/cone from the player, dome sphere +
+    torus ring from an invisible ufo donor), rescaled, repainted with an explicit toon ramp, and
+    given the dark hull outline shell. Parts intersect, so each ship reads as ONE fused
+    silhouette.<br><br>
+    All three carry pulsing engine plumes (cloned cylinder + cone, additive-style alpha) and an
+    idle bob; BULWARK adds a heavy damage-wobble. Colours stay clear of the venom green
+    (#7dff66) and the ghost white (#dfe9ff); the shipped green hull reads too close to venom.</div>
+</div>
+</div>
+<!-- the shipping 2.5D renderer: Three.js toon models on #stage3d, driven by Iron3D.sync()/render() -->
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// js/silhouettes.js - the real player silhouette (2D fallback only)
+const SIL = {
+  classic: { bb: { x: -28, y: -11, w: 56, h: 22 }, path(c) {
+    c.beginPath(); c.moveTo(0, -11); c.lineTo(4, -3); c.lineTo(12, 1); c.lineTo(28, 7);
+    c.lineTo(16, 9); c.lineTo(6, 6); c.lineTo(-6, 6); c.lineTo(-16, 9);
+    c.lineTo(-28, 7); c.lineTo(-12, 1); c.lineTo(-4, -3); c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+// js/drawing.js:266 - the push3D pattern the game uses for the ship
+let frame3D = [];
+const has3D = () => !!window.Iron3D;
+function push3D(e) {
+  if (window.Iron3D) frame3D.push(e);
+  return !!window.Iron3D;
+}
+
+const rgb = (hex) => {
+  const n = hex.replace("#", "");
+  return [parseInt(n.slice(0, 2), 16) / 255, parseInt(n.slice(2, 4), 16) / 255,
+    parseInt(n.slice(4, 6), 16) / 255];
+};
+// lighten a hex toward white by f (0..1) - flat "emissive" ramps for metal parts
+function rgbHex(hex, f) {
+  return "#" + rgb(hex).map((v) =>
+    Math.round((v + (1 - v) * f) * 255).toString(16).padStart(2, "0")).join("");
+}
+function paint(u, pal) {
+  const map = { lit: "uLit", mid: "uMid", shadow: "uShadow", deep: "uDeep", rim: "uRim", back: "uBack" };
+  for (const k in map) {
+    if (pal[k] && u[map[k]]) {
+      const c = rgb(pal[k]);
+      u[map[k]].value.setRGB(c[0], c[1], c[2]);
+    }
+  }
+}
+const emissive = (hex) => ({ lit: rgbHex(hex, 0.55), mid: hex, shadow: hex, deep: rgbHex(hex, -0.0),
+  rim: rgbHex(hex, 0.4), back: hex });
+
+// ---- palettes (explicit toon ramps; the shipped ramp() leans shadows to violet,
+// wrong for steel/brass/crimson). Colours clear of venom #7dff66 and ghost #dfe9ff.
+const PAL = {
+  steel: { name: "STEEL + AMBER", color: "#7d93b2", pulse: 110,
+    hull: { lit: "#d3dfee", mid: "#7d93b2", shadow: "#46587a", deep: "#232d42", rim: "#eaf2ff", back: "#ffd9a0" },
+    dark: { lit: "#8a93a8", mid: "#3a4152", shadow: "#20242f", deep: "#10121a", rim: "#a8bcd8" },
+    accent: { lit: "#ffd98a", mid: "#ffab3d", shadow: "#b06a1e", deep: "#5c3410", rim: "#ffe9c0", back: "#ffab3d" },
+    cockpit: { lit: "#ffffff", mid: "#bfe9ff", shadow: "#6fa8c8", deep: "#2a4a60" },
+    plume: { lit: "#ffe9b0", mid: "#ffab3d", shadow: "#c05a1a", deep: "#5c1e08" },
+    core: { lit: "#ffffff", mid: "#ffe9b0", shadow: "#ffab3d", deep: "#ffab3d" },
+    outline: "#161e2e"
+  },
+  // the shipped hull's own ramps (kept from the colour-swap round)
+  void: { name: "MATTE BLACK + CYAN", color: "#262e3f", pulse: 78,
+    hull: { lit: "#4a5568", mid: "#262e3f", shadow: "#141a26", deep: "#0a0e18", rim: "#7fd8ea", back: "#1f5a6a" },
+    dark: { lit: "#39455c", mid: "#171d2b", shadow: "#0c1018", deep: "#06080e", rim: "#5fb8cc" },
+    accent: { lit: "#8fe9ff", mid: "#2fb8d8", shadow: "#146a84", deep: "#082a3a", rim: "#b8f4ff", back: "#2fb8d8" },
+    cockpit: { lit: "#eaffff", mid: "#5ff0ff", shadow: "#1fb8d4", deep: "#0a5a70" },
+    plume: { lit: "#d8fbff", mid: "#46e6ff", shadow: "#1878b4", deep: "#0a2a5c" },
+    core: { lit: "#ffffff", mid: "#d8fbff", shadow: "#46e6ff", deep: "#46e6ff" },
+    outline: "#04060c"
+  },
+  brass: { name: "RIVETED BRASS", color: "#c9962e", pulse: 150,
+    hull: { lit: "#f2d488", mid: "#c9962e", shadow: "#7a5518", deep: "#3d2a0c", rim: "#ffe9b0", back: "#8a6a2a" },
+    dark: { lit: "#6a7288", mid: "#3a3f52", shadow: "#1e2230", deep: "#10121c", rim: "#9aa8c0" },
+    accent: { lit: "#ffe9a8", mid: "#ffd76a", shadow: "#b08a2a", deep: "#5c4010", rim: "#fff3c8", back: "#ffd76a" },
+    cockpit: { lit: "#fff6d8", mid: "#ffe9b0", shadow: "#b08a40", deep: "#5c4014" },
+    plume: { lit: "#ffd9a0", mid: "#ff8a3d", shadow: "#b03a10", deep: "#4a1206" },
+    core: { lit: "#fff3d0", mid: "#ffc06a", shadow: "#ff8a3d", deep: "#ff8a3d" },
+    outline: "#241606"
+  },
+  // ---- the models' own schemes. All readable on the #0a0e18 field, all clear of the
+  // venom green (#7dff66) and the ghost white/grey (#dfe9ff).
+  gunmetal: { name: "GUNMETAL + CYAN", color: "#5a6678", pulse: 95,
+    hull: { lit: "#8a97ab", mid: "#5a6678", shadow: "#333d4d", deep: "#1a2029", rim: "#cfe4f2", back: "#46e6ff" },
+    dark: { lit: "#39455c", mid: "#171d2b", shadow: "#0c1018", deep: "#06080e", rim: "#5fb8cc" },
+    accent: { lit: "#d8fbff", mid: "#46e6ff", shadow: "#189ab4", deep: "#0a5a70", rim: "#eaffff", back: "#46e6ff" },
+    cockpit: { lit: "#eaffff", mid: "#5ff0ff", shadow: "#1fb8d4", deep: "#0a5a70" },
+    plume: { lit: "#d8fbff", mid: "#46e6ff", shadow: "#1878b4", deep: "#0a2a5c" },
+    core: { lit: "#ffffff", mid: "#d8fbff", shadow: "#46e6ff", deep: "#46e6ff" },
+    outline: "#0a1018" },
+  slate: { name: "SLATE + ORANGE", color: "#4a5568", pulse: 150,
+    hull: { lit: "#7a8798", mid: "#4a5568", shadow: "#2a3242", deep: "#141a26", rim: "#c8d8e8", back: "#ff8a3d" },
+    dark: { lit: "#2a3140", mid: "#12161f", shadow: "#0a0d13", deep: "#05070a", rim: "#7a8aa0" },
+    accent: { lit: "#ffc08a", mid: "#ff8a3d", shadow: "#b04a10", deep: "#5c2006", rim: "#ffd9b0", back: "#ff8a3d" },
+    cockpit: { lit: "#ffffff", mid: "#bfe9ff", shadow: "#6fa8c8", deep: "#2a4a60" },
+    plume: { lit: "#ffe0b0", mid: "#ff8a3d", shadow: "#c04a10", deep: "#5c1a06" },
+    core: { lit: "#fff3d0", mid: "#ffc06a", shadow: "#ff8a3d", deep: "#ff8a3d" },
+    outline: "#10141e" },
+  // replaces OLIVE + BRASS. INVERTED per feedback: the hull is IRON (steel grey) and the
+  // trim, booms and pods are CRIMSON - the crimson parts are where the iron ones were and
+  // vice versa. No green in it, so it can never read as venom, and it is nowhere near the
+  // ghost white/grey.
+  crimson: { name: "IRON + CRIMSON", color: "#7d8798", pulse: 140,
+    hull: { lit: "#cfd8e8", mid: "#7d8798", shadow: "#3f4756", deep: "#1c2029", rim: "#ffffff", back: "#ff6a5a" },
+    dark: { lit: "#a8434a", mid: "#6e2028", shadow: "#3d0f14", deep: "#1e0609", rim: "#d88a86" },
+    accent: { lit: "#ff9a8a", mid: "#e63946", shadow: "#901a24", deep: "#4a0a10", rim: "#ffc8c0", back: "#e63946" },
+    cockpit: { lit: "#fff0ee", mid: "#ffc0b8", shadow: "#a05a50", deep: "#4a2018" },
+    plume: { lit: "#ffd9c0", mid: "#ff7a3d", shadow: "#b03010", deep: "#4a0e06" },
+    core: { lit: "#fff3e0", mid: "#ffb06a", shadow: "#ff7a3d", deep: "#ff7a3d" },
+    outline: "#1a0a10" },
+  jade: { name: "DARK STEEL + JADE", color: "#64788e", pulse: 150,
+    hull: { lit: "#9fb0c4", mid: "#64788e", shadow: "#39485c", deep: "#1c2530", rim: "#d8ecf2", back: "#2fbf71" },
+    dark: { lit: "#39455c", mid: "#171d2b", shadow: "#0c1018", deep: "#06080e", rim: "#5fb8a0" },
+    accent: { lit: "#8af0c0", mid: "#2fbf71", shadow: "#14704a", deep: "#083a26", rim: "#c0f5dc", back: "#2fbf71" },
+    cockpit: { lit: "#eafff4", mid: "#7dffc0", shadow: "#1fb87a", deep: "#0a5a3a" },
+    plume: { lit: "#c8f5dc", mid: "#2fbf71", shadow: "#14704a", deep: "#06281a" },
+    core: { lit: "#f0fff6", mid: "#a8f0cc", shadow: "#2fbf71", deep: "#2fbf71" },
+    outline: "#0c141a" },
+  // the same dark-steel + jade idea, generous: the jade IS the hull, the booms and the
+  // trim are jade-tinted, only the deep shading is steel. The mid is kept low (#22917a)
+  // so the lit top face and the shadow band still read as a shaded hull and not one flat
+  // glowing slab. Cooler jade than the venom green (#7dff66), so the two never read alike.
+  jadex: { name: "JADE BULKHEAD", color: "#22917a", pulse: 150,
+    hull: { lit: "#8fe8cc", mid: "#22917a", shadow: "#0f5c4e", deep: "#07332c", rim: "#d0fff0", back: "#2fd0a0" },
+    dark: { lit: "#2f5f58", mid: "#123833", shadow: "#08201d", deep: "#04100f", rim: "#4fd0b0" },
+    accent: { lit: "#d0fff0", mid: "#5ff0c0", shadow: "#1a9a76", deep: "#0a4a38", rim: "#eafff8", back: "#5ff0c0" },
+    cockpit: { lit: "#f0fff8", mid: "#8fffd8", shadow: "#20b088", deep: "#0a5a44" },
+    plume: { lit: "#d0fff0", mid: "#3fdcae", shadow: "#148a68", deep: "#06382a" },
+    core: { lit: "#e8fff8", mid: "#7dffd0", shadow: "#3fdcae", deep: "#3fdcae" },
+    outline: "#08201c" },
+  // ---- the rest of the dark-steel + jade family: variations on the steel/jade balance
+  // (jade-dominant bright, jade on the structural parts, jade as rim-light, dim jade on
+  // iron). Jade always stays on the cool mint side (#1f8f70 .. #5ff0c0), never the
+  // yellow-green of the venom (#7dff66), and every ramp keeps a lit/shadow spread so the
+  // hull reads shaded, not flat, on the #0a0e18 field.
+  lantern: { name: "JADE LANTERN", color: "#3fd0a8", pulse: 150,
+    hull: { lit: "#c8ffe8", mid: "#3fd0a8", shadow: "#177a63", deep: "#0a3a30", rim: "#eafff8", back: "#5ff0c0" },
+    dark: { lit: "#2b4756", mid: "#16222c", shadow: "#0a1218", deep: "#050a0e", rim: "#4fd0b0" },
+    accent: { lit: "#f0fff8", mid: "#b8ffe8", shadow: "#2fb894", deep: "#0a4a38", rim: "#ffffff", back: "#b8ffe8" },
+    cockpit: { lit: "#ffffff", mid: "#c8fff0", shadow: "#2fb894", deep: "#0a4a38" },
+    plume: { lit: "#e8fff8", mid: "#5ff0c0", shadow: "#1a9a76", deep: "#0a3a2c" },
+    core: { lit: "#eafff8", mid: "#a8ffe0", shadow: "#5ff0c0", deep: "#5ff0c0" },
+    outline: "#06201c" },
+  deepworks: { name: "JADE DEEPWORKS", color: "#3b4a5c", pulse: 150,
+    hull: { lit: "#93a6bc", mid: "#3b4a5c", shadow: "#222c3a", deep: "#10161f", rim: "#cfe4f2", back: "#2fd0a0" },
+    dark: { lit: "#3fbf94", mid: "#1f8f70", shadow: "#0f5c4a", deep: "#062e24", rim: "#8ff0d0" },
+    accent: { lit: "#e8fff8", mid: "#8ff5d4", shadow: "#2fb894", deep: "#0a4a38", rim: "#ffffff", back: "#8ff5d4" },
+    cockpit: { lit: "#f0fff8", mid: "#a8ffe0", shadow: "#20b088", deep: "#0a5a44" },
+    plume: { lit: "#d8fff0", mid: "#3fdcae", shadow: "#148a68", deep: "#06382a" },
+    core: { lit: "#ffffff", mid: "#d8fff0", shadow: "#3fdcae", deep: "#3fdcae" },
+    outline: "#08141c" },
+  inlay: { name: "JADE INLAY", color: "#52657c", pulse: 150,
+    hull: { lit: "#a8bcd2", mid: "#52657c", shadow: "#2a3646", deep: "#141c26", rim: "#d8fff0", back: "#3fe0b0" },
+    dark: { lit: "#2f5f52", mid: "#16332e", shadow: "#0b1f1c", deep: "#05100e", rim: "#5fd8b8" },
+    accent: { lit: "#d8fff0", mid: "#4fe8b4", shadow: "#1a9a76", deep: "#0a4a38", rim: "#f0fff8", back: "#4fe8b4" },
+    cockpit: { lit: "#eaffff", mid: "#8ff5d4", shadow: "#20b088", deep: "#0a5a44" },
+    plume: { lit: "#eafff8", mid: "#7dffd0", shadow: "#1a9a76", deep: "#08382c" },
+    core: { lit: "#ffffff", mid: "#eafff8", shadow: "#7dffd0", deep: "#7dffd0" },
+    outline: "#071219" },
+  ironjade: { name: "IRON JADE", color: "#3a4557", pulse: 150,
+    hull: { lit: "#7e8ea4", mid: "#3a4557", shadow: "#1f2733", deep: "#0e131a", rim: "#cfe4f2", back: "#2fa88a" },
+    dark: { lit: "#232b38", mid: "#10161f", shadow: "#080c12", deep: "#04060a", rim: "#3f9a80" },
+    accent: { lit: "#9fe8cc", mid: "#2fa88a", shadow: "#12655a", deep: "#062e24", rim: "#d0f5e6", back: "#2fa88a" },
+    cockpit: { lit: "#e8f6f0", mid: "#6fd0b0", shadow: "#1a7a60", deep: "#08382c" },
+    plume: { lit: "#bfe8d8", mid: "#2fa88a", shadow: "#12655a", deep: "#062e24" },
+    core: { lit: "#eafff8", mid: "#a8e8d0", shadow: "#2fa88a", deep: "#2fa88a" },
+    outline: "#0a1218" }
+};
+
+// ---- the ships on show: ONE item each, each with the palettes it offers ----
+// hex = the colour the mesh is BUILT with (it is part of the pool key, so it stays
+// fixed and a palette swap repaints the parts instead of rebuilding the mesh). The
+// shipped hull must be built green #78ff78: paintShipped() classifies its parts by
+// that source colour.
+const MODELS = [
+  { id: "m1", name: "SHIPPED", tag: "the hull in play today", kind: "shipped", hex: "#78ff78",
+    pals: ["steel", "void", "brass"], bob: 1.1, wob: 0, pulse: 110 },
+  { id: "m2", name: "BULWARK", tag: "heavy bomber", kind: "bulwark", hex: "#c9962e",
+    pals: ["slate", "crimson", "jade", "jadex", "lantern", "deepworks", "inlay", "ironjade"],
+    bob: 0.9, wob: 0.03, pulse: 150 },
+  { id: "m3", name: "WRAITH", tag: "needle scout", kind: "wraith", hex: "#262e3f",
+    pals: ["void", "gunmetal", "crimson"], bob: 1.5, wob: 0, pulse: 72 }
+];
+// palette index per ship (a palette is a state of the ship, never its own stage item)
+const palIdx = [2, 3, 0];   // shipped=steel, bulwark=jadex, wraith=void
+const palOf = (i) => PAL[MODELS[i].pals[palIdx[i]]];
+
+// ---- BULWARK nose-gun rig: the DOUBLE-shot offsets, in model units ----
+// js/player.js:129-131  offsets = [0] | [-14, 14] | [-22, 0, 22] (px, from the hitbox centre)
+// px -> model units: the shipped hull is 72 units across (buildPlayerC wings at +-24 on a
+// 24-unit box) and draws 56 * FIT(1.35) = 75.6 px wide -> 1.05 px per unit.
+// 14 px / 1.05 = 13.33 units. The -2 in `player.x + w/2 - 2` only centres the 4px bullet.
+const PX_PER_UNIT = 75.6 / 72;
+const GUN_X = 14 / PX_PER_UNIT;
+const GUN_DUR = 0.5;   // seconds, single <-> double
+const easeIO = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+let gunTarget = 0;   // 0 single, 1 double
+let gunRaw = 0;      // linear 0..1 ramp toward gunTarget
+let gunT = 0;        // eased, what the rig is drawn at
+
+let sel = 2;   // 1..3 -> the ships
+let t = 0, pinned = null;
+
+// one slot per ship - a palette never gets one
+const SLOTS = MODELS.map((M, i) => ({ id: M.id, x: 120 + i * 280, y: 170 }));
+
+// ---- part kit: clone sources harvested from the shipped player mesh + invisible
+// donor entries (ufo = dome sphere, turtle = torus ring, crab = cone). THREE is NOT
+// global (the bundle is an IIFE), so every part of a new model is a clone of a
+// shipped part, rescaled, repainted with an explicit toon ramp, and given the dark
+// hull outline shell. Shells = the dark outline meshes (uColor).
+function harvest(mesh, donors) {
+  const src = {};
+  mesh.traverse((o) => {
+    if (!o.isMesh) return;
+    const u = o.material.uniforms;
+    if (!u) { o.visible = false; return; } // the basic-material engine glow
+    const key = o.geometry.type + (u.uColor && !u.uLit ? "Shell" : "");
+    if (!src[key]) src[key] = o;
+    o.visible = false;
+  });
+  donors.forEach((dm) => {
+    if (!dm) return;
+    dm.mesh.traverse((o) => {
+      if (!o.isMesh || !o.material.uniforms) return;
+      const u = o.material.uniforms;
+      const shell = u.uColor && !u.uLit;
+      const key = o.geometry.type + (shell ? "Shell" : "");
+      const want = o.geometry.type === "SphereGeometry" ||
+        o.geometry.type === "TorusGeometry" || o.geometry.type === "ConeGeometry";
+      if (want && !src[key]) src[key] = o;
+    });
+  });
+  return src;
+}
+
+function makeBuilder(g, src, pal) {
+  const plume = [], added = [];
+  const mk = (geo, pal_, s, pos, rot, opts) => {
+    const o = opts || {};
+    const base = src[geo];
+    if (!base) return null;
+    const m = base.clone(false);
+    m.material = base.material.clone();
+    if (geo === "ConeGeometry") {
+      // the engine-glow cone is basic material - swap in a cloned toon surf material
+      m.material = src.BoxGeometry.material.clone();
+    }
+    paint(m.material.uniforms, pal_);
+    if (o.flat) { m.material.uniforms.uRimW.value = 0; m.material.uniforms.uBackW.value = 0; }
+    if (o.rimW !== undefined) m.material.uniforms.uRimW.value = o.rimW;
+    if (o.alpha !== undefined) {
+      m.material.uniforms.uAlpha.value = o.alpha;
+      m.material.transparent = true;
+      // keepShell marks the gun rig: solid parts whose alpha animates, so they keep
+      // depth-write and normal sorting (the plumes are the only true additive parts)
+      if (!o.keepShell) { m.material.depthWrite = false; m.renderOrder = 3; }
+      // Iron3D.render() multiplies uAlpha by the item's fade factor and caches the base in
+      // userData.a0 - pin a0 at 1 so the gun rig's own alpha animation owns uAlpha.
+      m.material.userData.a0 = 1;
+    }
+    m.visible = true;
+    m.scale.set(s[0], s[1], s[2]);
+    m.position.set(pos[0], pos[1], pos[2]);
+    if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+    g.add(m);
+    added.push(m);
+    const sh = src[geo + "Shell"];
+    if (sh && (!o.alpha || o.keepShell)) {
+      const c = sh.clone(false);
+      c.material = sh.material.clone();
+      const oc = rgb(pal.outline);
+      c.material.uniforms.uColor.value.setRGB(oc[0], oc[1], oc[2]);
+      c.visible = true;
+      c.scale.set(s[0], s[1], s[2]);
+      c.position.set(pos[0], pos[1], pos[2]);
+      if (rot) c.rotation.set(rot[0], rot[1], rot[2]);
+      g.add(c);
+      added.push(c);
+      if (o.keepShell) { c.material.userData.a0 = 1; m.userData.__shell = c; }
+    }
+    return m;
+  };
+  // engine jet: cylinder (axis -> -z, i.e. screen down) + cone flare, base inside the pod
+  const jet = (x, y, z, w, len, pal_) => {
+    const o = mk("CylinderGeometry", pal_, [w, len, w], [x, y, z - len * 5], [-Math.PI / 2, 0, 0],
+      { alpha: 0.85, flat: true });
+    const c = mk("CylinderGeometry", pal.core, [w * 0.45, len * 0.62, w * 0.45],
+      [x, y, z - len * 5 * 0.62 - 1], [-Math.PI / 2, 0, 0], { alpha: 0.9, flat: true });
+    if (o) { o.userData.__kind = "plume"; plume.push({ m: o, base: len }); }
+    if (c) { c.userData.__kind = "core"; plume.push({ m: c, base: len * 0.62, core: true }); }
+  };
+  return { g, mk, jet, plume, added };
+}
+
+// ---- BULWARK: heavy bomber. Wide flat hull, twin booms, big dome, four pods,
+// nose gun rig, heavy tail. Reads wide and slow. x span 63 units = the shipped width.
+// The nose rig IS the single <-> double animation. The pair sits at +-GUN_X = +-13.33
+// units = the real DOUBLE-shot +-14px offsets (js/player.js:131), so the guns line up
+// with where the double bullets spawn.
+function buildBulwark(B, pal) {
+  const { mk, jet } = B;
+  mk("BoxGeometry", pal.hull, [2.05, 0.75, 1.0], [0, 0, 1]);
+  mk("BoxGeometry", pal.hull, [2.4, 0.5, 0.55], [0, -1, -5]);
+  mk("BoxGeometry", pal.hull, [0.32, 0.85, 1.55], [-27, 0, -3]);
+  mk("BoxGeometry", pal.hull, [0.32, 0.85, 1.55], [27, 0, -3]);
+  mk("BoxGeometry", pal.dark, [1.48, 0.6, 0.45], [0, 0, -14]);
+  mk("SphereGeometry", pal.cockpit, [0.95, 0.5, 0.85], [0, 4, 7]);
+  // gun bar: the rail the guns ride in and out of; spans the whole pair (2*GUN_X + a gun)
+  mk("BoxGeometry", pal.dark, [1.55, 0.5, 0.5], [0, 0.5, 11.5]);
+  const rig = { center: [], side: [] };
+  // one gun = housing + barrel + muzzle, each tagged with its home transform. The housing
+  // wears the HULL colour (the bar behind it is dark, so a dark gun vanished into it) and
+  // both ends of the animation use the SAME geometry, so the pair reads as the centre
+  // gun, doubled.
+  const gun = (list, x, z) => {
+    const add = (geo, pal_, sc, pos, rot) => {
+      const m = mk(geo, pal_, sc, pos, rot, { alpha: 1, keepShell: true });
+      if (m) list.push({ m, sh: m.userData.__shell, x0: pos[0], y0: pos[1], z0: pos[2], s0: sc });
+      return m;
+    };
+    add("BoxGeometry", pal.hull, [0.62, 0.9, 0.62], [x, 1, z]);
+    add("CylinderGeometry", pal.dark, [0.62, 1.0, 0.62], [x, 1, z + 7], [Math.PI / 2, 0, 0]);
+    add("CylinderGeometry", pal.accent, [0.85, 0.34, 0.85], [x, 1, z + 11], [Math.PI / 2, 0, 0]);
+  };
+  // z 14 / 13: the housings sit FORWARD of the hull nose (z 9) on the gun bar, so each
+  // gun silhouettes against the field instead of merging into the hull it is painted like
+  gun(rig.center, 0, 14);
+  gun(rig.side, -GUN_X, 13);
+  gun(rig.side, GUN_X, 13);
+  B.g.userData.__guns = rig;
+  [[-15.4, -9], [15.4, -9], [-33, -9], [33, -9]].forEach(([x, z]) => {
+    mk("CylinderGeometry", pal.dark, [0.8, 1.0, 0.8], [x, -1, z], [Math.PI / 2, 0, 0]);
+    jet(x, -1, z - 5, 0.6, 1.1, pal);
+  });
+}
+
+// ---- WRAITH: needle scout. Long needle fuselage, canard fore fins, wide swept
+// mains, glowing ring engine, antenna. Reads fast and thin, x span 66 = shipped.
+function buildWraith(B, pal) {
+  const { mk, jet } = B;
+  mk("CylinderGeometry", pal.hull, [0.85, 2.5, 0.85], [0, 0, 1], [Math.PI / 2, 0, 0]);
+  mk("ConeGeometry", pal.accent, [0.5, 0.35, 0.5], [0, 0, 18], [Math.PI / 2, 0, 0]);
+  mk("BoxGeometry", pal.hull, [0.55, 0.35, 0.28], [-6, 0, 11], [0, -0.9, 0]);
+  mk("BoxGeometry", pal.hull, [0.55, 0.35, 0.28], [6, 0, 11], [0, 0.9, 0]);
+  mk("BoxGeometry", pal.hull, [1.6, 0.4, 0.5], [-14.5, 0, -7], [0, -0.55, 0]);
+  mk("BoxGeometry", pal.hull, [1.6, 0.4, 0.5], [14.5, 0, -7], [0, 0.55, 0]);
+  mk("TorusGeometry", emissive("#46e6ff"), [0.17, 0.17, 0.17], [0, 0, -13], [Math.PI / 2, 0, 0],
+    { rimW: 1.2 });
+  mk("CylinderGeometry", pal.dark, [0.09, 0.5, 0.09], [0, 0.5, 18.5], [Math.PI / 2, 0, 0]);
+  mk("BoxGeometry", emissive("#5ff0ff"), [0.22, 1.2, 0.3], [0, 5.5, 7], null, { rimW: 1.0 });
+  jet(0, 0, -15, 0.5, 1.5, pal);
+}
+
+const BUILD = { bulwark: buildBulwark, wraith: buildWraith };
+
+// (re)build a model in the shipped player's part space. Re-running this on a palette
+// change is how a colour swap repaints: the old parts go, the same builder runs with
+// the new ramp. The clone sources are harvested once, from the shipped parts only.
+function buildModel(mesh, donors, M, pal) {
+  const g = mesh.children[0];
+  if (!mesh.userData.__src) mesh.userData.__src = harvest(mesh, donors);
+  if (g.userData.__parts) g.userData.__parts.forEach((m) => g.remove(m));
+  const B = makeBuilder(g, mesh.userData.__src, pal);
+  BUILD[M.kind](B, pal);
+  g.userData.__parts = B.added;
+  g.userData.__plume = B.plume;
+}
+
+// ---- the gun rig: single (one centreline gun) <-> double (the pair at +-GUN_X) ----
+// p = gunT, eased 0..1. The centre gun sinks into the hull and fades; the pair rides
+// out of the nose along the gun bar and fades in. Both ends are exact, the middle is
+// a 0.5s ease.
+function animGuns(g, alphaMul) {
+  const R = g.userData.__guns;
+  if (!R) return;
+  const p = gunT;
+  const set = (q, x, dz, s, a) => {
+    const m = q.m, vis = a > 0.02;
+    m.visible = vis;
+    if (!vis) { if (q.sh) q.sh.visible = false; return; }
+    m.position.set(x, q.y0, q.z0 + dz);
+    m.scale.set(q.s0[0] * s, q.s0[1] * s, q.s0[2] * s);
+    m.material.uniforms.uAlpha.value = a;
+    if (q.sh) {
+      q.sh.visible = true;
+      q.sh.position.copy(m.position);
+      q.sh.scale.copy(m.scale);
+      q.sh.material.uniforms.uAlpha.value = a * 0.8;
+    }
+  };
+  R.center.forEach((q) => set(q, q.x0, -12 * p, 1 - 0.45 * p, clamp(1 - p * 1.7, 0, 1) * alphaMul));
+  R.side.forEach((q) => set(q, q.x0 * p, -7 * (1 - p), 0.55 + 0.45 * p, clamp(p * 1.7, 0, 1) * alphaMul));
+}
+
+// ---- shipped-model repaint: classify its parts by their SOURCE colour once (green
+// #78ff78 -> hull, pale #dff6ff -> cockpit, dark #2a3038 -> dark, gold #ffd166 ->
+// accent), then repaint by role on every palette change. The pod jets are built once
+// and re-tinted the same way.
+function paintShipped(mesh, P_) {
+  const g = mesh.children[0];
+  let cyl = mesh.userData.__cyl || null;
+  mesh.traverse((o) => {
+    if (!o.isMesh) return;
+    const u = o.material.uniforms;
+    if (!u) {
+      if (o.material.color) { // the basic-material engine glow -> plume colour
+        const c = rgb(P_.plume.mid);
+        o.material.color.setRGB(c[0], c[1], c[2]);
+      }
+      return;
+    }
+    if (u.uColor && !u.uLit) {
+      const c = rgb(P_.outline);
+      u.uColor.value.setRGB(c[0], c[1], c[2]);
+      return;
+    }
+    if (o.userData.__role === undefined) {
+      const v = u.uMid.value;
+      const isGreen = v.g > 0.8 && v.r < 0.6;
+      const isPale = v.r > 0.8 && v.g > 0.9 && v.b > 0.9;
+      const isGold = v.r > 0.9 && v.g > 0.7 && v.b < 0.55;
+      const isDark = (v.r + v.g + v.b) / 3 < 0.25;
+      o.userData.__role = isGreen ? "hull" : isPale ? "cockpit" : isGold ? "accent"
+        : isDark ? "dark" : null;
+      if (o.geometry.type === "CylinderGeometry" && !cyl && !o.userData.__kind) {
+        cyl = o;
+        mesh.userData.__cyl = o;
+      }
+    }
+    if (o.userData.__role) paint(u, P_[o.userData.__role]);
+  });
+  if (!cyl || mesh.userData.__jets) return;
+  const plume = [];
+  const jet = (x, y, z, w, len) => {
+    const m = cyl.clone(false);
+    m.material = cyl.material.clone();
+    paint(m.material.uniforms, P_.plume);
+    m.material.uniforms.uRimW.value = 0;
+    m.material.uniforms.uBackW.value = 0;
+    m.material.uniforms.uAlpha.value = 0.85;
+    m.material.transparent = true;
+    m.material.depthWrite = false;
+    m.renderOrder = 3;
+    m.scale.set(w, len, w);
+    m.position.set(x, y, z - len * 5);
+    m.rotation.set(-Math.PI / 2, 0, 0);
+    m.userData.__kind = "plume";
+    m.userData.__role = "plume";
+    g.add(m);
+    plume.push({ m, base: len });
+    const c = cyl.clone(false);
+    c.material = cyl.material.clone();
+    paint(c.material.uniforms, P_.core);
+    c.material.uniforms.uRimW.value = 0;
+    c.material.uniforms.uBackW.value = 0;
+    c.material.uniforms.uAlpha.value = 0.9;
+    c.material.transparent = true;
+    c.material.depthWrite = false;
+    c.renderOrder = 3;
+    c.scale.set(w * 0.45, len * 0.62, w * 0.45);
+    c.position.set(x, y, z - len * 5 * 0.62 - 1);
+    c.rotation.set(-Math.PI / 2, 0, 0);
+    c.userData.__kind = "core";
+    c.userData.__role = "core";
+    g.add(c);
+    plume.push({ m: c, base: len * 0.62, core: true });
+  };
+  jet(-30, -3, -10, 0.7, 1.2);
+  jet(30, -3, -10, 0.7, 1.2);
+  g.userData.__plume = plume;
+  mesh.userData.__jets = true;
+}
+
+function animPlume(g, tms, pulse) {
+  const pl = g.userData.__plume;
+  if (!pl) return;
+  const s = 0.5 + 0.5 * Math.sin(tms / pulse);
+  const s2 = 0.5 + 0.5 * Math.sin(tms / (pulse * 0.62) + 1.7);
+  pl.forEach((p) => {
+    const w = p.core ? s2 : s;
+    p.m.scale.y = p.base * (0.8 + 0.34 * w);
+    p.m.material.uniforms.uAlpha.value = (p.core ? 0.82 : 0.7) + 0.22 * w;
+  });
+}
+
+// ---- draw ----
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  frame3D = [];
+  const tn = pinned === null ? t : pinned;
+  // invisible donors: sphere dome (ufo), torus ring (turtle), cone (crab)
+  push3D({ id: "donor", key: "ufo", x: -600, y: -600, w: 40, h: 40, color: "#ff55aa", alpha: 0 });
+  push3D({ id: "donor2", key: "turtle", x: -660, y: -600, w: 40, h: 40, color: "#7ee6a4", alpha: 0 });
+  push3D({ id: "donor3", key: "crab", x: -720, y: -600, w: 40, h: 40, color: "#ffd26b", alpha: 0 });
+  const ships = MODELS.map((M, i) => ({
+    slot: SLOTS[i], M, pal: palOf(i), palKey: M.pals[palIdx[i]], key: "playerC",
+    color: M.hex, alpha: sel === i + 1 ? 1 : 0.45,
+    tilt: M.wob, bob: M.bob, wob: M.wob, i: i + 1
+  }));
+  ships.forEach((sh) => {
+    let x = sh.slot.x, y = sh.slot.y;
+    y += Math.sin(tn * 1.7 + sh.i * 1.3) * sh.bob;
+    if (sh.wob) x += Math.sin(tn * 2.1 + sh.i) * 0.9;
+    sh.px = x; sh.py = y;
+    if (!push3D({ id: sh.slot.id, key: sh.key, x, y, w: 56, h: 22,
+      color: sh.color, rot: [-Math.PI / 2, 0, 0], tilt: sh.tilt,
+      phase: sh.i * 1.7, alpha: sh.alpha })) {
+      neon("classic", x + 28, y + 11, 56, sh.pal.color, 7, sh.alpha);
+    }
+  });
+  return ships;
+}
+
+// ---- where the DOUBLE shots actually spawn, drawn the way the game draws them:
+// js/player.js:135  x = player.x + player.w/2 - 2 + offset, y = player.y - 10, 4x12, 560 px/s.
+// The centre tracer fades out as the pair fades in, so the rig and the bullets move together.
+function tracers(sh) {
+  const cx = sh.slot.x + 28, top = sh.slot.y, p = gunT;
+  const one = (off, a) => {
+    if (a <= 0.03) return;
+    const y = top - 10 - ((t * 560 + (off + 20) * 6) % 92);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.shadowColor = "#ffd9a0"; ctx.shadowBlur = 8;
+    ctx.fillStyle = "#ffe9b0";
+    ctx.fillRect(cx + off - 2, y, 4, 12);
+    ctx.restore();
+  };
+  one(0, 1 - p);
+  one(-14, p);
+  one(14, p);
+  ctx.save();
+  ctx.strokeStyle = "rgba(223,233,255,0.25)";
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.moveTo(cx, top - 24); ctx.lineTo(cx, top + 46); ctx.stroke();
+  ctx.setLineDash([]);
+  // the spawn line: js/player.js:135 y = player.y - 10, x = centre - 2 + offset
+  ctx.strokeStyle = "rgba(223,233,255,0.5)";
+  [-14, 14].forEach((off) => {
+    ctx.beginPath(); ctx.moveTo(cx + off - 4, top - 16); ctx.lineTo(cx + off + 4, top - 16);
+    ctx.stroke();
+  });
+  ctx.fillStyle = "#7fa0c0";
+  ctx.font = "10px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("DOUBLE \u00b114px = the gun pair", cx, top - 112);
+  ctx.textAlign = "left";
+  ctx.restore();
+}
+
+function labels(ships) {
+  ships.forEach((sh, idx) => {
+    const cx = sh.slot.x + 28;
+    const isSel = sel === idx + 1;
+    if (isSel) {
+      ctx.strokeStyle = "#dfe9ff"; ctx.lineWidth = 1.5;
+      const bx = cx - 46, by = sh.slot.y - 22, bw = 92, bh = 84, c = 10;
+      [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]]
+        .forEach(([px, py, sx, sy]) => {
+          ctx.beginPath();
+          ctx.moveTo(px + sx * c, py); ctx.lineTo(px, py); ctx.lineTo(px, py + sy * c);
+          ctx.stroke();
+        });
+      ctx.lineWidth = 1;
+      tracers(sh);
+    }
+    ctx.textAlign = "center";
+    ctx.fillStyle = isSel ? "#dfe9ff" : "#5c7590";
+    ctx.font = "bold 12px 'Courier New', monospace";
+    ctx.fillText(idx + 1 + " " + sh.M.name + (sh.M.kind === "shipped" ? " (reference)" : ""),
+      cx, sh.slot.y + 84);
+    ctx.font = "11px 'Courier New', monospace";
+    ctx.fillStyle = isSel ? "#8fb8d8" : "#42566e";
+    ctx.fillText(sh.pal.name, cx, sh.slot.y + 100);
+    ctx.textAlign = "left";
+  });
+  const M = MODELS[sel - 1], P_ = palOf(sel - 1);
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("SHIP " + sel + ": " + M.name + " (keys 1-3)  -  PALETTE: " + P_.name +
+    " (Z/X/C/V/B/N/M/,, panel buttons)", 14, H - 42);
+  ctx.fillText("BULWARK GUNS: " + (gunT < 0.5 ? "SINGLE" : "DOUBLE") +
+    " - key G / panel button, " + GUN_DUR + "s ease", 14, H - 26);
+  ctx.fillText("gun pair at +-14px = js/player.js:131 DOUBLE offsets (1.05px per model unit)",
+    14, H - 10);
+  if (pinned !== null) {
+    ctx.fillStyle = "#ffe066";
+    ctx.fillText("PINNED t=" + pinned, 14, 18);
+  }
+}
+
+// ---- clock: the mockup time and the gun ramp, both driven by dt so step(n) can drive
+// them by hand for a deterministic screenshot
+function advance(dt) {
+  t += dt;
+  const dir = gunTarget > gunRaw ? 1 : gunTarget < gunRaw ? -1 : 0;
+  if (dir) gunRaw = clamp(gunRaw + dir * dt / GUN_DUR, 0, 1);
+  gunT = easeIO(gunRaw);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  advance(dt);
+  const ships = draw();
+  labels(ships);
+  if (window.Iron3D) {
+    Iron3D.sync(frame3D);
+    const donors = [Iron3D.pool.get("donor"), Iron3D.pool.get("donor2"), Iron3D.pool.get("donor3")];
+    ships.forEach((sh) => {
+      try {
+        const it = Iron3D.pool.get(sh.slot.id);
+        if (!it) return;
+        // a palette change repaints THIS ship - it never becomes its own stage item
+        if (it.palKey !== sh.palKey) {
+          if (sh.M.kind === "shipped") paintShipped(it.mesh, sh.pal);
+          else buildModel(it.mesh, donors, sh.M, sh.pal);
+          it.palKey = sh.palKey;
+        }
+        const tn = (pinned === null ? t : pinned) * 1000;
+        animPlume(it.mesh.children[0], tn, sh.M.pulse);
+        animGuns(it.mesh.children[0], it.alphaCur === undefined ? 1 : it.alphaCur);
+      } catch (e) {
+        // never let a patch error kill the rAF chain (the ships would vanish)
+        window.__patchErr = String(e && e.stack || e);
+      }
+    });
+    Iron3D.render(performance.now());
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function setSel(n) {
+  sel = clamp(n | 0, 1, 3);
+  for (let i = 1; i <= 3; i += 1) document.getElementById("m" + i).checked = i === sel;
+  renderPals();
+}
+// palette of the SELECTED ship: 1-based index, a palette key ("jadex") or its name
+function setPalette(v) {
+  const M = MODELS[sel - 1];
+  let i;
+  if (typeof v === "number") i = (v | 0) - 1;
+  else {
+    const s = String(v).toLowerCase();
+    i = M.pals.findIndex((k) => k === s || PAL[k].name.toLowerCase() === s);
+  }
+  palIdx[sel - 1] = clamp(i < 0 ? 0 : i, 0, M.pals.length - 1);
+  renderPals();
+}
+// 0 / "single" -> one centreline gun, 1 / "double" -> the pair, "toggle" -> flip.
+// Selecting double also shows the BULWARK, the only ship with the rig.
+function setGuns(v) {
+  gunTarget = (v === "toggle" || v === undefined || v === null) ? (gunTarget ? 0 : 1)
+    : (v === 1 || v === "double" || v === true) ? 1 : 0;
+  if (MODELS[sel - 1].kind !== "bulwark") setSel(2);
+  renderGunBtn();
+}
+
+// ---- panel: palette buttons for the ship in hand (a palette is never a stage item) ----
+const palsEl = document.getElementById("pals");
+const gunBtn = document.getElementById("gunBtn");
+function renderPals() {
+  const M = MODELS[sel - 1];
+  palsEl.textContent = "";
+  M.pals.forEach((k, i) => {
+    const Q = PAL[k];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.pal = k;
+    b.setAttribute("aria-pressed", String(i === palIdx[sel - 1]));
+    const sw = document.createElement("span");
+    sw.className = "sw";
+    // three stops: hull / structural (dark) / trim, so the steel-jade balance is legible
+    // in the button itself and not only on the ship
+    sw.style.background = "linear-gradient(90deg," + Q.hull.mid + " 0 46%," +
+      Q.dark.mid + " 46% 74%," + Q.accent.mid + " 74% 100%)";
+    b.appendChild(sw);
+    const key = document.createElement("span");
+    key.className = "k";
+    key.textContent = "ZXCVBNM,"[i] || String(i + 1);
+    b.appendChild(key);
+    b.appendChild(document.createTextNode(Q.name));
+    b.addEventListener("click", () => setPalette(i + 1));
+    palsEl.appendChild(b);
+  });
+}
+function renderGunBtn() {
+  const dbl = gunTarget === 1;
+  gunBtn.textContent = "GUNS: " + (dbl ? "DOUBLE" : "SINGLE") + " \u00b7 press to " +
+    (dbl ? "stow the second gun" : "fit out the second gun");
+}
+gunBtn.addEventListener("click", () => setGuns("toggle"));
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (k >= "1" && k <= "3") setSel(Number(k));
+  const z = "zxcvbnm,".indexOf(k);      // palette 1-8 of the ship in hand
+  if (z >= 0) setPalette(z + 1);
+  const q = "qwe".indexOf(k);           // legacy shipped keys Q/W/E
+  if (q >= 0) setPalette(q + 1);
+  if (k === "g") setGuns("toggle");
+});
+for (let i = 1; i <= 3; i += 1) {
+  document.getElementById("m" + i).addEventListener("change", () => setSel(i));
+}
+renderPals();
+renderGunBtn();
+
+// probe surface for CDP checks
+window.SANDBOX = {
+  get state() {
+    const M = MODELS[sel - 1], P_ = palOf(sel - 1);
+    return { sel, selName: M.name, palKey: M.pals[palIdx[sel - 1]], palName: P_.name,
+      pals: M.pals.map((k) => PAL[k].name),
+      guns: gunTarget ? "double" : "single", gunT: +gunT.toFixed(3),
+      gunMoving: gunRaw !== gunTarget,
+      gunXUnits: +GUN_X.toFixed(2), gunXPx: +(GUN_X * PX_PER_UNIT).toFixed(2),
+      pxPerUnit: +PX_PER_UNIT.toFixed(3),
+      has3D: has3D(), pinned, t: +t.toFixed(2), patchErr: window.__patchErr || null };
+  },
+  setSel, setVariant: setSel, setModel: setSel, setPalette, setPal: setPalette, setGuns,
+  setPin(v) { pinned = (v === null || v === undefined) ? null : Number(v); },
+  step(n) { advance(Number(n) || 0); },
+  probe(id) {
+    const it = window.Iron3D && Iron3D.pool.get(id || MODELS[sel - 1].id);
+    if (!it) return { missing: true };
+    const r2 = (a) => a.map((n) => Math.round(n * 100) / 100);
+    const out = { alphaCur: it.alphaCur === undefined ? null : +it.alphaCur.toFixed(3),
+      scale: Math.round(it.mesh.scale.x * 100) / 100, palKey: it.palKey || null,
+      visible: 0, hidden: 0, hull: null, outline: null, plumes: 0, cores: 0,
+      box: 0, cyl: 0, cone: 0, sphere: 0, torus: 0, guns: null,
+      patchErr: window.__patchErr || null };
+    it.mesh.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!o.visible) { out.hidden += 1; return; }
+      out.visible += 1;
+      const u = o.material.uniforms;
+      if (!u) return;
+      const t_ = o.geometry.type;
+      if (u.uColor && !u.uLit && !out.outline) out.outline = r2(u.uColor.value.toArray());
+      if (t_ === "BoxGeometry" && u.uMid && !out.hull && o.userData.__kind === undefined) out.hull = r2(u.uMid.value.toArray());
+      if (t_ === "BoxGeometry") out.box += 1;
+      if (t_ === "CylinderGeometry") out.cyl += 1;
+      if (t_ === "ConeGeometry") out.cone += 1;
+      if (t_ === "SphereGeometry") out.sphere += 1;
+      if (t_ === "TorusGeometry") out.torus += 1;
+      if (o.userData.__kind === "plume") out.plumes += 1;
+      if (o.userData.__kind === "core") out.cores += 1;
+    });
+    const R = it.mesh.children[0].userData.__guns;
+    if (R) {
+      const q = (list) => list.map((p) => ({
+        x: +p.m.position.x.toFixed(2), xPx: +(p.m.position.x * PX_PER_UNIT).toFixed(1),
+        z: +p.m.position.z.toFixed(1), a: +p.m.material.uniforms.uAlpha.value.toFixed(2),
+        vis: !!p.m.visible }));
+      out.guns = { gunX: +GUN_X.toFixed(2), center: q(R.center), side: q(R.side) };
+    }
+    return out;
+  }
+};
+</script>
+</body>
+</html>

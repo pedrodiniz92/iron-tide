@@ -30,6 +30,8 @@ let bombInventory = 0;
 let fireCooldown = 0;
 let lastShotFast = false;
 let ghostPhaseT = 0;
+// SHIMMER clock: a wounded (1 HP) ghost flickers; this drives the sine
+let ghostFlickerT = 0;
 let screamTimer = 6;
 let frenzyZones = [];
 let upgradeSel = 0;

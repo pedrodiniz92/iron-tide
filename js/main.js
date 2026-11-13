@@ -332,7 +332,9 @@ function checkCollisions() {
 
     const hitShield = shields.find((shield) => overlaps(bullet, shield));
     if (hitShield) {
-      damageShield(hitShield, bullet);
+      // Mob shots chew 2 HP per cell (cells are 3 HP): barriers used to soak the
+      // whole wave, which made the shields free cover.
+      damageShield(hitShield, bullet, 2);
       playShieldHit();
       return false;
     }

@@ -2,18 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GHOST HP + PHASE VISUALS — side by side, no shooting (playable mockup)</title>
 <style>
   body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
   h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
   .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
-  .stage { position: relative; width: 900px; height: 600px; border: 1px solid #23304a; background: #0d0d14; margin: 0 16px; }
-  canvas { display: block; }
-  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas */
-  #stage3d { position: absolute; left: 0; top: 0; z-index: 0; background: transparent; }
-  #game { position: absolute; left: 0; top: 0; z-index: 1; }
-  #panel { position: absolute; left: 10px; top: 10px; width: 300px; padding: 8px 10px; z-index: 2;
-    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.82); }
+  .wrap { position: relative; width: min(900px, calc(100vw - 32px)); margin: 0 16px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 3 / 2; border: 1px solid #23304a; background: #0d0d14; }
+  /* 2.5D stack (style.css:87): the WebGL toon layer sits behind the 2D canvas.
+     The canvases MUST have a CSS size: Iron3D calls setPixelRatio(dpr), so the 3D
+     backing store is 900*dpr wide, and without an explicit CSS size the canvas
+     displays at that full backing size (2x on a retina screen) - the 3D layer
+     then renders at 2x scale, offset from the 2D labels. style.css:87 pins the
+     game's #stage3d the same way. */
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #panel { position: absolute; right: 10px; top: 10px; width: 280px; max-height: calc(100% - 20px);
+    overflow-y: auto; padding: 8px 10px; z-index: 2; box-sizing: border-box;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.92); }
+  @media (max-width: 940px) {
+    #panel { position: static; width: auto; max-height: none; margin-top: 8px; }
+  }
   #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
   #panel h2 + label { margin-top: 0; }
   #panel label { display: block; font-size: 11px; line-height: 1.35; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
@@ -23,32 +33,35 @@
 </head>
 <body>
 <h1>GHOST HP + PHASE VISUALS &mdash; SIDE BY SIDE, NO SHOOTING</h1>
-<div class="sub">Three ghosts, nothing to shoot. <b>LEFT</b>: 2 HP, exactly the shipped look.
-<b>MIDDLE</b>: the hit animation on a loop &mdash; solid 2 HP, takes a hit (flash + shockwave),
-shows the picked 1 HP visual, resets. <b>RIGHT</b>: 1 HP, the picked visual, held. All three run
-the phase cycle together so you can compare the phase look. The 2 HP state and the shipped FADE
-phase are true to code (js/invaders.js:255-275, js/drawing.js:318-321, the real crackTexture()).</div>
+<div class="sub">Three ghosts stacked vertically, nothing to shoot. <b>TOP</b>: 2 HP, exactly the shipped
+look. <b>MIDDLE</b>: the hit animation on a loop &mdash; solid 2 HP, takes a hit (flash + shockwave),
+shows the picked 1 HP visual, resets. <b>BOTTOM</b>: 1 HP, the picked visual, held. All three run
+the phase cycle together. Watch the phase window (last 1s of each 4s cycle): all four phase looks
+fuse the model's ~15 parts into one silhouette &mdash; no internals, no part outlines, no
+top-vs-bottom shading difference. Q/W are flat fades, E/T are hollow rim-lit.</div>
+<div class="wrap">
 <div class="stage">
 <canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
 <canvas id="game" width="900" height="600"></canvas>
+</div>
 <div id="panel">
-  <h2>1 HP VISUAL (KEYS 1-4)</h2>
-  <label><input type="radio" name="v" id="v1" checked> 1 &middot; CRACK &mdash; the crab's impact star, real 3D (shell plate + crackTexture)</label>
-  <label><input type="radio" name="v" id="v2"> 2 &middot; HOLLOW &mdash; dimmed to 55% (wounded)</label>
-  <label><input type="radio" name="v" id="v3"> 3 &middot; FLICKER &mdash; unstable ~8Hz shimmer</label>
-  <label><input type="radio" name="v" id="v4"> 4 &middot; CRACK + HOLLOW &mdash; texture at 70% (most readable)</label>
+  <h2>FLICKER @ 1 HP (KEYS F/G/H/J)</h2>
+  <label><input type="radio" name="f" id="f1"> F &middot; OFF &mdash; steady (shipped)</label>
+  <label><input type="radio" name="f" id="f2" checked> G &middot; SHIMMER &mdash; even ~3.5Hz, 0.55-1.0</label>
+  <label><input type="radio" name="f" id="f3"> H &middot; STUTTER &mdash; broken bulb, random dips</label>
+  <label><input type="radio" name="f" id="f4"> J &middot; HEARTBEAT &mdash; slow double-thump</label>
   <h2>PHASE LOOK (KEYS Q/W/E/T)</h2>
-  <label><input type="radio" name="p" id="p1" checked> Q &middot; FADE &mdash; shipped fade, now uniform (fill-from-below lifts the bottom half)</label>
-  <label><input type="radio" name="p" id="p2"> W &middot; FLICKER &mdash; the shipped flicker flag (0.35-1.0 pulse)</label>
-  <label><input type="radio" name="p" id="p3"> E &middot; TINT &mdash; spectral violet at 50%</label>
-  <label><input type="radio" name="p" id="p4"> T &middot; TINT + FADE &mdash; spectral violet at 35%</label>
-  <div class="hint">PHASE: the shipped FADE looked top-heavy - the toon key light comes from above, so
-  at 0.18 alpha the lit top half still read while the shadowed bottom half vanished. The ghost now
-  carries a fill-from-below light so the whole silhouette fades as one. FLICKER never drops below
-  0.35; TINT shifts the hue so the whole silhouette reads as one spectral shape.<br><br>
-  CRACK: the ghost now carries a shell plate (the crab's trick - <code>userData.shell</code> +
-  <code>uMap</code> swap), so the real <code>crackTexture()</code> (the crab's impact star) maps onto
-  the body in 3D. No 2D overlay.</div>
+  <label><input type="radio" name="p" id="p1" checked> Q &middot; FADE &mdash; flat uniform silhouette, parts fused, no internals</label>
+  <label><input type="radio" name="p" id="p2"> W &middot; FADE GLOW &mdash; flat silhouette + soft rim glow</label>
+  <label><input type="radio" name="p" id="p3"> E &middot; SPECTRAL &mdash; hollow rim-lit ghost (edges stay, middle goes)</label>
+  <label><input type="radio" name="p" id="p4"> T &middot; SPECTRAL+ &mdash; hollow, brighter rim</label>
+  <div class="hint">ALL FOUR phase looks: a <b>depth prepass</b> (an invisible copy writes depth
+  first) fuses the ~15 parts into one union silhouette &mdash; internal parts, seams and
+  back-faces fail the depth test and cannot be seen; the per-part <b>hull outlines</b> and the
+  <b>DARK face parts</b> fade out with the phase; the shading
+  <b>flattens in the first third of the fade</b> so the lit top never reads over the shadowed
+  bottom, and the rim light's upward bias goes uniform.<br><br>
+  FLICKER: multiplies the phase fade, so a wounded ghost phased out stays spectral.</div>
 </div>
 </div>
 <!-- the shipping 2.5D renderer: Three.js toon models on #stage3d, driven by Iron3D.sync()/render() -->
@@ -92,32 +105,41 @@ function push3D(e) {
 
 // js/constants.js:93 - the ghost as shipped: 2 HP, color #dfe9ff
 const GHOST_COLOR = "#dfe9ff";
-const PHASE_COLOR = "#b9a7ff"; // spectral violet for the TINT phase variants
 
-// 1 HP variants: 1 = the shipped crack (true to code), 2-4 = proposals
-const HPV = {
-  1: { name: "CRACK", alpha: () => 1, crack: true },
-  2: { name: "HOLLOW", alpha: () => 0.55, crack: false },
-  3: { name: "FLICKER", alpha: (t) => 0.35 + 0.6 * (0.5 + 0.5 * Math.sin(t * 50)), crack: false },
-  4: { name: "CRACK+HOLLOW", alpha: () => 0.7, crack: true }
+// 1 HP flicker styles - they MULTIPLY the phase fade, so a phased-out ghost stays spectral.
+const FLK = {
+  1: { name: "OFF", mul: () => 1 },
+  2: { name: "SHIMMER", mul: (t) => 0.70 + 0.30 * (0.5 + 0.5 * Math.sin(t * 22)) },
+  3: { name: "STUTTER", mul: (t) => {
+    const h = Math.abs(Math.sin(Math.floor(t * 14) * 12.9898) * 43758.5453) % 1;
+    return h < 0.22 ? 0.18 + h : 1;
+  } },
+  4: { name: "HEARTBEAT", mul: (t) => {
+    const p = t % 1.15;
+    const thump = (x, c, w) => Math.exp(-((x - c) * (x - c)) / (2 * w * w));
+    return 0.45 + 0.55 * Math.min(1, thump(p, 0.15, 0.055) + 0.65 * thump(p, 0.42, 0.06));
+  } }
 };
-// Phase variants: 1 = the shipped fade (true to code), 2-4 = proposals.
-// FLICKER uses the shipped flicker flag (js/assets3d.js:284: 0.35-1.0 pulse).
+// Phase variants - ALL render as the single-layer mask sprite (see ensureQuad).
+// mode: 1 flat fade, 2 flat fade + soft rim, 3 hollow rim-lit, 4 deep hollow + bright rim
 const PHV = {
-  1: { name: "FADE (shipped)", tint: false, flicker: false, floor: 0.18 },
-  2: { name: "FLICKER", tint: false, flicker: true, floor: 0.35 },
-  3: { name: "TINT", tint: true, flicker: false, floor: 0.5 },
-  4: { name: "TINT+FADE", tint: true, flicker: false, floor: 0.35 }
+  1: { name: "FADE", mode: 1 },
+  2: { name: "FADE GLOW", mode: 2 },
+  3: { name: "SPECTRAL", mode: 3 },
+  4: { name: "SPECTRAL+", mode: 4 }
 };
-let hpVariant = 1, phaseVariant = 1;
+let flkVariant = 2, phaseVariant = 1;
 
-let t = 0, ghostPhaseT = 0, hitT = 0;
+let t = 0, ghostPhaseT = 0, hitT = 0, pinned = false;
+// phase alpha floor: 0.18 = shipped. setPhaseFloor() raises it for review
+// screenshots so the structure (internals/top-bottom) is visible to image models.
+let phaseFloor = 0.18;
 let explosions = [], shockwaves = [], popups = [];
-const GHOST_Y = 130, GHOST_SIZE = 32;
+const GHOST_SIZE = 32;
 const SLOTS = [
-  { id: "gA", x: 168, label: "2 HP - SHIPPED" },
-  { id: "gB", x: 434, label: "HIT - WATCH THE TRANSITION" },
-  { id: "gC", x: 700, label: "1 HP - PICKED VISUAL" }
+  { id: "gA", x: 120, y: 80, label: "2 HP - SHIPPED" },
+  { id: "gB", x: 120, y: 240, label: "HIT - TRANSITION" },
+  { id: "gC", x: 120, y: 400, label: "1 HP - PICKED VISUAL" }
 ];
 // the middle ghost's hit loop: 2s solid -> hit -> 2.5s wounded -> 0.5s reset
 const HIT_LOOP = 5;
@@ -133,22 +155,25 @@ function slotHp(slot) {
 
 window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
-  if (k >= "1" && k <= "4") setHpVariant(Number(k));
+  if (k === "f") setFlk(1);
+  if (k === "g") setFlk(2);
+  if (k === "h") setFlk(3);
+  if (k === "j") setFlk(4);
   if (k === "q") setPhaseVariant(1);
   if (k === "w") setPhaseVariant(2);
   if (k === "e") setPhaseVariant(3);
   if (k === "t") setPhaseVariant(4);
 });
-function setHpVariant(n) {
-  hpVariant = clamp(n, 1, 4);
-  for (let i = 1; i <= 4; i += 1) document.getElementById("v" + i).checked = i === hpVariant;
+function setFlk(n) {
+  flkVariant = clamp(n, 1, 4);
+  for (let i = 1; i <= 4; i += 1) document.getElementById("f" + i).checked = i === flkVariant;
 }
 function setPhaseVariant(n) {
   phaseVariant = clamp(n, 1, 4);
   for (let i = 1; i <= 4; i += 1) document.getElementById("p" + i).checked = i === phaseVariant;
 }
 for (let i = 1; i <= 4; i += 1) {
-  document.getElementById("v" + i).addEventListener("change", () => setHpVariant(i));
+  document.getElementById("f" + i).addEventListener("change", () => setFlk(i));
   document.getElementById("p" + i).addEventListener("change", () => setPhaseVariant(i));
 }
 
@@ -159,19 +184,19 @@ function addPopup(x, y, text, color) { popups.push({ x, y, text, color, t: 0.9 }
 function step(dt) {
   t += dt;
   // js/invaders.js:255-275 - the real 4s phase cycle, verbatim (all three ghosts together)
-  ghostPhaseT = (ghostPhaseT + dt) % 4;
+  if (!pinned) ghostPhaseT = (ghostPhaseT + dt) % 4;
   const ghostAlpha = ghostPhaseT < 3 ? 1
-    : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * 0.82
-    : ghostPhaseT < 3.75 ? 0.18
-    : 0.18 + ((ghostPhaseT - 3.75) / 0.25) * 0.82;
+    : ghostPhaseT < 3.25 ? 1 - ((ghostPhaseT - 3) / 0.25) * (1 - phaseFloor)
+    : ghostPhaseT < 3.75 ? phaseFloor
+    : phaseFloor + ((ghostPhaseT - 3.75) / 0.25) * (1 - phaseFloor);
   // the middle ghost's hit loop
   const wasHitT = hitT;
-  hitT = (hitT + dt) % HIT_LOOP;
+  if (!pinned) hitT = (hitT + dt) % HIT_LOOP;
   const mid = SLOTS[1];
   if (wasHitT < 2 && hitT >= 2) {
-    addExplosion(mid.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, "#8b5cf6");
-    addShockwave(mid.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, 46);
-    addPopup(mid.x + GHOST_SIZE / 2, GHOST_Y - 26, "HIT", "#ffe066");
+    addExplosion(mid.x + GHOST_SIZE / 2, mid.y + GHOST_SIZE / 2, "#8b5cf6");
+    addShockwave(mid.x + GHOST_SIZE / 2, mid.y + GHOST_SIZE / 2, 46);
+    addPopup(mid.x + GHOST_SIZE / 2, mid.y - 26, "HIT", "#ffe066");
   }
   explosions.forEach((e) => { e.t -= dt; });
   explosions = explosions.filter((e) => e.t > 0);
@@ -179,80 +204,336 @@ function step(dt) {
   shockwaves = shockwaves.filter((s) => s.t > 0);
   popups.forEach((p) => { p.t -= dt; });
   popups = popups.filter((p) => p.t > 0);
-  return { ghostAlpha, phaseWindow: ghostPhaseT >= 3 };
+  // phaseU: 0 solid -> 1 fully spectral, across the fade into the phase window
+  const phaseU = clamp((1 - ghostAlpha) / (1 - phaseFloor), 0, 1);
+  return { ghostAlpha, phaseWindow: ghostPhaseT >= 3, phaseU };
 }
 
-// js/assets3d.js:38 crackTexture() - the crab's impact star: one core, five rays that taper
-// 85 -> 55 -> 30, an arc ring around the core. Same chain data, scaled to the ghost's shell.
-const CRACK_CHAINS = [
-  [-2.35, [[0.42, -0.25, 85], [0.5, 0.2, 55], [0.42, 0.05, 30]]],
-  [-1.5, [[0.36, 0.3, 85], [0.45, 0.15, 55], [0.4, 0.05, 30]]],
-  [-0.4, [[0.42, -0.15, 85], [0.36, 0.25, 55], [0.3, 0.1, 30]]],
-  [2.6, [[0.4, 0.18, 85], [0.36, -0.22, 55], [0.3, -0.1, 30]]],
-  [1.75, [[0.24, -0.3, 85], [0.2, 0.3, 55]]]
-];
-function drawCrackStar(cx, cy, w, color, alpha) {
-  const L = w * 0.16; // the texture's 0.42 unit ray is ~16% of the shell width
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(cx, cy);
-  ctx.strokeStyle = "rgba(8,6,4,0.92)";
-  ctx.lineCap = "round";
-  ctx.shadowColor = color; ctx.shadowBlur = 5; // the "subtle glow" the hull crack gets
-  CRACK_CHAINS.forEach(([ang, segs]) => {
-    let x = 0, y = 0, a = ang;
-    segs.forEach(([len, bend, lw]) => {
-      const nx = x + Math.cos(a) * len * L, ny = y + Math.sin(a) * len * L;
-      ctx.lineWidth = (lw / 85) * 2.6;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
-      x = nx; y = ny; a += bend;
-    });
+// ---- 3D patches (prototype for the port into js/assets3d.js) ----
+// The ghost model is ~15 overlapping parts, each with its own dark hull outline, plus
+// DARK eyes/mouth and the crack plate. At phase alpha (0.18) all of that reads as an
+// internal skeleton. Three fixes, blended in by uPhase (0 solid -> 1 spectral):
+//  1. DEPTH PREPASS: an invisible copy of the model (colorWrite off, depth-write on)
+//     renders first, so the parts fuse into one union silhouette - intersection seams
+//     and internal back-faces fail the depth test and vanish.
+//  2. The hull outlines and the DARK face parts fade out with uPhase.
+//  3. The shader flattens the shading (SILHOUETTE) or goes fresnel-rim (SPECTRAL):
+//     edges stay, the middle goes hollow.
+// Research (aitviewer "Rendering of Transparent Objects"; MasterAllArts hologram
+// ep.09; Babylon transparent_rendering): a multi-part transparent model shows its
+// internals because every part alpha-blends over its neighbours (self-overlap).
+// The fix is a depth prepass + SINGLE alpha layer: blend the object once per pixel.
+// Here the prepass is a CONSTANT-COLOUR render of the body-only clone (maskRT):
+// every part writes the same white, so internal part edges cannot exist by
+// construction. The phase shader samples that mask in screen space: alpha = pale
+// interior + rim = gradient of the FUSED silhouette. No per-part fresnel, no bbox
+// band - the two mechanisms that kept drawing internal seams.
+const PHASE_SNIP = `float a = uAlpha;
+  if (uPhase > 0.001) {
+    // flatten fast (first third of the fade) so the lit top never reads over the
+    // shadowed bottom; 1.0 = fully flat
+    float flatAmt = clamp(uPhase * 3.0, 0.0, 1.0);
+    float hollow = (uMode > 1.5) ? 1.0 : 0.0; // SPECTRAL modes
+    vec2 suv = gl_FragCoord.xy / uRes;
+    float m = texture2D(uMask, suv).r;
+    // fused rim = 1 where any screen-space neighbour falls OUTSIDE the silhouette
+    float px = 3.0;
+    float mn = min(m, min(
+      min(texture2D(uMask, suv + vec2(px, 0.0) / uRes).r, texture2D(uMask, suv - vec2(px, 0.0) / uRes).r),
+      min(texture2D(uMask, suv + vec2(0.0, px) / uRes).r, texture2D(uMask, suv - vec2(0.0, px) / uRes).r)));
+    float rim = 1.0 - mn;
+    // SPECTRAL alpha: near-solid pale interior + bright fused rim (T = thicker,
+    // brighter). Interior floor 0.9 of uAlpha: the ghost must read PALE WHITE,
+    // not mid-grey, over the dark navy background (T = tighter, brighter rim)
+    float sa = step(0.02, m) * mix(0.9, 1.0, clamp(rim * (uMode > 2.5 ? 3.0 : 2.0), 0.0, 1.0));
+    a = mix(a, a * sa, hollow * uPhase);
+    // DETAIL parts (dark eyes/mouth) fade to zero ONLY in SPECTRAL modes (3+);
+    // in FADE modes (1,2) the face stays visible (the user wants eyes/mouth in
+    // the flat fade)
+    a *= mix(1.0, 1.0 - uPhase * step(2.5, uMode), uDetail);
+    // spectral colour = WHITE, fully flat (key light is killed in phase, so no
+    // toon terminator facet survives anywhere). The face (detail) parts keep their
+    // dark colour in FADE modes so the eyes/mouth read against the pale body.
+    vec3 sc = vec3(0.97, 0.98, 1.0);
+    c = mix(c, sc, flatAmt * (1.0 - uDetail * step(uMode, 2.5)));
+    // edge glow rides the FUSED mask rim, not per-part fresnel
+    c += vec3(1.0) * rim * hollow * uPhase * (uMode > 2.5 ? 1.1 : 0.7);
+  }
+  gl_FragColor = vec4(c, a);`;
+
+function patchGhost(mesh) {
+  const shell = mesh.userData.shell
+    || (mesh.children[0] && mesh.children[0].userData && mesh.children[0].userData.shell);
+  // the crack is gone from the ghost entirely - hide the shell plate
+  if (shell) shell.visible = false;
+  mesh.traverse((o) => {
+    if (!o.isMesh || !o.material.uniforms || o.material.userData.__patched) return;
+    o.material.userData.__patched = true;
+    const u = o.material.uniforms;
+    if (u.uLit) {
+      // body part; DARK face parts (eyes/mouth) have a dark mid colour; the crack
+      // SHELL PLATE counts as detail too - its open cylinder edge reads as a dotted
+      // band across the chest at low alpha
+      o.material.userData.__detail = o === shell
+        || (u.uMid.value.r + u.uMid.value.g + u.uMid.value.b) / 3 < 0.35;
+      o.material.uniforms.uPhase = { value: 0 };
+      o.material.uniforms.uMode = { value: 0 };
+      // 1 = eyes/mouth/crack plate: the shader fades these to zero in phase
+      o.material.uniforms.uDetail = { value: o.material.userData.__detail ? 1 : 0 };
+      // plain object, NOT new THREE.Vector3(): THREE is not global in this page
+      // (the bundle is an IIFE) - a ReferenceError here would kill the rAF loop
+      o.material.uniforms.uMask = { value: null }; // set by ensureMaskPass
+      o.material.uniforms.uRes = { value: { x: W, y: H } };
+      // rim + back light trace each part's own silhouette (the joints glow) and the
+      // rim is biased to upward normals (top brighter than bottom). In phase BOTH
+      // fade out entirely: the phase edge glow comes from the fused silhouette
+      // mask (PHASE_SNIP), per-part rims are exactly the "internals" to remove.
+      o.material.fragmentShader = "uniform float uPhase;\nuniform float uMode;\nuniform float uDetail;\nuniform sampler2D uMask;\nuniform vec2 uRes;\n"
+        + o.material.fragmentShader
+          .replace("c += uKey * key * uKeyW;",
+            "c += uKey * key * uKeyW * (1.0 - uPhase);")
+          .replace("c += uRim * fres * uRimW * (0.30 + 0.70 * max(N.y, 0.0));",
+            "c += uRim * fres * uRimW * (0.30 + 0.70 * max(N.y, 0.0)) * (1.0 - uPhase);")
+          .replace("c += uBack * back * uBackW;",
+            "c += uBack * back * uBackW * (1.0 - uPhase);")
+          .replace("gl_FragColor = vec4(c, uAlpha);", PHASE_SNIP);
+      o.material.needsUpdate = true;
+    } else if (u.uColor) {
+      o.material.userData.__hull = true;
+      // dark outline hull: fade in the SHADER (the runtime's per-frame alpha sync
+      // overwrites JS uAlpha writes - a half-visible dark hull reads as a weird
+      // artifact behind the phase ghost)
+      o.material.uniforms.uPhase = { value: 0 };
+      o.material.fragmentShader = "uniform float uPhase;\n"
+        + o.material.fragmentShader
+          .replace("gl_FragColor = vec4(uColor, uAlpha);",
+            "gl_FragColor = vec4(uColor, uAlpha * (1.0 - uPhase));");
+      o.material.needsUpdate = true;
+    }
   });
-  ctx.lineWidth = 1.6;
-  ctx.beginPath(); ctx.arc(0, 0, 0.42 * L, -2.5, -1.25, false); ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
+  mesh.userData.__patched = true;
+}
+
+// Depth prepass proxy: deep clone of the model, colour off, depth on. The uAlpha
+// uniform is deleted so the runtime's alpha traverse (which would make the proxy
+// transparent and re-order it) skips it entirely.
+function ensureProxy(mesh) {
+  if (mesh.userData.__proxy) return mesh.userData.__proxy;
+  const proxy = mesh.clone(true);
+  const shell = mesh.userData.shell
+    || (mesh.children[0] && mesh.children[0].userData && mesh.children[0].userData.shell);
+  proxy.traverse((o) => {
+    if (o.isMesh) {
+      // the proxy is the clean BODY silhouette only. The DARK face parts (eyes/
+      // mouth, __detail) and the per-part hull outlines (__hull) must NOT write
+      // depth in the proxy: the proxy writes no colour, so anything it occludes
+      // (the real face) shows the dark background through it = a dark rectangle.
+      const ud = o.material.userData || {};
+      if (ud.__detail || ud.__hull) { o.visible = false; return; }
+      o.material = o.material.clone();
+      delete o.material.uniforms.uAlpha;
+      o.material.colorWrite = false;
+      o.material.depthWrite = true;
+      o.material.transparent = false;
+      o.renderOrder = -10;
+    }
+  });
+  mesh.add(proxy);
+  mesh.userData.__proxy = proxy;
+  return proxy;
+}
+
+// ---- Silhouette mask pass (the research-backed fusion mechanism) ----
+// Constant-colour render of the body-only proxy clone into an offscreen RT:
+// every part writes the SAME white, so the result is the fused silhouette with
+// zero internal structure by construction (self-overlap resolved by depth, not
+// by blending - aitviewer "Rendering of Transparent Objects"). The phase shader
+// samples this mask in screen space for alpha + rim (PHASE_SNIP).
+let maskRT = null, maskScene = null;
+const maskClones = new Map();
+function ensureMaskPass() {
+  const T = Iron3D.THREE;
+  const sz = Iron3D.renderer.getDrawingBufferSize(new T.Vector2());
+  if (maskRT) {
+    // the canvas backing store is 900*dpr - the RT must match it exactly, and
+    // follow the renderer if the window moves to a screen with a different dpr
+    if (maskRT.width !== sz.x || maskRT.height !== sz.y) maskRT.setSize(sz.x, sz.y);
+    maskRT.__res.x = sz.x; maskRT.__res.y = sz.y;
+    return;
+  }
+  // RT at DRAWING-BUFFER size (900*dpr), not CSS size: the quad shader samples
+  // gl_FragCoord (device pixels) / uRes, so mask and screen must share resolution
+  maskRT = new T.WebGLRenderTarget(sz.x, sz.y);
+  maskScene = new T.Scene();
+  maskRT.__res = { x: sz.x, y: sz.y };
+  window.__maskRT = maskRT; // probe handle
+}
+function updateMaskPass(meshes, active) {
+  if (!active || !Iron3D.THREE) return;
+  ensureMaskPass();
+  const T = Iron3D.THREE;
+  Iron3D.scene.updateMatrixWorld(true);
+  const seen = new Set();
+  for (const mesh of meshes) {
+    seen.add(mesh);
+    const proxy = mesh.userData.__proxy;
+    if (!proxy) continue;
+    let clone = maskClones.get(mesh);
+    if (!clone) {
+      clone = proxy.clone(true);
+      // proxy children are body-only (detail/hull stay visible=false from
+      // ensureProxy) - exactly the silhouette we want, face included
+      clone.traverse((o) => {
+        if (o.isMesh) o.material = new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide });
+      });
+      clone.matrixAutoUpdate = false;
+      maskScene.add(clone);
+      maskClones.set(mesh, clone);
+    }
+    clone.visible = true;
+    clone.matrix.copy(mesh.matrixWorld);
+  }
+  maskClones.forEach((clone, mesh) => { if (!seen.has(mesh)) clone.visible = false; });
+  const r = Iron3D.renderer;
+  r.setRenderTarget(maskRT);
+  r.setClearColor(0x000000, 1);
+  r.render(maskScene, Iron3D.cam);
+  r.setRenderTarget(null);
+  r.setClearColor(0x000000, 0);
+  meshes.forEach((mesh) => mesh.traverse((o) => {
+    const u = o.material && o.material.uniforms;
+    if (u && u.uMask) {
+      u.uMask.value = maskRT.texture;
+      u.uRes.value.x = maskRT.__res.x;
+      u.uRes.value.y = maskRT.__res.y;
+    }
+  }));
+}
+
+// ---- Single-layer phase sprite (the research's final prescription: "use a
+// SINGLE alpha layer"). Even with the depth prepass, overlapping parts blend
+// twice at shared pixels (the head-over-body seam). For SPECTRAL the parts are
+// hidden and ONE screen-space quad samples the fused mask: the silhouette is a
+// single layer by construction - no seams, no internals, no face.
+let quadMat = null;
+function setSubtreeVisible(o, v) {
+  if (o.userData.__vis0 === undefined) o.userData.__vis0 = o.visible;
+  o.visible = v ? o.userData.__vis0 : false;
+  o.children.forEach((c) => setSubtreeVisible(c, v));
+}
+function ensureQuad(mesh) {
+  if (mesh.userData.__quad) return mesh.userData.__quad;
+  const T = Iron3D.THREE;
+  if (!quadMat) {
+    quadMat = new T.ShaderMaterial({
+      transparent: true, depthTest: false, depthWrite: false,
+      uniforms: {
+        uMask: { value: null }, uRes: { value: { x: W, y: H } },
+        uPhase: { value: 0 }, uMode: { value: 0 }, uAlpha: { value: 1 }
+      },
+      vertexShader: "void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "uniform sampler2D uMask; uniform vec2 uRes; uniform float uPhase; uniform float uMode; uniform float uAlpha;\n"
+        + "void main() {\n"
+        + "  vec2 suv = gl_FragCoord.xy / uRes;\n"
+        + "  float m = texture2D(uMask, suv).r;\n"
+        + "  float px = 1.5;\n"
+        + "  float mn = min(m, min(\n"
+        + "    min(texture2D(uMask, suv + vec2(px, 0.0) / uRes).r, texture2D(uMask, suv - vec2(px, 0.0) / uRes).r),\n"
+        + "    min(texture2D(uMask, suv + vec2(0.0, px) / uRes).r, texture2D(uMask, suv - vec2(0.0, px) / uRes).r)));\n"
+        + "  float rim = 1.0 - mn;\n"
+        // FADE: flat. FADE GLOW: flat + soft rim. SPECTRAL: HOLLOW (interior fades,
+        // edges glow - the mask makes the interior the ghost's own shape, not a
+        // square, so hollowness reads as a ghost not a dark box). SPECTRAL+: deeper
+        // hollow, brighter/thicker rim.
+        + "  float a;\n"
+        + "  if (uMode < 1.5) a = uAlpha;\n"
+        + "  else if (uMode < 2.5) a = uAlpha * mix(0.9, 1.0, clamp(rim * 1.5, 0.0, 1.0));\n"
+        + "  else if (uMode < 3.5) a = uAlpha * mix(0.12, 1.0, clamp(rim * 4.0, 0.0, 1.0));\n"
+        + "  else a = uAlpha * mix(0.06, 1.0, clamp(rim * 5.0, 0.0, 1.0));\n"
+        + "  vec3 c = vec3(0.97, 0.98, 1.0) + vec3(1.0) * rim * (uMode > 2.5 ? 1.1 : (uMode > 1.5 ? 0.7 : (uMode > 0.5 ? 0.25 : 0.0)));\n"
+        + "  gl_FragColor = vec4(c, a * step(0.02, m) * uPhase);\n"
+        + "}"
+    });
+  }
+  const quad = new T.Mesh(new T.PlaneGeometry(1, 1), quadMat.clone());
+  // per-mesh material clone: the static phase PRINTS render 4 modes at once,
+  // so the quads cannot share one uniform set
+  quad.scale.set(1.8, 1.8, 1);
+  quad.renderOrder = 999;
+  quad.visible = false;
+  mesh.add(quad);
+  mesh.userData.__quad = quad;
+  return quad;
+}
+
+function applyPhase(mesh, phaseU, mode, ac, flicker) {
+  // ALL phase looks render as the single-layer mask sprite. The 1HP FLICKER
+  // routes through the same quad (flat mode 0, uAlpha = flicker alpha): parts
+  // flickering double-blend at the head/body seam -> the top/bottom split.
+  const useQuad = phaseU > 0.02 || flicker;
+  const proxy = mesh.userData.__proxy;
+  if (proxy) proxy.visible = false; // the quad replaces the parts entirely
+  const quad = ensureQuad(mesh);
+  // NEVER show the quad before the mask pass has fed it a texture: sampling an
+  // unbound texture returns WHITE on Chrome -> a solid white square (the bug the
+  // user saw on their GPU; headless SwiftShader hides it).
+  quad.visible = useQuad && !!quad.material.uniforms.uMask.value;
+  quad.renderOrder = 999; // pool sync overwrites this to 2 every frame
+  if (useQuad) {
+    quad.material.uniforms.uPhase.value = phaseU > 0.02 ? phaseU : 1;
+    quad.material.uniforms.uMode.value = phaseU > 0.02 ? mode : 0;
+    quad.material.uniforms.uAlpha.value = ac;
+  }
+  // the quad IS the ghost in phase - hide every part so nothing double-blends
+  // (the head-over-body seam was two parts blending at one pixel). Builder-hidden
+  // parts (some face spheres) stay hidden via __vis0. EXCEPTION: in FADE modes the
+  // face (detail) parts stay visible, drawn ON TOP of the quad, so the eyes/mouth
+  // read in the flat fade.
+  mesh.children.forEach((c) => {
+    if (c === proxy || c === quad) return;
+    const isDetail = c.isMesh && c.material.userData && c.material.userData.__detail;
+    if (useQuad && mode < 2.5 && isDetail) {
+      setSubtreeVisible(c, true);
+      c.renderOrder = 1000; // above the quad (999)
+    } else {
+      setSubtreeVisible(c, !useQuad);
+      if (c.isMesh) c.renderOrder = 0;
+    }
+  });
+  mesh.traverse((o) => {
+    if (!o.isMesh || !o.material.uniforms) return;
+    if (o === quad) return; // the quad's uniforms are set above - don't clobber them
+    const u = o.material.uniforms;
+    // proxy materials keep uPhase (cloned) but have uAlpha deleted - skip them
+    if (u.uPhase && u.uAlpha) {
+      u.uPhase.value = phaseU;
+      if (u.uMode) u.uMode.value = mode;
+      // hull + detail fades are done in their shaders (uPhase / uDetail) - the
+      // runtime's alpha sync would overwrite any JS uAlpha write here
+    }
+  });
 }
 
 function drawGhost(slot, hp, ghostAlpha, phaseWindow) {
-  const p = PHV[phaseVariant];
-  const hv = HPV[hpVariant];
   const wounded = hp < 2;
-  let alpha = 1, crack = wounded && hv.crack, flicker = 0, color = GHOST_COLOR, id = slot.id;
-  if (phaseWindow) {
-    if (p.flicker) {
-      flicker = 1; // the shipped flicker flag drives 0.35-1.0 in the bundle
-    } else if (p.tint) {
-      id = slot.id + "p"; // the pooled spectral-violet twin
-      color = PHASE_COLOR;
-      alpha = p.floor;
-    } else {
-      alpha = ghostAlpha; // the shipped fade value
-    }
+  const flk = wounded ? FLK[flkVariant].mul(t) : 1;
+  let alpha = phaseWindow ? ghostAlpha : 1;
+  if (wounded) alpha *= flk;
+  const cx = slot.x + GHOST_SIZE / 2, cy = slot.y + GHOST_SIZE / 2;
+  if (!push3D({ id: slot.id, key: "ghost", x: slot.x, y: slot.y, w: GHOST_SIZE, h: GHOST_SIZE,
+    color: GHOST_COLOR, phase: slot.x * 0.02, alpha })) {
+    neon("ghost", cx, cy, GHOST_SIZE, GHOST_COLOR, 7, alpha);
   }
-  if (wounded && !p.flicker) alpha *= hv.alpha(t);
-  const cx = slot.x + GHOST_SIZE / 2, cy = GHOST_Y + GHOST_SIZE / 2;
-  if (!push3D({ id, key: "ghost", x: slot.x, y: GHOST_Y, w: GHOST_SIZE, h: GHOST_SIZE,
-    color, phase: slot.x * 0.02, alpha, crack, crackFade: 1, flicker })) {
-    neon("ghost", cx, cy, GHOST_SIZE, color, 7, alpha);
-  }
-  // The 3D crack is now REAL: the ghost model carries a shell plate (the crab's trick -
-  // userData.shell + uMap swap), so the bundle's crackTexture() maps the impact star onto
-  // the body in 3D. The 2D star below is only the no-WebGL fallback.
-  if (crack && !has3D()) {
-    drawCrackStar(slot.x + GHOST_SIZE / 2, GHOST_Y + GHOST_SIZE / 2, GHOST_SIZE, color, alpha);
-  }
-  // label + HP pips
+  // label + HP pips (short: the variant names live in the bottom-left HUD, long
+  // labels collided with each other and ran under the panel)
   ctx.fillStyle = "#6f8fa8";
   ctx.font = "11px 'Courier New', monospace";
-  const label = slot.label + (wounded ? "  [" + HPV[hpVariant].name + "]" : "");
-  ctx.fillText(label, cx - ctx.measureText(label).width / 2, GHOST_Y + GHOST_SIZE + 22);
+  const label = slot.label + (wounded ? " - 1HP" : "");
+  ctx.fillText(label, cx - ctx.measureText(label).width / 2, slot.y + GHOST_SIZE + 22);
   for (let i = 0; i < 2; i += 1) {
     ctx.fillStyle = i < hp ? "#7dff66" : "#2a3550";
     ctx.beginPath();
-    ctx.arc(cx - 8 + i * 16, GHOST_Y + GHOST_SIZE + 36, 4, 0, Math.PI * 2);
+    ctx.arc(cx - 8 + i * 16, slot.y + GHOST_SIZE + 36, 4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -285,23 +566,50 @@ function draw() {
   // HUD
   ctx.fillStyle = "#6f8fa8";
   ctx.font = "12px 'Courier New', monospace";
-  ctx.fillText("1 HP: " + HPV[hpVariant].name, W - 190, 22);
-  ctx.fillText("PHASE: " + PHV[phaseVariant].name, W - 190, 38);
-  ctx.fillText("PHASE WINDOW: " + (phaseWindow ? "ON" : "off"), W - 190, 54);
+  ctx.fillText("FLICKER: " + FLK[flkVariant].name, 14, H - 60);
+  ctx.fillText("PHASE: " + PHV[phaseVariant].name, 14, H - 44);
+  ctx.fillText("PHASE WINDOW: " + (phaseWindow ? "ON" : "off"), 14, H - 28);
   if (!has3D()) {
     ctx.fillStyle = "#ff6a3d";
-    ctx.fillText("NO WEBGL - 2D FALLBACK (neon + fallback crack)", 10, H - 12);
+    ctx.fillText("NO WEBGL - 2D FALLBACK (neon)", 10, H - 12);
   }
 }
 
-let stepState = { ghostAlpha: 1, phaseWindow: false };
+let stepState = { ghostAlpha: 1, phaseWindow: false, phaseU: 0 };
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   stepState = step(dt);
   draw();
-  if (window.Iron3D) { Iron3D.sync(frame3D); Iron3D.render(performance.now()); }
+  if (window.Iron3D) {
+    Iron3D.sync(frame3D);
+    const mode = PHV[phaseVariant].mode;
+    const gmeshes = [];
+    let anyFlicker = false;
+    SLOTS.forEach((slot) => {
+      try {
+        const it = Iron3D.pool.get(slot.id);
+        if (!it) return;
+        if (!it.mesh.userData.__patched) patchGhost(it.mesh);
+        ensureProxy(it.mesh);
+        const flicker = slotHp(slot) < 2 && stepState.phaseU <= 0.02;
+        anyFlicker = anyFlicker || flicker;
+        applyPhase(it.mesh, stepState.phaseU, mode,
+          it.alphaCur === undefined ? 1 : it.alphaCur, flicker);
+        gmeshes.push(it.mesh);
+      } catch (e) {
+        // never let a patch error kill the rAF chain (the ghosts would vanish)
+        window.__patchErr = String(e && e.stack || e);
+      }
+    });
+    try {
+      updateMaskPass(gmeshes, stepState.phaseU > 0.02 || anyFlicker);
+    } catch (e) {
+      window.__maskErr = String(e && e.stack || e);
+    }
+    Iron3D.render(performance.now());
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -310,16 +618,42 @@ requestAnimationFrame(loop);
 window.SANDBOX = {
   get state() {
     return {
-      hpVariant, hpVariantName: HPV[hpVariant].name,
-      phaseVariant, phaseVariantName: PHV[phaseVariant].name,
+      flkVariant, flkName: FLK[flkVariant].name,
+      phaseVariant, phaseName: PHV[phaseVariant].name,
       ghostPhaseT: +ghostPhaseT.toFixed(2), phaseWindow: ghostPhaseT >= 3,
+      phaseU: +stepState.phaseU.toFixed(2),
       hitT: +hitT.toFixed(2),
       hp: { left: slotHp(SLOTS[0]), mid: slotHp(SLOTS[1]), right: slotHp(SLOTS[2]) },
       has3D: has3D()
     };
   },
-  setHpVariant,
-  setPhaseVariant
+  setFlk, setPhaseVariant,
+  setPhaseT(v) { ghostPhaseT = v; },
+  setHitT(v) { hitT = v; },
+  // freeze the cycle clocks (headless rAF runs at ~1fps, so dt sweeps the pins)
+  setPin(v) { pinned = !!v; },
+  setPhaseFloor(v) { phaseFloor = clamp(v, 0.05, 0.9); },
+  probe(id) {
+    const it = window.Iron3D && Iron3D.pool.get(id || "gA");
+    if (!it) return { missing: true };
+    const sh = it.mesh.userData.shell
+      || (it.mesh.children[0] && it.mesh.children[0].userData && it.mesh.children[0].userData.shell);
+    const out = { alphaCur: it.alphaCur, crack: it.crack, body: null, hull: null, detail: null,
+      proxy: it.mesh.userData.__proxy ? { visible: it.mesh.userData.__proxy.visible } : null };
+    it.mesh.traverse((o) => {
+      if (!o.isMesh || !o.material.uniforms) return;
+      const u = o.material.uniforms;
+      if (u.uPhase && u.uMode && !out.body) out.body = { phase: +u.uPhase.value.toFixed(2), mode: u.uMode.value };
+      if (u.uColor && out.hull === null) out.hull = +u.uPhase.value.toFixed(2);
+      if (o.material.userData.__detail && out.detail === null) out.detail = +u.uDetail.value.toFixed(2);
+    });
+    if (sh) {
+      out.mapS = sh.material.uniforms.uMapS.value.toArray().map((n) => Math.round(n * 100) / 100);
+      out.mapO = sh.material.uniforms.uMapO.value.toArray().map((n) => Math.round(n * 100) / 100);
+      out.mapMix = Math.round(sh.material.uniforms.uMapMix.value * 100) / 100;
+    }
+    return out;
+  }
 };
 </script>
 </body>

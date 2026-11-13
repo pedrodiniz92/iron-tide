@@ -64,21 +64,6 @@ export function buildBanshee(kind, cfg, hex) {
       part(g, new THREE.SphereGeometry(0.15, 14, 10), body, cfg, s * 0.55, 0.06, 0.08, 0.008, 0.55, 1, 0.8);
     }
     part(g, new THREE.SphereGeometry(0.08, 12, 10), DARK, cfg, 0, 0.04, 0.5, 0.004, 0.8, 1.1, 0.5);
-    // Crab-inspired crack: a shell plate on the front of the body (the crab's trick -
-    // userData.shell + uMap swap in js/assets3d.js). The real crackTexture() (the crab's
-    // impact star) now maps onto the ghost in 3D instead of being a no-op. The plate is a
-    // curved segment hugging the body's front; its uv is offset so the star (drawn at
-    // texture uv ~0.67,0.25) lands centred on the chest.
-    const plate = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.53, 0.53, 0.72, 24, 1, true, -Math.PI / 3, 2 * Math.PI / 3),
-      surfMaterial(body, Object.assign({}, cfg, {
-        map: new THREE.Texture(), mapS: new THREE.Vector2(1.35, 1.35), mapO: new THREE.Vector2(0.017, -0.4225)
-      }))
-    );
-    plate.material.side = THREE.DoubleSide;
-    plate.position.y = -0.05;
-    g.add(plate);
-    g.userData.shell = plate;
     // Uniform phase: lift the shadowed bottom half (fill from below) so the top and
     // bottom fade together instead of the lit top reading over a vanished bottom. The
     // fill must overcome both the key light (from above) and the rim light's top bias
