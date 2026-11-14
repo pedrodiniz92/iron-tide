@@ -44,7 +44,7 @@
   <h2>VIPER LOOK (KEYS 1-3)</h2>
   <label><input type="radio" name="v" id="v1" checked> 1 &middot; SHIPPED &mdash; the current model, #2fc96f</label>
   <label><input type="radio" name="v" id="v2"> 2 &middot; SLICK &mdash; leaner body, accent-green wings</label>
-  <label><input type="radio" name="v" id="v3"> 3 &middot; COBRA &mdash; spread hood + green skull face</label>
+  <label><input type="radio" name="v" id="v3"> 3 &middot; COBRA &mdash; UFO-saucer hood + raised cobra head (no skull)</label>
   <h2>VENOM POOL (KEYS Q/W/E)</h2>
   <label><input type="radio" name="p" id="p1" checked> Q &middot; SHIPPED &mdash; flat ellipse + dark inner</label>
   <label><input type="radio" name="p" id="p2"> W &middot; BUBBLE &mdash; rising bubbles + wobbling rim</label>
@@ -55,10 +55,12 @@
   pulsing rim on top of those bubbles, plus <b>one skull per spawn</b> that drifts
   up out of the puddle over <b>1.8s</b> with a <b>slight</b> side-to-side wobble and fades near the
   top. None of them changes the hit box.<br><br>
-  LOOKS 2-3 are built only from bundle keys (<b>viper</b>, <b>skull</b>) + <b>fit</b> +
-  colour, composed as body + wing/hood layers, and all three sit at the shipped
-  <b>~180 px</b> span. <b>glow</b> is not used: in the runtime it drives the model to <b>red</b>
-  (js/assets3d.js:245-268), not a green glow.<br><br>
+  LOOKS 2-3 compose push3D layers from bundle keys (<b>viper</b>, <b>ufo</b>) plus one
+  custom builder: the COBRA head is built in this page with the kit's own
+  <b>surfMaterial/addHull/finishMob</b> (exported on <b>Iron3D</b>) and registered via
+  <b>Iron3D.__builders</b> - same toon ramp and ink outline as the shipped models.
+  All three sit at the shipped <b>~180 px</b> span. <b>glow</b> is not used: in the
+  runtime it drives the model to <b>red</b> (js/assets3d.js), not a green glow.<br><br>
   The viper strafes the left two thirds so it never flies under this panel. Bomb cadence here is
   <b>2.5s</b> (the shipped viper's bombTimer is 3.35s).<br><br>
   <b>SANDBOX</b>: setLook / setPool / setBombT(v) (arms the timer <i>and</i> drops the pair now) /
@@ -119,6 +121,108 @@ const FLOOR = H - 42;        // js/boss.js:14 - a bomb lands at y >= H-42
 // js/boss.js:53-61 - the venom pool, verbatim numbers
 const POOL = { w: 70, ry: 12, t: 1.5, y: H - 52, color: "#7dff66" };
 
+// ---- COBRA HEAD: custom builder on the bundle's own toon kit ----------------
+// The user's call: the cobra is the UFO SAUCER as the spread hood with a real
+// cobra head on top (NOT the skull kit). Shape facts (JEB 213(9):1521 "functional
+// morphology of hooding in cobras"; Britannica "cobra"): the hood is a LATERAL
+// flare compressed front-to-back, widest at the head end; the head is broad and
+// distinct from the neck; eyes HIGH and LATERAL with angled slit pupils; the
+// display faces the threat (here: the camera, +z).
+// Built with Iron3D.surfMaterial/addHull/finishMob (exported from the bundle),
+// so it ships in the same toon style, ramp, and ink outline as the kit models.
+function buildCobraHead(cfg, hex) {
+  const T = Iron3D.THREE;
+  const g = new T.Group();
+  const dark = "#0c1410";
+  // hood: the flare, compressed front-to-back (thin in z), widest at the head
+  const hood = new T.Mesh(new T.SphereGeometry(13, 30, 20), Iron3D.surfMaterial(hex, cfg));
+  hood.scale.set(1.12, 0.92, 0.30);
+  hood.position.set(0, 1.5, -1.5);
+  Iron3D.addHull(g, hood, hood.geometry, 0.020, cfg, hex);
+  g.add(hood);
+  // head: broad, distinct from the hood, riding high on it
+  const head = new T.Mesh(new T.SphereGeometry(6.4, 24, 16), Iron3D.surfMaterial(hex, cfg));
+  head.scale.set(1.0, 0.82, 0.9);
+  head.position.set(0, 2.2, 3.4);
+  Iron3D.addHull(g, head, head.geometry, 0.016, cfg, hex);
+  g.add(head);
+  // snout: the wedge drops toward the mouth (front-lower), tip at the player.
+  // Head sphere: center (0, 2.2, 3.4), radii (6.4, 5.25, 5.76) - the face parts
+  // must sit OUTSIDE that surface (front reaches z 9.16) or they vanish inside it.
+  const snout = new T.Mesh(new T.ConeGeometry(3.4, 6.4, 18), Iron3D.surfMaterial(hex, cfg));
+  snout.rotation.x = Math.PI * 0.62; // tip points forward-down
+  snout.position.set(0, -1.0, 7.0);  // tip lands ~(0, -2.2, 10)
+  Iron3D.addHull(g, snout, snout.geometry, 0.014, cfg, hex);
+  g.add(snout);
+  // eyes: HIGH and LATERAL, pale angled sclera + vertical-slit dark pupil
+  for (const side of [-1, 1]) {
+    const eye = new T.Mesh(new T.SphereGeometry(1.9, 16, 12), Iron3D.surfMaterial("#f6f2d8", cfg));
+    eye.scale.set(1.15, 0.75, 0.6);
+    eye.position.set(4.4 * side, 4.2, 6.6); // on the head surface, bulging to z ~7.7
+    eye.rotation.z = -0.5 * side; // the angled cobra lid line
+    g.add(eye);
+    const pupil = new T.Mesh(new T.SphereGeometry(0.85, 12, 10), Iron3D.surfMaterial(dark, cfg));
+    pupil.scale.set(0.5, 1.5, 0.5);
+    pupil.position.set(4.7 * side, 4.2, 7.9); // in front of the sclera
+    pupil.rotation.z = -0.35 * side;
+    g.add(pupil);
+  }
+  // mouth line: a thin dark arc across the lower snout + two small fangs
+  const mouth = new T.Mesh(new T.TorusGeometry(2.2, 0.32, 8, 20, Math.PI * 0.9),
+    Iron3D.surfMaterial(dark, cfg));
+  mouth.rotation.set(0.35, 0, Math.PI * 1.05);
+  mouth.position.set(0, -2.6, 8.6);
+  g.add(mouth);
+  for (const side of [-1, 1]) {
+    const fang = new T.Mesh(new T.ConeGeometry(0.55, 2.0, 10), Iron3D.surfMaterial("#eef7ee", cfg));
+    fang.rotation.x = Math.PI; // tip down
+    fang.position.set(1.1 * side, -4.0, 8.8);
+    g.add(fang);
+  }
+  return Iron3D.finishMob(g, 2.3);
+}
+if (window.Iron3D) {
+  Iron3D.keys.cobraHead = "cobraHead";
+  Iron3D.__builders.cobraHead = buildCobraHead;
+}
+
+// ---- COBRA HOOD: the UFO saucer's lens shape, flattened, NO dome ------------
+// The shipped ufo model's extrusion depth + white dome poke through the face and
+// above the head. The cobra's hood is the same lens silhouette + rim ring +
+// lights, just flatter and domeless, so it reads as a spread hood BEHIND the head.
+function buildCobraHood(cfg, hex) {
+  const T = Iron3D.THREE;
+  const g = new T.Group();
+  const sh = new T.Shape();
+  sh.moveTo(-26, 4); sh.quadraticCurveTo(0, -12, 26, 4);
+  sh.quadraticCurveTo(0, 20, -26, 4); sh.closePath();
+  const geo = new T.ExtrudeGeometry(sh, {
+    depth: 7, bevelEnabled: true, bevelThickness: 2.2, bevelSize: 2, bevelSegments: 3,
+    curveSegments: 18
+  });
+  geo.center();
+  const disc = new T.Mesh(geo, Iron3D.surfMaterial(hex, cfg));
+  Iron3D.addHull(g, disc, geo, 0.022, cfg, hex);
+  g.add(disc);
+  // the saucer's rim ring, squashed into the hood's edge
+  const ring = new T.Mesh(new T.TorusGeometry(20, 1.8, 10, 34), Iron3D.surfMaterial(hex, cfg));
+  ring.scale.set(1, 0.55, 1);
+  ring.position.set(0, 1, 0);
+  Iron3D.addHull(g, ring, ring.geometry, 0.010, cfg, hex);
+  g.add(ring);
+  // the saucer's under-lights, kept as the hood rim's glow dots
+  for (const x of [-15, 0, 15]) {
+    const light = new T.Mesh(new T.SphereGeometry(2.4, 14, 10), Iron3D.surfMaterial("#ffe066", cfg));
+    light.position.set(x, -4, 4.5);
+    g.add(light);
+  }
+  return Iron3D.finishMob(g, 2.3);
+}
+if (window.Iron3D) {
+  Iron3D.keys.cobraHood = "cobraHood";
+  Iron3D.__builders.cobraHood = buildCobraHood;
+}
+
 // js/player.js:7-13 - the ship as shipped (56x22 at y H-70, 290 px/s), js/main.js:17 (2 HP),
 // js/constants.js:442 (1.5s respawn invuln). The dash is the mockup's own 0.25s / 210px.
 const player = { x: W / 2 - 28, y: H - 70, w: 56, h: 22, speed: 290 };
@@ -157,30 +261,26 @@ const LOOKS = {
     }
   },
   3: {
-    // COBRA: the shipped ship, with a raised cobra head facing the player.
-    // Shape facts (JEB 213(9):1521 "functional morphology of hooding in cobras"; Britannica
-    // "cobra"): the hood is a LATERAL flare, compressed front-to-back, WIDEST at the cranial
-    // end and tapering caudally, carried JUST BELOW the raised head; the head is broad and
-    // distinct from the neck, eyes high and lateral; the display faces the threat.
+    // COBRA (rebuilt per user): the UFO SAUCER is the spread hood, with a real
+    // cobra head on top - NOT the skull kit ("cobra looks nothing like a cobra.
+    // I want something sort of based on the UFO ship with a cobra face on top").
+    // The saucer's ring reads as the hood's rim; the head (buildCobraHead) sits
+    // on the near side facing the player: hood flare, broad head, high lateral
+    // slit eyes, down-pointing snout, mouth line + fangs.
     name: "COBRA",
     parts(b) {
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-      const PI = Math.PI;
       return [
-        // the ship, at the shipped scale, riding below the display (back of the stack)
-        { id: "vBody", key: "viper", x: b.x - 13, y: b.y + 14, w: b.w + 26, h: b.h + 26,
-          color: VIPER.color, fit: 1.2, phase: 1.1, tilt: 0.2 },
-        // the hood: a wide flat flare, pitched back so it reads compressed front-to-back,
-        // wider than the head and carried just below it (never wider than the ship, so the
-        // ship's wings still frame the display)
-        { id: "vHood", key: "viper", x: cx - 66, y: cy - 66, w: 132, h: 66,
-          color: VIPER.accent, rot: [-0.45, 0, 0], phase: 1.1, tilt: 0.2, z: 6 },
-        // the head: raised above the hood, facing the camera (front of the stack). The
-        // skull kit model is built jaw-up, so it is rolled 180 deg about the camera axis -
-        // that puts the cranium on top and the jaw and fangs below while keeping the face
-        // turned at the player and the crossed bones behind it.
-        { id: "vHead", key: "skull", x: cx - 52, y: cy - 112, w: 104, h: 104,
-          color: VIPER.color, fit: 1.0, rot: [0, 0, PI], phase: 1.1, tilt: 0.2, z: 46 }
+        // the hood: the cobraHood lens (UFO silhouette, domeless) BEHIND the head -
+        // in this stack SMALLER z = farther from the camera, so z -10 puts the whole
+        // disc (depth ~43 px) behind the head's front face; flares wider than the
+        // head, with the saucer's rim ring + lights as the hood's edge
+        { id: "vHood", key: "cobraHood", x: cx - 105, y: cy - 70, w: 210, h: 90,
+          color: VIPER.color, fit: 1.0, phase: 1.1, tilt: 0.2, z: -10 },
+        // the cobra head raised ABOVE the hood flare (cobra display: head towers
+        // over the spread hood), facing the camera
+        { id: "vHead", key: "cobraHead", x: cx - 50, y: cy - 90, w: 100, h: 100,
+          color: VIPER.accent, fit: 1.0, phase: 1.1, tilt: 0.2, z: 40 }
       ];
     }
   }

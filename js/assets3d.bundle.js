@@ -15580,6 +15580,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     "ABYSSAL SQUID": 1.15
   };
   var BUILDERS = Object.assign({}, MOBS, MOB_V2, { invSquid: MOBS.squid });
+  var MOCK_BUILDERS = {};
   var KEY = {
     squid: "invSquid",
     octopus: "invSquid",
@@ -15606,13 +15607,13 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     stinger: "stinger"
   };
   var BULWARK = {
-    hull: { lit: "#a8bcd2", mid: "#52657c", shadow: "#2a3646", deep: "#141c26", rim: "#d8fff0", back: "#3fe0b0" },
-    dark: { lit: "#2f5f52", mid: "#16332e", shadow: "#0b1f1c", deep: "#05100e", rim: "#5fd8b8" },
-    accent: { lit: "#d8fff0", mid: "#4fe8b4", shadow: "#1a9a76", deep: "#0a4a38", rim: "#f0fff8", back: "#4fe8b4" },
-    cockpit: { lit: "#eaffff", mid: "#8ff5d4", shadow: "#20b088", deep: "#0a5a44" },
-    plume: { lit: "#eafff8", mid: "#7dffd0", shadow: "#1a9a76", deep: "#08382c" },
-    core: { lit: "#ffffff", mid: "#eafff8", shadow: "#7dffd0", deep: "#7dffd0" },
-    outline: "#071219"
+    hull: { lit: "#9fb0c4", mid: "#64788e", shadow: "#39485c", deep: "#1c2530", rim: "#d8ecf2", back: "#2fbf71" },
+    dark: { lit: "#39455c", mid: "#171d2b", shadow: "#0c1018", deep: "#06080e", rim: "#5fb8a0" },
+    accent: { lit: "#8af0c0", mid: "#2fbf71", shadow: "#14704a", deep: "#083a26", rim: "#c0f5dc", back: "#2fbf71" },
+    cockpit: { lit: "#eafff4", mid: "#7dffc0", shadow: "#1fb87a", deep: "#0a5a3a" },
+    plume: { lit: "#c8f5dc", mid: "#2fbf71", shadow: "#14704a", deep: "#06281a" },
+    core: { lit: "#f0fff6", mid: "#a8f0cc", shadow: "#2fbf71", deep: "#2fbf71" },
+    outline: "#0c141a"
   };
   var GUN_X = 14 / (75.6 / 72);
   var GUN_DUR = 0.5;
@@ -15643,7 +15644,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       if (o2.alpha !== void 0) {
         u2.uAlpha.value = o2.alpha;
         m2.transparent = true;
-        m2.depthWrite = false;
+        if (!o2.keepShell) m2.depthWrite = false;
       }
       if (o2.flat) {
         u2.uRimW.value = 0;
@@ -15654,10 +15655,12 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   }
   function buildBulwark(cfg, hex, opts) {
     const o2 = opts || {};
+    const partCfg = Object.assign({}, cfg);
+    delete partCfg.map;
     const g2 = new jl();
     const P2 = BULWARK;
     const add = (geo, pal_, pos, rot, po2) => {
-      const m2 = new Bs(geo, palMat(cfg, pal_, po2));
+      const m2 = new Bs(geo, palMat(partCfg, pal_, po2));
       m2.position.set(pos[0], pos[1], pos[2]);
       if (rot) m2.rotation.set(rot[0], rot[1], rot[2]);
       if (po2 && po2.scale) m2.scale.set(po2.scale[0], po2.scale[1], po2.scale[2]);
@@ -15869,6 +15872,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     return shellMesh.userData.crackSkin === "ship" ? shipCrackTexture() : crackTexture();
   }
   function build(key, color, quality) {
+    if (MOCK_BUILDERS[key]) return MOCK_BUILDERS[key](RIG, color, quality);
     if (key === "banshee") return buildBanshee("wail", RIG, color);
     if (key === "ghost") {
       const g2 = buildBanshee("ghost", RIG, color);
@@ -15973,6 +15977,12 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   var maskRT = null;
   var maskScene = null;
   var maskClones = /* @__PURE__ */ new Map();
+  var GHOST_RT = 96;
+  var ghostCam = null;
+  function ensureGhostRT(mesh) {
+    if (!mesh.userData.__mrt) mesh.userData.__mrt = new bi(GHOST_RT, GHOST_RT);
+    return mesh.userData.__mrt;
+  }
   function ensureMaskPass() {
     const sz = renderer.getDrawingBufferSize(new Jn());
     if (maskRT) {
@@ -16017,12 +16027,36 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     renderer.setClearColor(0, 0);
     meshes.forEach((mesh) => mesh.traverse((o2) => {
       const u2 = o2.material && o2.material.uniforms;
-      if (u2 && u2.uMask) {
+      if (u2 && u2.uMask && o2 !== mesh.userData.__quad) {
         u2.uMask.value = maskRT.texture;
         u2.uRes.value.x = maskRT.__res.x;
         u2.uRes.value.y = maskRT.__res.y;
       }
     }));
+    if (!ghostCam) ghostCam = new ba(-1, 1, 1, -1, 1, 1e3);
+    for (const mesh of meshes) {
+      const quad = mesh.userData.__quad;
+      const clone = maskClones.get(mesh);
+      if (!quad || !clone) continue;
+      const s2 = mesh.scale.x * 1.25;
+      ghostCam.left = -s2;
+      ghostCam.right = s2;
+      ghostCam.top = s2;
+      ghostCam.bottom = -s2;
+      ghostCam.position.set(mesh.position.x, mesh.position.y, 500);
+      ghostCam.updateProjectionMatrix();
+      maskClones.forEach((c2) => {
+        c2.visible = false;
+      });
+      clone.visible = true;
+      const rt2 = ensureGhostRT(mesh);
+      renderer.setRenderTarget(rt2);
+      renderer.setClearColor(0, 1);
+      renderer.render(maskScene, ghostCam);
+      renderer.setRenderTarget(null);
+      renderer.setClearColor(0, 0);
+      quad.material.uniforms.uMask.value = rt2.texture;
+    }
   }
   var quadMat = null;
   function setSubtreeVisible(o2, v2) {
@@ -16033,24 +16067,27 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   function ensureQuad(mesh) {
     if (mesh.userData.__quad) return mesh.userData.__quad;
     if (!quadMat) {
-      const sz = renderer.getDrawingBufferSize(new Jn());
       quadMat = new Xs({
         transparent: true,
         depthTest: false,
         depthWrite: false,
         uniforms: {
           uMask: { value: null },
-          uRes: { value: { x: sz.x, y: sz.y } },
+          uRes: { value: { x: GHOST_RT, y: GHOST_RT } },
           uPhase: { value: 0 },
           uMode: { value: 0 },
           uAlpha: { value: 1 }
         },
-        vertexShader: "void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-        fragmentShader: "uniform sampler2D uMask; uniform vec2 uRes; uniform float uPhase; uniform float uMode; uniform float uAlpha;\nvoid main() {\n  vec2 suv = gl_FragCoord.xy / uRes;\n  float m = texture2D(uMask, suv).r;\n  float px = 1.5;\n  float mn = min(m, min(\n    min(texture2D(uMask, suv + vec2(px, 0.0) / uRes).r, texture2D(uMask, suv - vec2(px, 0.0) / uRes).r),\n    min(texture2D(uMask, suv + vec2(0.0, px) / uRes).r, texture2D(uMask, suv - vec2(0.0, px) / uRes).r)));\n  float rim = 1.0 - mn;\n  float a;\n  if (uMode < 1.5) a = uAlpha;\n  else a = uAlpha * mix(0.9, 1.0, clamp(rim * 1.5, 0.0, 1.0));\n  vec3 c = vec3(0.97, 0.98, 1.0) + vec3(1.0) * rim * (uMode > 0.5 ? 0.25 : 0.0);\n  gl_FragColor = vec4(c, a * step(0.02, m) * uPhase);\n}"
+        vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+        // PER-GHOST mask (uMask = this ghost's own small RT, see updateMaskPass):
+        // sampling vUv, NOT gl_FragCoord - the old full-screen shared mask made a
+        // moving ghost's quad show every OTHER phased ghost it passed over
+        // ("another ghost behind them", worst at 1HP where the quad is always on)
+        fragmentShader: "uniform sampler2D uMask; uniform vec2 uRes; uniform float uPhase; uniform float uMode; uniform float uAlpha;\nvarying vec2 vUv;\nvoid main() {\n  float m = texture2D(uMask, vUv).r;\n  float px = 1.5;\n  float mn = min(m, min(\n    min(texture2D(uMask, vUv + vec2(px, 0.0) / uRes).r, texture2D(uMask, vUv - vec2(px, 0.0) / uRes).r),\n    min(texture2D(uMask, vUv + vec2(0.0, px) / uRes).r, texture2D(uMask, vUv - vec2(0.0, px) / uRes).r)));\n  float rim = 1.0 - mn;\n  float a;\n  if (uMode < 1.5) a = uAlpha;\n  else a = uAlpha * mix(0.9, 1.0, clamp(rim * 1.5, 0.0, 1.0));\n  vec3 c = vec3(0.97, 0.98, 1.0) + vec3(1.0) * rim * (uMode > 0.5 ? 0.25 : 0.0);\n  gl_FragColor = vec4(c, a * step(0.02, m) * uPhase);\n}"
       });
     }
     const quad = new Bs(new ha(1, 1), quadMat.clone());
-    quad.scale.set(1.8, 1.8, 1);
+    quad.scale.set(2.5, 2.5, 1);
     quad.renderOrder = 999;
     quad.visible = false;
     mesh.add(quad);
@@ -16062,6 +16099,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     const proxy = mesh.userData.__proxy;
     if (proxy) proxy.visible = false;
     const quad = ensureQuad(mesh);
+    quad.quaternion.copy(mesh.quaternion).invert();
     quad.visible = useQuad && !!quad.material.uniforms.uMask.value;
     quad.renderOrder = 999;
     if (useQuad) {
@@ -16122,7 +16160,12 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     for (const [id2, item] of pool) {
       if (!seen.has(id2)) {
         scene.remove(item.mesh);
-        maskClones.delete(item.mesh);
+        const cl2 = maskClones.get(item.mesh);
+        if (cl2) {
+          if (maskScene) maskScene.remove(cl2);
+          maskClones.delete(item.mesh);
+        }
+        if (item.mesh.userData.__mrt) item.mesh.userData.__mrt.dispose();
         pool.delete(id2);
       }
     }
@@ -16319,6 +16362,11 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     renderer,
     scene,
     cam,
+    // the toon kit, exported for mockup-side custom builders (same pattern as THREE)
+    surfMaterial,
+    addHull,
+    finishMob,
+    __builders: MOCK_BUILDERS,
     // headless probe hook: force a pool item's phase look (u 0..1, fl = shimmer)
     phase: (id2, u2, fl2) => {
       const it2 = pool.get(id2);

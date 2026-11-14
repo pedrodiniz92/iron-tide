@@ -9,6 +9,9 @@ const FIT = 1.35;
 const FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, stinger: 1.65,
   squid: 1.15, zealot: 1.6, idol: 1.6, "ABYSSAL SQUID": 1.15 };
 const BUILDERS = Object.assign({}, BASE_MOBS, MOB_V2, { invSquid: BASE_MOBS.squid });
+// mockup-side custom builders (window.Iron3D.__builders): the mockups compose
+// new looks from the kit without touching the shipped BUILDERS map
+const MOCK_BUILDERS = {};
 
 const KEY = {
   squid: "invSquid", octopus: "invSquid", octo: "invSquid", crab: "crab_b",
@@ -22,18 +25,19 @@ const KEY = {
 
 // ---- BULWARK: the player hull (ported from mockups/ship-looks.html) ----
 // Heavy bomber silhouette: wide flat hull, twin booms, big dome, four pod jets, and a
-// nose gun rig that IS the single <-> double animation. Baked palette is JADE INLAY, the
-// dark-steel + jade scheme: steel hull, deep green-steel structure, mint trim, jade
-// rim-light. Model units are the game's own space, same as buildPlayerC (hull 30 wide),
-// so the crack plate, the glow pass and finishMob(TARGET) all work unchanged.
+// nose gun rig that IS the single <-> double animation. Baked palette is DARK STEEL +
+// JADE, the dark-steel + jade scheme (exact values from mockups/ship-looks.html): dark
+// steel hull, near-black blue-steel structure, jade trim, jade back-rim. Model units are
+// the game's own space, same as buildPlayerC (hull 30 wide), so the crack plate, the glow
+// pass and finishMob(TARGET) all work unchanged.
 const BULWARK = {
-  hull: { lit: "#a8bcd2", mid: "#52657c", shadow: "#2a3646", deep: "#141c26", rim: "#d8fff0", back: "#3fe0b0" },
-  dark: { lit: "#2f5f52", mid: "#16332e", shadow: "#0b1f1c", deep: "#05100e", rim: "#5fd8b8" },
-  accent: { lit: "#d8fff0", mid: "#4fe8b4", shadow: "#1a9a76", deep: "#0a4a38", rim: "#f0fff8", back: "#4fe8b4" },
-  cockpit: { lit: "#eaffff", mid: "#8ff5d4", shadow: "#20b088", deep: "#0a5a44" },
-  plume: { lit: "#eafff8", mid: "#7dffd0", shadow: "#1a9a76", deep: "#08382c" },
-  core: { lit: "#ffffff", mid: "#eafff8", shadow: "#7dffd0", deep: "#7dffd0" },
-  outline: "#071219"
+  hull: { lit: "#9fb0c4", mid: "#64788e", shadow: "#39485c", deep: "#1c2530", rim: "#d8ecf2", back: "#2fbf71" },
+  dark: { lit: "#39455c", mid: "#171d2b", shadow: "#0c1018", deep: "#06080e", rim: "#5fb8a0" },
+  accent: { lit: "#8af0c0", mid: "#2fbf71", shadow: "#14704a", deep: "#083a26", rim: "#c0f5dc", back: "#2fbf71" },
+  cockpit: { lit: "#eafff4", mid: "#7dffc0", shadow: "#1fb87a", deep: "#0a5a3a" },
+  plume: { lit: "#c8f5dc", mid: "#2fbf71", shadow: "#14704a", deep: "#06281a" },
+  core: { lit: "#f0fff6", mid: "#a8f0cc", shadow: "#2fbf71", deep: "#2fbf71" },
+  outline: "#0c141a"
 };
 // The DOUBLE-shot offsets, in model units: js/player.js fires at +-14 px from the hitbox
 // centre; the shipped hull spans 72 units and draws 56 * FIT(1.35) = 75.6 px wide, so
@@ -58,18 +62,29 @@ function palMat(cfg, P, o) {
   set("uLit", P.lit); set("uShadow", P.shadow); set("uDeep", P.deep);
   set("uRim", P.rim); set("uBack", P.back);
   if (o) {
-    if (o.alpha !== undefined) { u.uAlpha.value = o.alpha; m.transparent = true; m.depthWrite = false; }
+    if (o.alpha !== undefined) {
+      u.uAlpha.value = o.alpha; m.transparent = true;
+      // keepShell marks the gun rig: solid parts whose alpha animates, so they keep
+      // depth-write and normal sorting (the plumes are the only true additive parts)
+      if (!o.keepShell) m.depthWrite = false;
+    }
     if (o.flat) { u.uRimW.value = 0; u.uBackW.value = 0; }
   }
   return m;
 }
 function buildBulwark(cfg, hex, opts) {
   const o = opts || {};
+  // Parts must NOT wear the crack map: the game's build() hands the player builder a cfg
+  // with map=blankTexture (for the damage plate), and USE_MAP adds a x1.25 map gain in
+  // the shader - painting every part with that cfg renders the whole ship 25% paler than
+  // the mockup's plain materials. The plate below is the only part that wants the map cfg.
+  const partCfg = Object.assign({}, cfg);
+  delete partCfg.map;
   const g = new THREE.Group();
   const P = BULWARK;
   // part + its dark outline shell, all at the Bulwark's authored palette
   const add = (geo, pal_, pos, rot, po) => {
-    const m = new THREE.Mesh(geo, palMat(cfg, pal_, po));
+    const m = new THREE.Mesh(geo, palMat(partCfg, pal_, po));
     m.position.set(pos[0], pos[1], pos[2]);
     if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
     if (po && po.scale) m.scale.set(po.scale[0], po.scale[1], po.scale[2]);
@@ -280,6 +295,7 @@ function crackSkin(shellMesh) {
 }
 
 function build(key, color, quality) {
+  if (MOCK_BUILDERS[key]) return MOCK_BUILDERS[key](RIG, color, quality); // mockup-side kit
   if (key === "banshee") return buildBanshee("wail", RIG, color);
   if (key === "ghost") {
     const g = buildBanshee("ghost", RIG, color);
@@ -401,11 +417,20 @@ function ensureProxy(mesh) {
   return proxy;
 }
 
-// ---- Silhouette mask pass: constant-colour render of the proxies. The RT is
-// at DRAWING-BUFFER size (900*dpr): the quad shader samples gl_FragCoord
-// (device pixels) / uRes, so mask and screen must share resolution.
+// ---- Silhouette mask pass: constant-colour render of the proxies. The
+// full-screen mask (DRAWING-BUFFER size, follows dpr) feeds the FACE parts'
+// shader (gl_FragCoord sampling). The phase QUADS use per-ghost masks below.
 let maskRT = null, maskScene = null;
 const maskClones = new Map();
+// PER-GHOST mask: one small RT per phased ghost + one shared orthographic camera
+// framed on that ghost. The quad samples it by its own UV, so a ghost can only
+// ever show its OWN silhouette - never a neighbour's it passes over.
+const GHOST_RT = 96;
+let ghostCam = null;
+function ensureGhostRT(mesh) {
+  if (!mesh.userData.__mrt) mesh.userData.__mrt = new THREE.WebGLRenderTarget(GHOST_RT, GHOST_RT);
+  return mesh.userData.__mrt;
+}
 function ensureMaskPass() {
   const sz = renderer.getDrawingBufferSize(new THREE.Vector2());
   if (maskRT) {
@@ -441,6 +466,7 @@ function updateMaskPass(meshes, active) {
     clone.matrix.copy(mesh.matrixWorld);
   }
   maskClones.forEach((clone, mesh) => { if (!seen.has(mesh)) clone.visible = false; });
+  // full-screen fused mask: feeds the FACE parts' shader (gl_FragCoord sampling)
   renderer.setRenderTarget(maskRT);
   renderer.setClearColor(0x000000, 1);
   renderer.render(maskScene, cam);
@@ -448,17 +474,39 @@ function updateMaskPass(meshes, active) {
   renderer.setClearColor(0x000000, 0);
   meshes.forEach((mesh) => mesh.traverse((o) => {
     const u = o.material && o.material.uniforms;
-    if (u && u.uMask) {
+    if (u && u.uMask && o !== mesh.userData.__quad) {
       u.uMask.value = maskRT.texture;
       u.uRes.value.x = maskRT.__res.x;
       u.uRes.value.y = maskRT.__res.y;
     }
   }));
+  // per-ghost masks: render ONE clone at a time into that ghost's small RT, with
+  // a camera framed exactly on its quad (half-extent 1.25 * world scale) so the
+  // quad's vUv maps 1:1 onto the RT
+  if (!ghostCam) ghostCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
+  for (const mesh of meshes) {
+    const quad = mesh.userData.__quad;
+    const clone = maskClones.get(mesh);
+    if (!quad || !clone) continue;
+    const s = mesh.scale.x * 1.25;
+    ghostCam.left = -s; ghostCam.right = s; ghostCam.top = s; ghostCam.bottom = -s;
+    ghostCam.position.set(mesh.position.x, mesh.position.y, 500);
+    ghostCam.updateProjectionMatrix();
+    maskClones.forEach((c) => { c.visible = false; });
+    clone.visible = true;
+    const rt = ensureGhostRT(mesh);
+    renderer.setRenderTarget(rt);
+    renderer.setClearColor(0x000000, 1);
+    renderer.render(maskScene, ghostCam);
+    renderer.setRenderTarget(null);
+    renderer.setClearColor(0x000000, 0);
+    quad.material.uniforms.uMask.value = rt.texture;
+  }
 }
 
-// ---- Single-layer phase sprite: ONE screen-space quad per ghost samples the
-// fused mask. The parts are hidden in phase, so the silhouette cannot
-// double-blend at the head/body seam (the top/bottom split).
+// ---- Single-layer phase sprite: ONE quad per ghost samples the ghost's OWN
+// mask RT (per-ghost, see updateMaskPass). The parts are hidden in phase, so
+// the silhouette cannot double-blend at the head/body seam (the top/bottom split).
 let quadMat = null;
 function setSubtreeVisible(o, v) {
   if (o.userData.__vis0 === undefined) o.userData.__vis0 = o.visible;
@@ -468,22 +516,25 @@ function setSubtreeVisible(o, v) {
 function ensureQuad(mesh) {
   if (mesh.userData.__quad) return mesh.userData.__quad;
   if (!quadMat) {
-    const sz = renderer.getDrawingBufferSize(new THREE.Vector2());
     quadMat = new THREE.ShaderMaterial({
       transparent: true, depthTest: false, depthWrite: false,
       uniforms: {
-        uMask: { value: null }, uRes: { value: { x: sz.x, y: sz.y } },
+        uMask: { value: null }, uRes: { value: { x: GHOST_RT, y: GHOST_RT } },
         uPhase: { value: 0 }, uMode: { value: 0 }, uAlpha: { value: 1 }
       },
-      vertexShader: "void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      // PER-GHOST mask (uMask = this ghost's own small RT, see updateMaskPass):
+      // sampling vUv, NOT gl_FragCoord - the old full-screen shared mask made a
+      // moving ghost's quad show every OTHER phased ghost it passed over
+      // ("another ghost behind them", worst at 1HP where the quad is always on)
       fragmentShader: "uniform sampler2D uMask; uniform vec2 uRes; uniform float uPhase; uniform float uMode; uniform float uAlpha;\n"
+        + "varying vec2 vUv;\n"
         + "void main() {\n"
-        + "  vec2 suv = gl_FragCoord.xy / uRes;\n"
-        + "  float m = texture2D(uMask, suv).r;\n"
+        + "  float m = texture2D(uMask, vUv).r;\n"
         + "  float px = 1.5;\n"
         + "  float mn = min(m, min(\n"
-        + "    min(texture2D(uMask, suv + vec2(px, 0.0) / uRes).r, texture2D(uMask, suv - vec2(px, 0.0) / uRes).r),\n"
-        + "    min(texture2D(uMask, suv + vec2(0.0, px) / uRes).r, texture2D(uMask, suv - vec2(0.0, px) / uRes).r)));\n"
+        + "    min(texture2D(uMask, vUv + vec2(px, 0.0) / uRes).r, texture2D(uMask, vUv - vec2(px, 0.0) / uRes).r),\n"
+        + "    min(texture2D(uMask, vUv + vec2(0.0, px) / uRes).r, texture2D(uMask, vUv - vec2(0.0, px) / uRes).r)));\n"
         + "  float rim = 1.0 - mn;\n"
         // mode 0 = FLAT (SHIMMER): uniform uAlpha inside the fused silhouette.
         // mode 1 = FADE: flat + a whisper of rim on the pale white.
@@ -497,7 +548,9 @@ function ensureQuad(mesh) {
   }
   // per-mesh material clone: each ghost fades on its own clock
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), quadMat.clone());
-  quad.scale.set(1.8, 1.8, 1);
+  // 2.5 units >= the model's 2.3 TARGET span: a smaller quad clips the fused
+  // silhouette into a square (the mask alpha outside the quad cannot show)
+  quad.scale.set(2.5, 2.5, 1);
   quad.renderOrder = 999;
   quad.visible = false;
   mesh.add(quad);
@@ -513,6 +566,11 @@ function applyPhase(mesh, phaseU, mode, ac, flicker) {
   const proxy = mesh.userData.__proxy;
   if (proxy) proxy.visible = false; // the quad replaces the parts entirely
   const quad = ensureQuad(mesh);
+  // BILLBOARD: the invader mesh wobbles every frame (render's rotation.set,
+  // tilt 0.34) and the quad samples the mask in SCREEN space - a tilted quad
+  // shears the silhouette coverage into a parallelogram that flips side to side
+  // with the wobble. Undo the parent rotation so the quad stays screen-parallel.
+  quad.quaternion.copy(mesh.quaternion).invert();
   // NEVER show the quad before the mask pass has fed it a texture: sampling an
   // unbound texture returns WHITE on Chrome -> a solid white square.
   quad.visible = useQuad && !!quad.material.uniforms.uMask.value;
@@ -582,7 +640,13 @@ function sync(list) {
   for (const [id, item] of pool) {
     if (!seen.has(id)) {
       scene.remove(item.mesh);
-      maskClones.delete(item.mesh); // drop the mask-pass clone (no wave leak)
+      // drop the mask-pass clone from the map AND the maskScene: a clone left in
+      // the scene stays visible at its frozen death matrix and paints a dead
+      // ghost's silhouette into every later mask (the "ghost behind them" leak -
+      // 1HP shimmer ghosts die constantly, so it showed up all the time)
+      const cl = maskClones.get(item.mesh);
+      if (cl) { if (maskScene) maskScene.remove(cl); maskClones.delete(item.mesh); }
+      if (item.mesh.userData.__mrt) item.mesh.userData.__mrt.dispose(); // per-ghost mask RT
       pool.delete(id);
     }
   }
@@ -762,6 +826,8 @@ function render(t) {
 // (constant-colour depth prepass -> fused alpha rim, see mockups/ghost-hp-visuals.html)
 window.Iron3D = { sync, render, count: () => pool.size, ready: true, keys: KEY, pool,
   THREE, renderer, scene, cam,
+  // the toon kit, exported for mockup-side custom builders (same pattern as THREE)
+  surfMaterial, addHull, finishMob, __builders: MOCK_BUILDERS,
   // headless probe hook: force a pool item's phase look (u 0..1, fl = shimmer)
   phase: (id, u, fl) => {
     const it = pool.get(id);
