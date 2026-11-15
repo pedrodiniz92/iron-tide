@@ -15564,9 +15564,738 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     return g2;
   }
 
+  // js/viper3d.js
+  var INK = "#141020";
+  var BONE = "#f2f4f8";
+  function part2(group, geo, hex, cfg, x2, y2, z2, thick, sx, sy, sz) {
+    const mesh = new Bs(geo, surfMaterial(hex, cfg));
+    mesh.position.set(x2, y2, z2);
+    if (sx) mesh.scale.set(sx, sy, sz);
+    addHull(group, mesh, geo, thick || 0.012, cfg, hex);
+    group.add(mesh);
+    return mesh;
+  }
+  function polyShape2(pts) {
+    const sh2 = new Su();
+    pts.forEach(([x2, y2], i2) => i2 === 0 ? sh2.moveTo(x2, y2) : sh2.lineTo(x2, y2));
+    sh2.closePath();
+    return sh2;
+  }
+  function extrudePoly2(pts, cfg, hex, group, opts) {
+    const o2 = opts || {};
+    let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    pts.forEach(([x2, y2]) => {
+      minx = Math.min(minx, x2);
+      maxx = Math.max(maxx, x2);
+      miny = Math.min(miny, y2);
+      maxy = Math.max(maxy, y2);
+    });
+    const span = Math.max(maxx - minx, maxy - miny);
+    const depth = o2.depth || span * 0.34;
+    const bev = o2.bevel === void 0 ? span * 0.06 : o2.bevel;
+    const geo = new Ku(polyShape2(pts), {
+      depth,
+      bevelEnabled: bev > 0,
+      bevelThickness: bev,
+      bevelSize: bev * 0.9,
+      bevelSegments: 3,
+      curveSegments: 12
+    });
+    geo.center();
+    const mesh = new Bs(geo, surfMaterial(hex, cfg));
+    addHull(group, mesh, geo, 0.02, cfg, hex);
+    group.add(mesh);
+    return { mesh, front: depth / 2 + bev };
+  }
+  function glowMesh(geo, hex) {
+    if (!hex) throw new Error("glowMesh needs an accent hex");
+    return new Bs(geo, new es({ color: hex }));
+  }
+  function face(g2, cfg, glow, y2, z2, spread, r2) {
+    const parts = [];
+    [-1, 1].forEach((s2) => {
+      parts.push(part2(g2, new id(r2, 20, 14), INK, cfg, s2 * spread, y2, z2 - r2 * 0.3, 0.01, 1, 1.2, 0.55));
+      const pupil = glowMesh(new ks(r2 * 0.34, r2 * 1.25, r2 * 0.3), glow);
+      pupil.position.set(s2 * spread, y2, z2 - r2 * 0.06);
+      g2.add(pupil);
+      parts.push(pupil);
+    });
+    return parts;
+  }
+  function plain(g2) {
+    g2.userData.legs = [];
+    g2.userData.claws = [];
+    g2.userData.spin = [];
+    return finishMob(g2, 2.3);
+  }
+  function buildViperWyrm(cfg, hex) {
+    const g2 = new jl();
+    const body = hex || "#2fc96f";
+    const glow = "#7dff66";
+    const shade = "#1d8a48";
+    const deep = "#0f5c30";
+    const hood = extrudePoly2([
+      [-7.6, 5],
+      [-9.6, 4.4],
+      [-10.8, 1.8],
+      [-11, -0.8],
+      [-10.4, -3.4],
+      [-9, -5.6],
+      [-6.2, -7],
+      [-3, -7.7],
+      [0, -8],
+      [3, -7.7],
+      [6.2, -7],
+      [9, -5.6],
+      [10.4, -3.4],
+      [11, -0.8],
+      [10.8, 1.8],
+      [9.6, 4.4],
+      [7.6, 5],
+      [0, 5.8]
+    ], cfg, shade, g2, { depth: 1.9, bevel: 0.6 });
+    hood.mesh.position.set(0, -1.4, -2.8);
+    const hf = -2.8 + hood.front;
+    [-2, -4].forEach((y2, i2) => {
+      const w2 = 2 * (10.4 + y2 * 0.55) * (0.44 - i2 * 0.05);
+      part2(g2, new ks(w2, 0.26, 0.35), deep, cfg, 0, y2, hf - 0.1, 6e-3);
+    });
+    [-1, 1].forEach((s2) => {
+      const rib = part2(g2, new ks(0.18, 5.4, 0.35), glow, cfg, s2 * 8.4, 0.2, hf - 0.05, 6e-3);
+      rib.rotation.z = s2 * -0.34;
+    });
+    const hg = new jl();
+    hg.position.set(0, 3.5, 0.4);
+    g2.add(hg);
+    const head = extrudePoly2([
+      [-2.9, 4.4],
+      [-2.3, 6.2],
+      [-1.2, 7.1],
+      [0, 7.3],
+      [1.2, 7.1],
+      [2.3, 6.2],
+      [2.9, 4.4],
+      [2.2, 3.2],
+      [1.4, 2.1],
+      [0, 1.6],
+      [-1.4, 2.1],
+      [-2.2, 3.2]
+    ], cfg, body, hg, { depth: 2.3, bevel: 0.45 });
+    const H3 = head.front;
+    face(hg, cfg, glow, 0.95, H3 - 0.1, 1.28, 0.68);
+    [-1, 1].forEach((s2) => {
+      const b2 = part2(
+        hg,
+        new ks(0.95, 0.22, 0.26),
+        INK,
+        cfg,
+        s2 * 1.28,
+        1.9,
+        H3 - 0.01,
+        4e-3
+      );
+      b2.rotation.z = s2 * -0.1;
+    });
+    const jaw = extrudePoly2([
+      [-1.7, 0.5],
+      [-1.9, -0.5],
+      [-1, -1.3],
+      [0, -1.6],
+      [1, -1.3],
+      [1.9, -0.5],
+      [1.7, 0.5],
+      [0, 1]
+    ], cfg, deep, hg, { depth: 0.9, bevel: 0.18 });
+    jaw.mesh.position.set(0, -2.85, H3 - 0.55);
+    jaw.mesh.rotation.x = 0.12;
+    {
+      const cav = new Su();
+      const pts = [
+        [-1.4, 0.4],
+        [-0.7, 0.58],
+        [0, 0.66],
+        [0.7, 0.58],
+        [1.4, 0.4],
+        [1.1, -0.3],
+        [0.5, -0.52],
+        [0, -0.58],
+        [-0.5, -0.52],
+        [-1.1, -0.3]
+      ];
+      pts.forEach(([x2, y2], i2) => i2 === 0 ? cav.moveTo(x2, y2) : cav.lineTo(x2, y2));
+      cav.closePath();
+      const geo = new Ku(cav, { depth: 0.22, bevelEnabled: false, curveSegments: 10 });
+      const m2 = new Bs(geo, surfMaterial(INK, cfg));
+      m2.position.set(0, -2.62, H3 + 0.32);
+      hg.add(m2);
+    }
+    [-1, 1].forEach((s2) => {
+      const f2 = part2(
+        hg,
+        new mu(0.32, 1.9, 10),
+        BONE,
+        cfg,
+        s2 * 0.85,
+        -2.22,
+        H3 + 0.62,
+        8e-3
+      );
+      f2.rotation.x = Math.PI;
+      f2.rotation.z = s2 * -0.05;
+    });
+    [-1, 1].forEach((s2) => {
+      const fork = glowMesh(new ks(0.16, 0.46, 0.18), glow);
+      fork.position.set(s2 * 0.2, -3.02, H3 + 0.55);
+      fork.rotation.z = s2 * 0.3;
+      hg.add(fork);
+    });
+    part2(
+      g2,
+      new pu(1.7, 2.2, 5, 16),
+      shade,
+      cfg,
+      0,
+      -6.8,
+      -1,
+      0.014,
+      1.35,
+      1,
+      0.7
+    );
+    [-6, -7.4].forEach((y2) => {
+      part2(g2, new ks(1.9, 0.3, 0.32), deep, cfg, 0, y2, 0.15, 6e-3);
+    });
+    part2(g2, new pu(2.6, 3, 1, 18), body, cfg, 0, -9.4, -0.6, 0.014, 1.3, 1, 1);
+    const st2 = part2(g2, new mu(0.6, 2.8, 12), glow, cfg, 0, -10.4, 0.8, 0.01);
+    st2.rotation.x = Math.PI * 0.85;
+    return plain(g2);
+  }
+  var VIPER_LOOKS_V2 = {
+    viper_wyrm: buildViperWyrm
+  };
+
+  // js/ships3d.js
+  var GUN_X = 14 / (75.6 / 72);
+  var GUN_DUR = 0.5;
+  var TARGET = 2.35;
+  var easeIO = (p2) => p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
+  var LANTERN = {
+    // the TOP face is what the camera sees, so its lit colour carries the ship's cyan
+    // identity: LANTERN reads cyan-teal at 75.6 px, where the Bulwark reads pale steel
+    // with jade. Two other hulls (LANCER amber, SENTRY crimson) sit either side, so the
+    // three ships are told apart by hue alone even at game scale.
+    hull: { lit: "#7fc9dc", mid: "#2f6474", shadow: "#173a45", deep: "#0a1e26", rim: "#bff6ff", back: "#46e6ff" },
+    dark: { lit: "#1f3346", mid: "#101f2c", shadow: "#070d14", deep: "#03070a", rim: "#46e6ff" },
+    // ACCENT carries the ship's identity: the lit face itself is CYAN, not near-white,
+    // so the trim reads cyan at the game's 75.6 px instead of washing out
+    accent: {
+      lit: "#46e6ff",
+      mid: "#189ab4",
+      shadow: "#0a5a70",
+      deep: "#053a48",
+      rim: "#dcffff",
+      back: "#46e6ff"
+    },
+    cockpit: { lit: "#f4ffff", mid: "#7af4ff", shadow: "#12a8c4", deep: "#054a5e" },
+    plume: { lit: "#8ff0ff", mid: "#2aa6c8", shadow: "#0b4a60", deep: "#04222e" },
+    core: { lit: "#dcfaff", mid: "#63d8f2", shadow: "#1a7a94", deep: "#1a7a94" },
+    outline: "#050e16"
+  };
+  var LANCER = {
+    hull: { lit: "#9fb2c8", mid: "#4a5568", shadow: "#2a3242", deep: "#141a26", rim: "#c8d8e8", back: "#ffb060" },
+    dark: { lit: "#2a3140", mid: "#12161f", shadow: "#0a0d13", deep: "#05070a", rim: "#7a8aa0" },
+    accent: { lit: "#ffe0b0", mid: "#ffab3d", shadow: "#b04a10", deep: "#5c2006", rim: "#fff3c8", back: "#ffab3d" },
+    cockpit: { lit: "#ffffff", mid: "#bfe9ff", shadow: "#6fa8c8", deep: "#2a4a60" },
+    plume: { lit: "#9fb4cc", mid: "#3d5a78", shadow: "#1d2f42", deep: "#0c1620" },
+    core: { lit: "#cfe0ee", mid: "#7fa6c4", shadow: "#3d5a78", deep: "#3d5a78" },
+    outline: "#10141e"
+  };
+  var SENTRY = {
+    hull: { lit: "#cfd8e8", mid: "#7d8798", shadow: "#3f4756", deep: "#1c2029", rim: "#ffffff", back: "#ff6a5a" },
+    dark: { lit: "#a8434a", mid: "#6e2028", shadow: "#3d0f14", deep: "#1e0609", rim: "#d88a86" },
+    accent: { lit: "#ff9a8a", mid: "#e63946", shadow: "#901a24", deep: "#4a0a10", rim: "#ffc8c0", back: "#e63946" },
+    cockpit: { lit: "#fff0ee", mid: "#ffc0b8", shadow: "#a05a50", deep: "#4a2018" },
+    plume: { lit: "#9fb4cc", mid: "#3d5a78", shadow: "#1d2f42", deep: "#0c1620" },
+    core: { lit: "#cfe0ee", mid: "#7fa6c4", shadow: "#3d5a78", deep: "#3d5a78" },
+    outline: "#1a0a10"
+  };
+  var SHIP_PALETTES = { ship1: LANTERN, ship2: LANCER, ship3: SENTRY };
+  function partCfg(cfg) {
+    const o2 = Object.assign({}, cfg);
+    delete o2.map;
+    return o2;
+  }
+  function setPal(u2, P2) {
+    const set = (n2, hex) => {
+      if (!hex || !u2[n2]) return;
+      const v2 = hex.replace("#", "");
+      u2[n2].value.setRGB(
+        parseInt(v2.slice(0, 2), 16) / 255,
+        parseInt(v2.slice(2, 4), 16) / 255,
+        parseInt(v2.slice(4, 6), 16) / 255
+      );
+    };
+    set("uLit", P2.lit);
+    set("uShadow", P2.shadow);
+    set("uDeep", P2.deep);
+    set("uRim", P2.rim);
+    set("uBack", P2.back);
+  }
+  function palMat(cfg, P2, o2) {
+    const m2 = surfMaterial(P2.mid, cfg);
+    setPal(m2.uniforms, P2);
+    const q2 = o2 || {};
+    if (q2.alpha !== void 0) {
+      m2.uniforms.uAlpha.value = q2.alpha;
+      m2.transparent = true;
+      if (!q2.keepShell) {
+        m2.depthWrite = false;
+        m2.renderOrder = 3;
+      }
+    }
+    if (q2.flat) {
+      m2.uniforms.uRimW.value = 0;
+      m2.uniforms.uBackW.value = 0;
+    }
+    m2.userData.a0 = 1;
+    return m2;
+  }
+  function makeKit(cfg, P2) {
+    const g2 = new jl();
+    const c2 = partCfg(cfg);
+    const add = (geo, pal_, pos, rot, po2) => {
+      const q2 = po2 || {};
+      const m2 = new Bs(geo, palMat(c2, pal_, q2));
+      m2.position.set(pos[0], pos[1], pos[2]);
+      if (rot) m2.rotation.set(rot[0], rot[1], rot[2]);
+      if (q2.scale) m2.scale.set(q2.scale[0], q2.scale[1], q2.scale[2]);
+      let sh2 = null;
+      if (!q2.alpha || q2.keepShell) {
+        sh2 = addHull(g2, m2, geo, 0.012, cfg, P2.outline);
+        const v2 = P2.outline.replace("#", "");
+        sh2.material.uniforms.uColor.value.setRGB(
+          parseInt(v2.slice(0, 2), 16) / 255,
+          parseInt(v2.slice(2, 4), 16) / 255,
+          parseInt(v2.slice(4, 6), 16) / 255
+        );
+      }
+      g2.add(m2);
+      return { m: m2, sh: sh2 };
+    };
+    const jet = (x2, y2, z2, list) => {
+      add(new pu(2.4, 2.4, 9, 16), P2.dark, [x2, y2, z2], [Math.PI / 2, 0, 0]);
+      const j2 = add(
+        new pu(1.7, 1.7, 10, 14),
+        P2.plume,
+        [x2, y2, z2 - 5],
+        [-Math.PI / 2, 0, 0],
+        { alpha: 0.85, flat: true }
+      );
+      const c3 = add(
+        new pu(0.8, 0.8, 6, 12),
+        P2.core,
+        [x2, y2, z2 - 4],
+        [-Math.PI / 2, 0, 0],
+        { alpha: 0.9, flat: true }
+      );
+      j2.m.renderOrder = 3;
+      c3.m.renderOrder = 3;
+      list.push({ m: j2.m }, { m: c3.m, core: true });
+    };
+    return { g: g2, add, jet };
+  }
+  function crackPlate(g2, P2, cfg, w2, z2) {
+    const mapCfg = cfg.map ? Object.assign({}, cfg, { map: cfg.map, mapS: cfg.mapS, mapO: cfg.mapO }) : cfg;
+    const m2 = surfMaterial(P2.hull.mid, mapCfg);
+    setPal(m2.uniforms, P2.hull);
+    if (cfg.map) m2.uniforms.uTintMul.value.multiplyScalar(1 / 1.25);
+    m2.side = p;
+    const plate = new Bs(new ha(w2, 16), m2);
+    plate.rotation.x = Math.PI / 2;
+    plate.position.set(0, -4.9, z2);
+    plate.userData.crackSkin = "ship";
+    g2.add(plate);
+    g2.userData.shell = plate;
+  }
+  function gunUnit(K2, P2, list, x2, y2, z2, opts) {
+    const o2 = opts || {};
+    const sc2 = o2.s || 1;
+    const push = (r2, role) => list.push({
+      m: r2.m,
+      sh: r2.sh,
+      x0: x2,
+      y0: y2,
+      z0: r2.m.position.z,
+      s0: sc2,
+      tilt: o2.tilt || 0,
+      role
+    });
+    push(K2.add(
+      new ks(15.4 * sc2, 8.6 * sc2, 8.4 * sc2),
+      o2.housing || P2.hull,
+      [x2, y2, z2],
+      null,
+      { keepShell: true }
+    ), "housing");
+    push(K2.add(
+      new pu(2.1 * sc2, 2.1 * sc2, 13.6 * sc2, 14),
+      P2.dark,
+      [x2, y2, z2 + 10.6 * sc2],
+      [Math.PI / 2, 0, 0],
+      { keepShell: true }
+    ), "barrel");
+    push(K2.add(
+      new pu(3.8 * sc2, 3.8 * sc2, 3.6 * sc2, 14),
+      P2.accent,
+      [x2, y2, z2 + 17.6 * sc2],
+      [Math.PI / 2, 0, 0],
+      { keepShell: true }
+    ), "muzzle");
+    return list;
+  }
+  function buildLantern(cfg, hex, opts) {
+    const P2 = LANTERN;
+    const K2 = makeKit(cfg, P2);
+    const { add, g: g2 } = K2;
+    add(new ks(72, 4.6, 8.8), P2.hull, [0, -2, -5]);
+    add(new ks(52, 7.5, 12), P2.hull, [0, -0.5, -1]);
+    add(new ks(34, 8.4, 10), P2.hull, [0, 0.4, 8]);
+    add(new ks(18, 8.8, 8), P2.hull, [0, 1, 15]);
+    add(new ks(8, 6, 6), P2.dark, [0, 1.4, 20]);
+    add(new ks(8, 1.6, 6.2), P2.accent, [0, 4.6, 20], null, { flat: true });
+    add(new ks(7, 8, 18), P2.dark, [-29, 0.4, -2]);
+    add(new ks(7, 8, 18), P2.dark, [29, 0.4, -2]);
+    add(new ks(7, 2.2, 18), P2.accent, [-29, 4.6, -2], null, { flat: true });
+    add(new ks(7, 2.2, 18), P2.accent, [29, 4.6, -2], null, { flat: true });
+    add(new ks(14, 6.4, 10), P2.hull, [0, 4.4, 7]);
+    add(
+      new id(7, 30, 16, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      P2.cockpit,
+      [0, 7.4, 7],
+      null,
+      { scale: [0.86, 0.5, 1] }
+    );
+    add(new ks(40, 6, 7), P2.dark, [0, 0, -13]);
+    crackPlate(g2, P2, cfg, 52, -1);
+    add(new ks(26, 3.6, 6.4), P2.dark, [0, 1, 17]);
+    add(new ks(18, 1.2, 6.6), P2.accent, [0, 3.2, 17], null, { flat: true });
+    const rig = { mode: "split", center: [], side: [] };
+    gunUnit(K2, P2, rig.center, 0, 3.2, 18, { s: 1, housing: P2.hull });
+    gunUnit(K2, P2, rig.side, -GUN_X, 3.2, 18, { s: 1, housing: P2.hull });
+    gunUnit(K2, P2, rig.side, GUN_X, 3.2, 18, { s: 1, housing: P2.hull });
+    g2.userData.guns = rig;
+    g2.userData.pow = lanternPowerParts(K2, P2);
+    const plume = [];
+    [[-22, -10], [22, -10]].forEach(([x2, z2]) => K2.jet(x2, -6, z2, plume));
+    g2.userData.plume = plume;
+    g2.userData.spin = [];
+    g2.userData.claws = [];
+    return finishMob(g2, TARGET);
+  }
+  function lanternPowerParts(K2, P2) {
+    const out = { laser: [], rapid: [], slow: [], bomb: [], mats: [] };
+    const glow = (geo, pal_, pos, rot, po2) => {
+      const q2 = K2.add(geo, pal_, pos, rot, Object.assign({ alpha: 1e-3, flat: true }, po2 || {}));
+      q2.m.renderOrder = 4;
+      out.mats.push(q2.m.material);
+      return q2;
+    };
+    const HOT = { lit: "#fff0c8", mid: "#ffb43d", shadow: "#b4570f", deep: "#5c2404", rim: "#fffbe0", back: "#ffb43d" };
+    const WARP = { lit: "#efe2ff", mid: "#bf9cff", shadow: "#6a48c4", deep: "#32206e", rim: "#f7ecff", back: "#bf9cff" };
+    const BEAM = { lit: "#eaffff", mid: "#6fdcff", shadow: "#1d9fd6", deep: "#0a5a70", rim: "#f2ffff", back: "#6fdcff" };
+    [-1, 1].forEach((s2) => {
+      K2.add(new ks(5, 4.2, 6), P2.dark, [s2 * 20, 2.4, 15], null, { keepShell: true });
+      const cap = glow(new ks(3.6, 2.4, 3.6), BEAM, [s2 * 20, 4.8, 16]);
+      cap.kind = "cap";
+      out.laser.push(cap);
+      const strip = glow(new ks(3.2, 0.9, 10), BEAM, [s2 * 20, 2.4, 8]);
+      strip.kind = "strip";
+      out.laser.push(strip);
+    });
+    const lens = glow(
+      new pu(4.6, 4.6, 1.2, 20),
+      BEAM,
+      [0, 3.2, 21.2],
+      [Math.PI / 2, 0, 0]
+    );
+    lens.kind = "lens";
+    out.laser.push(lens);
+    const EDGE_Z = -2;
+    out.slow.push(glow(new ks(70, 1, 3), WARP, [0, -3.2, EDGE_Z + 22]));
+    out.slow.push(glow(new ks(70, 1, 3), WARP, [0, -3.2, EDGE_Z - 22]));
+    out.slow.push(glow(new ks(2, 1, 44), WARP, [-34, -3.2, EDGE_Z]));
+    out.slow.push(glow(new ks(2, 1, 44), WARP, [34, -3.2, EDGE_Z]));
+    out.bomb.push(glow(new mu(4.2, 8, 16), HOT, [0, 3.2, 24], [Math.PI / 2, 0, 0]));
+    return out;
+  }
+  var POWER_DUR = 0.22;
+  function shipPowerStep(item, dt2, st2, t2) {
+    const parts = Object.assign(
+      {},
+      item.mesh.userData,
+      item.mesh.children[0] && item.mesh.children[0].userData || {}
+    );
+    const pow = parts && parts.pow;
+    if (!pow) return;
+    const P2 = SHIP_PALETTES[item.key] || LANTERN;
+    const s2 = st2 || {};
+    const tgt = {
+      laser: s2.laser ? 1 : 0,
+      rapid: s2.rapid ? 1 : 0,
+      slow: s2.slow ? 1 : 0,
+      bomb: s2.bomb ? 1 : 0
+    };
+    item.powRaw = item.powRaw || { laser: 0, rapid: 0, slow: 0, bomb: 0 };
+    const step = (k2) => {
+      let v2 = item.powRaw[k2];
+      if (v2 !== tgt[k2]) {
+        v2 += Math.sign(tgt[k2] - v2) * Math.min(1, dt2 / POWER_DUR);
+        v2 = Math.max(0, Math.min(1, v2));
+        item.powRaw[k2] = v2;
+      }
+      return v2;
+    };
+    const setQ = (q2, s_, a2) => {
+      const vis = a2 > 0.01;
+      q2.m.visible = vis;
+      if (!vis) return;
+      q2.m.scale.setScalar(s_);
+      q2.m.material.uniforms.uAlpha.value = a2;
+      q2.m.material.transparent = true;
+    };
+    const L2 = step("laser");
+    pow.laser.forEach((q2, i2) => {
+      const kind = q2.kind || "cap";
+      const a2 = L2 * (kind === "lens" ? 0.95 : 0.9);
+      const sc2 = kind === "lens" ? 0.9 + 0.4 * L2 : 0.9 + 0.3 * L2;
+      setQ(q2, sc2, a2);
+      q2.m.material.uniforms.uAlpha.value = a2 * (0.85 + 0.15 * Math.sin(t2 / 90 + i2));
+    });
+    const R2 = step("rapid");
+    if (parts.guns) {
+      const pump = Math.max(0, Math.sin(t2 / 55));
+      const kick = 2.5 * R2 * pump;
+      parts.guns.center.concat(parts.guns.side).forEach((q2) => {
+        if (!q2.m.visible) return;
+        if (q2.role === "barrel") {
+          q2.m.position.z = q2.m.position.z + kick;
+          const base = q2.s0 || 1;
+          q2.m.scale.set(base, base * (1 + 0.08 * R2 * pump), base);
+        } else if (q2.role === "muzzle") {
+          q2.m.position.z = q2.m.position.z + kick;
+          const base = q2.s0 || 1;
+          q2.m.scale.setScalar(base * (1 + 0.45 * R2 * pump));
+          const u2 = q2.m.material.uniforms;
+          if (u2.uLit && u2.uMid) {
+            const rgb = (hex, fallback) => {
+              const v2 = String(hex || "").replace("#", "");
+              const n2 = [parseInt(v2.slice(0, 2), 16), parseInt(v2.slice(2, 4), 16), parseInt(v2.slice(4, 6), 16)];
+              return n2.every(Number.isFinite) ? n2.map((x2) => x2 / 255) : fallback;
+            };
+            if (!q2.m.userData.muz0) {
+              q2.m.userData.muz0 = {
+                lit: rgb(P2.accent && P2.accent.lit, [0.275, 0.902, 1]),
+                mid: rgb(P2.accent && P2.accent.mid, [0.094, 0.604, 0.706])
+              };
+            }
+            const z2 = q2.m.userData.muz0;
+            const hotLit = [1, 0.86, 0.55], hotMid = [1, 0.45, 0.12];
+            const k2 = Number.isFinite(pump) && Number.isFinite(R2) ? pump * R2 : 0;
+            u2.uLit.value.set(
+              z2.lit[0] + (hotLit[0] - z2.lit[0]) * k2,
+              z2.lit[1] + (hotLit[1] - z2.lit[1]) * k2,
+              z2.lit[2] + (hotLit[2] - z2.lit[2]) * k2
+            );
+            u2.uMid.value.set(
+              z2.mid[0] + (hotMid[0] - z2.mid[0]) * k2,
+              z2.mid[1] + (hotMid[1] - z2.mid[1]) * k2,
+              z2.mid[2] + (hotMid[2] - z2.mid[2]) * k2
+            );
+          }
+          if (u2.uAlpha) u2.uAlpha.value = Math.min(1, u2.uAlpha.value);
+        }
+      });
+    }
+    const S2 = step("slow");
+    pow.slow.forEach((q2, i2) => {
+      const travel = 0.5 + 0.5 * Math.sin(t2 / 300 + i2 * 0.7);
+      const sc2 = i2 === 0 ? 1 : 0.85 + 0.25 * travel;
+      q2.m.material.uniforms.uAlpha.value = S2 * (0.22 + 0.3 * travel);
+      q2.m.scale.setScalar(sc2);
+      q2.m.visible = S2 > 0.01;
+      q2.m.material.transparent = true;
+    });
+    const B2 = step("bomb");
+    pow.bomb.forEach((q2) => {
+      const sc2 = 0.5 + 0.7 * B2 + 0.25 * B2 * (0.5 + 0.5 * Math.sin(t2 / 70));
+      setQ(q2, sc2, B2);
+    });
+  }
+  function buildLancer(cfg, hex, opts) {
+    const P2 = LANCER;
+    const K2 = makeKit(cfg, P2);
+    const { add, g: g2 } = K2;
+    add(new ks(72, 4, 8), P2.hull, [0, -1.2, -6]);
+    add(new ks(22, 7.5, 26), P2.hull, [0, 1.2, 4]);
+    add(new ks(14, 6.4, 10), P2.hull, [0, 1.4, 12]);
+    add(new ks(9, 5, 8), P2.hull, [0, 1.6, 19]);
+    add(new ks(6, 3.6, 7), P2.dark, [0, 1.8, 25]);
+    add(new ks(6, 1.2, 7.2), P2.accent, [0, 3.2, 25], null, { flat: true });
+    [-1, 1].forEach((s2) => {
+      add(new ks(28, 3.4, 6.4), P2.hull, [s2 * 20, -0.6, 2], [0, s2 * -0.62, 0]);
+      add(new ks(28, 1.4, 6.6), P2.dark, [s2 * 20, 1.4, 2], [0, s2 * -0.62, 0]);
+      add(
+        new ks(28, 1, 2.2),
+        P2.accent,
+        [s2 * 20, 3, 3.4],
+        [0, s2 * -0.62, 0],
+        { flat: true }
+      );
+      add(
+        new ks(3.4, 2.2, 6),
+        P2.accent,
+        [s2 * 32.6, -0.9, -4.6],
+        [0, s2 * -0.62, 0],
+        { flat: true }
+      );
+    });
+    add(new ks(5, 5.6, 9), P2.dark, [-9, 1.4, -14]);
+    add(new ks(5, 5.6, 9), P2.dark, [9, 1.4, -14]);
+    add(new ks(5, 1, 9.2), P2.accent, [-9, 4.2, -14], null, { flat: true });
+    add(new ks(5, 1, 9.2), P2.accent, [9, 4.2, -14], null, { flat: true });
+    add(
+      new id(6.6, 32, 18, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      P2.cockpit,
+      [0, 4.6, 6],
+      null,
+      { scale: [0.8, 0.95, 1.3] }
+    );
+    crackPlate(g2, P2, cfg, 20, 4);
+    add(new ks(13, 3.4, 6), P2.dark, [0, 1.4, 28]);
+    const rig = { mode: "scissor", center: [], side: [] };
+    gunUnit(K2, P2, rig.center, 0, 3.2, 21, { s: 0.95, housing: P2.dark });
+    gunUnit(K2, P2, rig.side, -GUN_X, 3.2, 20, { s: 0.95, tilt: -0.16, housing: P2.dark });
+    gunUnit(K2, P2, rig.side, GUN_X, 3.2, 20, { s: 0.95, tilt: 0.16, housing: P2.dark });
+    g2.userData.guns = rig;
+    const plume = [];
+    [[-9, -20], [9, -20]].forEach(([x2, z2]) => K2.jet(x2, -6, z2, plume));
+    g2.userData.plume = plume;
+    g2.userData.spin = [];
+    g2.userData.claws = [];
+    return finishMob(g2, TARGET);
+  }
+  function buildSentry2(cfg, hex, opts) {
+    const P2 = SENTRY;
+    const K2 = makeKit(cfg, P2);
+    const { add, g: g2 } = K2;
+    add(new ks(72, 5, 9), P2.dark, [0, -1.4, -4]);
+    [-1, 1].forEach((s2) => {
+      add(new ks(8.6, 7, 32), P2.hull, [s2 * 24, -0.5, 2]);
+      add(
+        new id(4.3, 30, 16, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        P2.hull,
+        [s2 * 24, 3, 2],
+        null,
+        { scale: [1, 0.5, 3.2] }
+      );
+      add(new ks(2.2, 3.4, 32), P2.accent, [s2 * 27.6, 0.2, 2], null, { flat: true });
+      add(new ks(9, 2.2, 12), P2.dark, [s2 * 30, -0.5, -12]);
+      add(new ks(9, 0.9, 12.2), P2.accent, [s2 * 30, 1.4, -12], null, { flat: true });
+    });
+    add(new ks(16, 5, 22), P2.dark, [0, 0.4, 4]);
+    add(new ks(16, 2.6, 14), P2.hull, [0, 2.6, -2]);
+    add(
+      new id(6.4, 34, 18, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      P2.cockpit,
+      [0, 4.2, -3],
+      null,
+      { scale: [0.75, 0.6, 1] }
+    );
+    add(new ks(2.4, 1.2, 20), P2.accent, [0, 3.8, 6], null, { flat: true });
+    crackPlate(g2, P2, cfg, 40, 4);
+    add(new ks(12, 3.4, 7), P2.hull, [0, 1.4, 24]);
+    const rig = { mode: "slide", center: [], side: [] };
+    gunUnit(K2, P2, rig.center, 0, 3.2, 27, { s: 0.9, housing: P2.hull });
+    gunUnit(K2, P2, rig.side, -GUN_X, 3.2, 19, { s: 0.9, housing: P2.hull });
+    gunUnit(K2, P2, rig.side, GUN_X, 3.2, 19, { s: 0.9, housing: P2.hull });
+    g2.userData.guns = rig;
+    const plume = [];
+    [[-30, -17], [30, -17]].forEach(([x2, z2]) => K2.jet(x2, -6, z2, plume));
+    g2.userData.plume = plume;
+    g2.userData.spin = [];
+    g2.userData.claws = [];
+    return finishMob(g2, TARGET);
+  }
+  var SHIPS_V2 = { ship1: buildLantern, ship2: buildLancer, ship3: buildSentry2 };
+  function shipGunStep(rig, item, dt2) {
+    const tgt = item.guns ? 1 : 0;
+    if (item.gunRaw === void 0) item.gunRaw = tgt;
+    if (item.gunRaw !== tgt) {
+      item.gunRaw += Math.sign(tgt - item.gunRaw) * Math.min(1, dt2 / GUN_DUR);
+      item.gunRaw = Math.max(0, Math.min(1, item.gunRaw));
+    }
+    const p2 = easeIO(item.gunRaw);
+    const setG = (q2, x2, dz, s2, a2, rotZ) => {
+      const vis = a2 > 0.02;
+      q2.m.visible = vis;
+      if (q2.sh) q2.sh.visible = vis;
+      if (!vis) return;
+      q2.m.position.set(x2, q2.y0, q2.z0 + dz);
+      q2.m.scale.setScalar(s2);
+      if (rotZ !== void 0) q2.m.rotation.z = rotZ;
+      q2.m.material.uniforms.uAlpha.value = a2;
+      q2.m.material.transparent = a2 < 0.999;
+      if (q2.sh) {
+        q2.sh.position.copy(q2.m.position);
+        q2.sh.scale.copy(q2.m.scale);
+        q2.sh.rotation.copy(q2.m.rotation);
+        q2.sh.material.uniforms.uAlpha.value = a2 * 0.8;
+      }
+    };
+    if (rig.mode === "split") {
+      rig.center.forEach((q2) => setG(
+        q2,
+        q2.x0,
+        -7 * p2,
+        q2.s0 * (1 - 0.35 * p2),
+        Math.max(0, 1 - p2 * 1.8)
+      ));
+      rig.side.forEach((q2) => {
+        const sx = q2.x0 < 0 ? -1 : 1;
+        const x2 = sx * GUN_X * p2;
+        setG(
+          q2,
+          x2,
+          -6 * (1 - p2),
+          q2.s0 * (0.7 + 0.3 * p2),
+          Math.max(0, Math.min(1, p2 * 1.6 - 0.25))
+        );
+      });
+    } else if (rig.mode === "scissor") {
+      rig.center.forEach((q2) => setG(q2, q2.x0, -6 * p2, q2.s0 * (1 - 0.3 * p2), Math.max(0, 1 - p2 * 1.6)));
+      rig.side.forEach((q2) => setG(
+        q2,
+        q2.x0 * p2,
+        -4 * (1 - p2),
+        q2.s0 * (0.7 + 0.3 * p2),
+        Math.max(0, Math.min(1, p2 * 1.6)),
+        q2.tilt * p2
+      ));
+    } else if (rig.mode === "slide") {
+      rig.center.forEach((q2) => setG(q2, q2.x0, -10 * p2, q2.s0 * (1 - 0.4 * p2), Math.max(0, 1 - p2 * 1.6)));
+      rig.side.forEach((q2) => setG(
+        q2,
+        q2.x0 * p2,
+        -14 * (1 - p2),
+        q2.s0 * (0.6 + 0.4 * p2),
+        Math.max(0, Math.min(1, p2 * 1.6))
+      ));
+    }
+  }
+
   // js/assets3d.js
   var RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
-  var TARGET = 2.35;
+  var TARGET2 = 2.35;
   var FIT = 1.35;
   var FIT_KEY = {
     scrap: 1.2,
@@ -15577,9 +16306,17 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     squid: 1.15,
     zealot: 1.6,
     idol: 1.6,
-    "ABYSSAL SQUID": 1.15
+    "ABYSSAL SQUID": 1.15,
+    viper_wyrm: 1.2
   };
-  var BUILDERS = Object.assign({}, MOBS, MOB_V2, { invSquid: MOBS.squid });
+  var BUILDERS = Object.assign(
+    {},
+    MOBS,
+    MOB_V2,
+    VIPER_LOOKS_V2,
+    SHIPS_V2,
+    { invSquid: MOBS.squid }
+  );
   var MOCK_BUILDERS = {};
   var KEY = {
     squid: "invSquid",
@@ -15588,10 +16325,14 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     crab: "crab_b",
     ufo: "ufo",
     player: "player",
+    ship1: "ship1",
+    ship2: "ship2",
+    ship3: "ship3",
     scrap: "scrap",
     sentry: "sentry",
     skull: "skull",
     viper: "viper",
+    viper1: "viper_wyrm",
     "ABYSSAL SQUID": "squid",
     zealot: "zealot",
     idol: "idol",
@@ -15615,9 +16356,9 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     core: { lit: "#f0fff6", mid: "#a8f0cc", shadow: "#2fbf71", deep: "#2fbf71" },
     outline: "#0c141a"
   };
-  var GUN_X = 14 / (75.6 / 72);
-  var GUN_DUR = 0.5;
-  var easeIO = (p2) => p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
+  var GUN_X2 = 14 / (75.6 / 72);
+  var GUN_DUR2 = 0.5;
+  var easeIO2 = (p2) => p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
   function rgb255(hex) {
     const n2 = hex.replace("#", "");
     return [
@@ -15626,7 +16367,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       parseInt(n2.slice(4, 6), 16) / 255
     ];
   }
-  function palMat(cfg, P2, o2) {
+  function palMat2(cfg, P2, o2) {
     const m2 = surfMaterial(P2.mid, cfg);
     const u2 = m2.uniforms;
     const set = (n2, hex) => {
@@ -15655,12 +16396,12 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   }
   function buildBulwark(cfg, hex, opts) {
     const o2 = opts || {};
-    const partCfg = Object.assign({}, cfg);
-    delete partCfg.map;
+    const partCfg2 = Object.assign({}, cfg);
+    delete partCfg2.map;
     const g2 = new jl();
     const P2 = BULWARK;
     const add = (geo, pal_, pos, rot, po2) => {
-      const m2 = new Bs(geo, palMat(partCfg, pal_, po2));
+      const m2 = new Bs(geo, palMat2(partCfg2, pal_, po2));
       m2.position.set(pos[0], pos[1], pos[2]);
       if (rot) m2.rotation.set(rot[0], rot[1], rot[2]);
       if (po2 && po2.scale) m2.scale.set(po2.scale[0], po2.scale[1], po2.scale[2]);
@@ -15722,8 +16463,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       ), z2 + 11);
     };
     gun(rig.center, 0, 14);
-    gun(rig.side, -GUN_X, 13);
-    gun(rig.side, GUN_X, 13);
+    gun(rig.side, -GUN_X2, 13);
+    gun(rig.side, GUN_X2, 13);
     g2.userData.guns = rig;
     const plume = [];
     [[-15.4, -9], [15.4, -9], [-33, -9], [33, -9]].forEach(([x2, z2]) => {
@@ -15749,7 +16490,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     g2.userData.plume = plume;
     g2.userData.spin = [];
     g2.userData.claws = [];
-    return finishMob(g2, TARGET);
+    return finishMob(g2, TARGET2);
   }
   BUILDERS.player = buildBulwark;
   BUILDERS.playerC = MOB_V2.player;
@@ -16050,11 +16791,13 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       });
       clone.visible = true;
       const rt2 = ensureGhostRT(mesh);
+      quad.userData.__rt = rt2;
       renderer.setRenderTarget(rt2);
       renderer.setClearColor(0, 1);
       renderer.render(maskScene, ghostCam);
       renderer.setRenderTarget(null);
       renderer.setClearColor(0, 0);
+      quad.userData.__rtDrawn = true;
       quad.material.uniforms.uMask.value = rt2.texture;
     }
   }
@@ -16100,22 +16843,37 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     if (proxy) proxy.visible = false;
     const quad = ensureQuad(mesh);
     quad.quaternion.copy(mesh.quaternion).invert();
-    quad.visible = useQuad && !!quad.material.uniforms.uMask.value;
+    quad.visible = useQuad && !!quad.material.uniforms.uMask.value && !!quad.userData.__rtDrawn;
     quad.renderOrder = 999;
+    const hideParts = quad.visible;
     if (useQuad) {
       quad.material.uniforms.uPhase.value = phaseU > 0.02 ? phaseU : 1;
       quad.material.uniforms.uMode.value = phaseU > 0.02 ? mode : 0;
       quad.material.uniforms.uAlpha.value = ac2;
     }
+    if (window.__ghostProbe && window.__ghostProbe.mesh === mesh) {
+      const L2 = window.__ghostProbe.log || (window.__ghostProbe.log = []);
+      L2.push({
+        qv: quad.visible,
+        ph: +quad.material.uniforms.uPhase.value.toFixed(2),
+        md: quad.material.uniforms.uMode.value,
+        al: +quad.material.uniforms.uAlpha.value.toFixed(2),
+        mb: !!quad.material.uniforms.uMask.value
+      });
+    }
     mesh.children.forEach((c2) => {
       if (c2 === proxy || c2 === quad) return;
       const isDetail = c2.isMesh && c2.material.userData && c2.material.userData.__detail;
-      if (useQuad && mode < 2.5 && isDetail) {
+      if (hideParts && mode < 2.5 && isDetail) {
         setSubtreeVisible(c2, true);
         c2.renderOrder = 1e3;
+        c2.material.transparent = true;
       } else {
-        setSubtreeVisible(c2, !useQuad);
-        if (c2.isMesh) c2.renderOrder = 0;
+        setSubtreeVisible(c2, !hideParts);
+        if (c2.isMesh) {
+          c2.renderOrder = 0;
+          if (isDetail) c2.material.transparent = ac2 < 0.999;
+        }
       }
     });
     mesh.traverse((o2) => {
@@ -16138,11 +16896,11 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         if (item) scene.remove(item.mesh);
         const mesh = build(e2.key, e2.color, e2.quality);
         scene.add(mesh);
-        item = { mesh, id: id2 };
+        item = { mesh, id: id2, key: e2.key };
         pool.set(e2.id, item);
       }
       const fit = e2.fit || FIT_KEY[e2.key] || FIT;
-      const scale = Math.max(e2.w, e2.h) / TARGET * fit;
+      const scale = Math.max(e2.w, e2.h) / TARGET2 * fit;
       item.mesh.scale.setScalar(scale);
       item.mesh.position.set(e2.x + e2.w / 2, -(e2.y + e2.h / 2), e2.z || 0);
       item.phase = e2.phase || 0;
@@ -16154,6 +16912,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       item.crackFade = e2.crackFade === void 0 ? item.crack : Math.max(0, Math.min(1, e2.crackFade));
       item.tilt = e2.tilt === void 0 ? 0.34 : e2.tilt;
       item.guns = e2.guns ? 1 : 0;
+      item.pow = e2.pow || null;
       item.phaseU = e2.phaseU === void 0 ? 0 : e2.phaseU;
       item.shimmer = e2.shimmer ? 1 : 0;
     }
@@ -16201,14 +16960,16 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
         p2.m.material.transparent = true;
       });
       const rig = parts.guns;
-      if (rig) {
+      if (rig && rig.mode) {
+        shipGunStep(rig, item, dt2);
+      } else if (rig) {
         const tgt = item.guns ? 1 : 0;
         if (item.gunRaw === void 0) item.gunRaw = tgt;
         if (item.gunRaw !== tgt) {
-          item.gunRaw += Math.sign(tgt - item.gunRaw) * Math.min(1, dt2 / GUN_DUR);
+          item.gunRaw += Math.sign(tgt - item.gunRaw) * Math.min(1, dt2 / GUN_DUR2);
           item.gunRaw = Math.max(0, Math.min(1, item.gunRaw));
         }
-        const p2 = easeIO(item.gunRaw);
+        const p2 = easeIO2(item.gunRaw);
         const setG = (q2, x2, dz, s2, a2) => {
           const vis = a2 > 0.02;
           q2.m.visible = vis;
@@ -16233,6 +16994,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
           Math.max(0, Math.min(1, p2 * 1.7))
         ));
       }
+      if (item.pow) shipPowerStep(item, dt2, item.pow, t2);
       const shF = m2.userData.shell || m2.children[0] && m2.children[0].userData && m2.children[0].userData.shell;
       if (item.crackFade !== item.wasCrackFade) {
         if (shF && shF.material.uniforms && shF.material.uniforms.uMapMix) {
@@ -16315,7 +17077,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
             if (o2.material.userData.a0 === void 0) o2.material.userData.a0 = o2.material.uniforms.uAlpha.value;
             o2.material.uniforms.uAlpha.value = o2.material.userData.a0 * ac2;
             o2.material.transparent = ac2 < 0.999;
-            o2.renderOrder = ac2 < 0.999 ? 2 : 0;
+            o2.renderOrder = o2 === m2.userData.__quad ? 999 : ac2 < 0.999 ? 2 : 0;
           }
         });
       }
@@ -16351,6 +17113,19 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       window.__ironSamplePct = Math.round(lit / (w2 * h2) * 100);
     }
   }
+  var VIPER_KEYS = { 0: "viper", 1: "viper_wyrm" };
+  function viperLookKey() {
+    const n2 = Math.round(Number(new URLSearchParams(location.search).get("viper") || 1));
+    return VIPER_KEYS[n2] || "viper_wyrm";
+  }
+  var SHIP_KEYS = { 0: "player", 1: "ship1", 2: "ship2", 3: "ship3" };
+  var SHIP_DEFAULT = "ship1";
+  function shipLookKey() {
+    const raw = new URLSearchParams(location.search).get("ship");
+    if (raw === null || raw === "") return SHIP_DEFAULT;
+    const n2 = Math.round(Number(raw));
+    return SHIP_KEYS[n2] || SHIP_DEFAULT;
+  }
   window.Iron3D = {
     sync,
     render,
@@ -16358,6 +17133,14 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     ready: true,
     keys: KEY,
     pool,
+    viperLookKey,
+    VIPER_KEYS,
+    shipLookKey,
+    SHIP_KEYS,
+    SHIP_PALETTES,
+    BUILDERS,
+    shipGunStep,
+    shipPowerStep,
     THREE: three_module_exports,
     renderer,
     scene,

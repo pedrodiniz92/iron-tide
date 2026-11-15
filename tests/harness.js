@@ -7,8 +7,17 @@ const ROOT = path.join(__dirname, "..");
 const FILES = ["i18n", "constants", "helpers", "state", "audio", "invaders", "player",
   "powerups", "boss", "silhouettes", "drawing", "testmode", "main"];
 
+// A canvas GRADIENT is a real object in the browser: js/drawing.js:816 builds one with
+// createRadialGradient() and then calls addColorStop() on it. The Proxy's fallback returns
+// undefined, so that call threw and the whole 2D layer failed to load. Gradients must be
+// stubs with addColorStop(), and createRadialGradient/createLinearGradient must HAND them back.
+function makeGradient() {
+  return { addColorStop() {} };
+}
+const GRADIENT_METHODS = { createRadialGradient: makeGradient, createLinearGradient: makeGradient };
+
 function makeCtx() {
-  const target = {};
+  const target = Object.assign({}, GRADIENT_METHODS);
   return new Proxy(target, {
     get(t, k) {
       if (k in t) return t[k];

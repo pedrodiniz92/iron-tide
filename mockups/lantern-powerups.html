@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANTERN — single/double gun + every power-up state on the ship</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 14px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 10px; color: #6f8fa8; font-size: 12px; max-width: 980px; }
+  .wrap { display: flex; gap: 14px; align-items: flex-start;
+    width: min(1240px, calc(100vw - 32px)); margin: 0 16px 16px; }
+  .stage { position: relative; flex: 1 1 600px; max-width: 900px; aspect-ratio: 3 / 2;
+    border: 1px solid #23304a; background: #0a0e18; }
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #panel { flex: 0 0 320px; box-sizing: border-box; padding: 8px 10px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
+    border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.92); }
+  @media (max-width: 940px) { .wrap { flex-direction: column; } .stage { flex: none; width: 100%; } #panel { flex: none; width: 100%; } }
+  #panel h2 { margin: 12px 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel h2:first-child { margin-top: 0; }
+  #panel label { display: block; font-size: 11px; line-height: 1.35; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.45; }
+  #panel .hint b { color: #9fc4dd; }
+  #panel button { display: block; width: 100%; box-sizing: border-box; margin: 0 0 5px;
+    padding: 5px 7px; text-align: left; cursor: pointer; font: 11px 'Courier New', monospace;
+    color: #9fb8d0; background: #131826; border: 1px solid #2c3550; }
+  #panel button:hover { border-color: #5a6c92; color: #dfe9ff; }
+  #panel button.on { border-color: #6fdcff; color: #eaffff; background: #14212e; }
+</style>
+</head>
+<body>
+<h1>LANTERN &mdash; one gun / two guns, and every power-up state drawn ON THE SHIP</h1>
+<div class="sub"><b>The power-ups RUN here, like in the game.</b> <kbd>Space</kbd> fires the ship's real shot
+cadence (0.5 s, or 0.38 s with quick shot) at the <b>&plusmn;14 px</b> double offsets or on the
+centreline for single; <kbd>L</kbd> fires the laser beam on a 0.8 s gap; <kbd>Q</kbd> launches bombs
+on a 1.1 s gap. <kbd>R</kbd> quick shot, <kbd>Z</kbd> time warp and <kbd>B</kbd> bomb keep running
+while selected (buttons run them too). <kbd>G</kbd> runs the single &harr; two-gun animation. The
+ship keeps the same soft alpha as the other mockups. This page draws it <b>enlarged</b>
+(112 px instead of 75.6) so the state lights are legible; gun offsets and lane marks are
+scaled by the same factor.</div>
+<div class="wrap">
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+</div>
+<div id="panel">
+  <h2>NOSE GUNS (KEY G)</h2>
+  <button id="gunBtn" type="button">GUNS: SINGLE</button>
+  <h2>POWER-UP STATES (KEYS L / R / Z / B)</h2>
+  <button id="laserBtn" type="button">L &middot; LASER running &mdash; emitters flare, lens opens</button>
+  <button id="rapidBtn" type="button">R &middot; QUICK SHOT running &mdash; gun runs hot</button>
+  <button id="slowBtn" type="button">Z &middot; TIME WARP running &mdash; violet field ring</button>
+  <button id="bombBtn" type="button">B &middot; BOMB launching &mdash; bow flare + charge bar</button>
+  <button id="holdBtn" type="button">RUN: ON &mdash; selected states keep running</button>
+  <div class="hint" id="meas"></div>
+  <div class="hint">
+    <b>What each state is.</b> These are the four live game power-ups, drawn on LANTERN's own
+    geometry instead of only in the HUD text:<br><br>
+    <b>LASER</b> &mdash; two cyan emitter pods on the nose shoulders flare, and a lens ring at the
+    bow swells open while a beam is firing (js/player.js:157 laserBeams).<br>
+    <b>QUICK SHOT</b> &mdash; an amber halo ring over the gun housing pulses; this is the
+    rapid-fire effect (effects.rapid), the wait between shots cut to 0.76&times;.<br>
+    <b>TIME WARP</b> &mdash; two violet rings around the hull spin and breathe (effects.slow),
+    so the hull visibly sits inside the slowed bubble.<br>
+    <b>BOMB</b> &mdash; a launch flare cone off the bow while the bomb is airborne, plus a charge
+    bar on the spine that fills when the bomb is ready.<br><br>
+    <b>Same kit, same width.</b> Everything here goes through js/ships3d.js and the game's own
+    bundle. Every state part sits inside x &plusmn;36 and is authored at alpha 0, so LANTERN still
+    spans exactly <b>72 model units</b> / <b>75.6 px</b>.
+  </div>
+</div>
+</div>
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// js/silhouettes.js - the real player silhouette (2D fallback only)
+const SIL = {
+  classic: { bb: { x: -28, y: -11, w: 56, h: 22 }, path(c) {
+    c.beginPath(); c.moveTo(0, -11); c.lineTo(4, -3); c.lineTo(12, 1); c.lineTo(28, 7);
+    c.lineTo(16, 9); c.lineTo(6, 6); c.lineTo(-6, 6); c.lineTo(-16, 9);
+    c.lineTo(-28, 7); c.lineTo(-12, 1); c.lineTo(-4, -3); c.closePath(); } }
+};
+function neon(name, cx, cy, targetW, color, glow = 7, alpha = 1) {
+  const s = SIL[name];
+  const scale = targetW / s.bb.w;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - (s.bb.x + s.bb.w / 2) * scale, cy - (s.bb.y + s.bb.h / 2) * scale);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = color; ctx.shadowBlur = glow;
+  s.path(ctx); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+
+let frame3D = [];
+function push3D(e) {
+  if (window.Iron3D) frame3D.push(e);
+  return !!window.Iron3D;
+}
+
+// The gun's muzzle tip, in screen px from the ship centre. gunUnit() puts the gun
+// at model z (18 for the centre gun), the barrel reaches +10 and the muzzle ring
+// sits at z +17 sc. In the drawn frame the +z axis points UP-screen, and 1 model
+// unit is 75.6/72 px at game scale, or 112/72 px in this enlarged mockup. So a
+// shot leaves the barrel at MUZZLE_DZ units above the gun's own pivot, and at the
+const SHIP_W = 112;              // this page draws LANTERN enlarged (game width 75.6)
+const ZOOM = SHIP_W / 75.6;      // 1.48x the game width
+const LANE = 14 * ZOOM;          // +-14 px bullet lanes, scaled the same way
+const GUN_X = 14 / (75.6 / 72);  // 13.33 model units = 14 px at game scale
+const MUZZLE_DZ = 17;            // model units the muzzle ring sits ahead of the gun
+const PX_PER_UNIT_V = SHIP_W / 72;             // 1.56 px per unit at 112 px wide
+const MUZZLE_PX = MUZZLE_DZ * PX_PER_UNIT_V;   // ~26 px above the gun pivot
+// Lag-free beam anchor: the muzzle's x in MODEL units is the gun's x0 (0 at single,
+// -GUN_X/+GUN_X at double). Converting that with PX_PER_UNIT_V and adding the ship's
+// CURRENT centre gives the exact muzzle column with no stale-mesh lag - this is what
+// makes the laser follow you when you fly.
+function beamAnchorX() {
+  const x0 = gunTarget ? -GUN_X : 0;   // the left-most live gun, same one liveMuzzles()[0] finds
+  return shipX + x0 * PX_PER_UNIT_V;
+}
+
+// LANTERN only: key ship1 (js/ships3d.js buildLantern)
+const SHIP = { key: "ship1", hex: "#5a6678" };
+let gunTarget = 0;
+
+// the four power-up states, exactly the fields the drawing layer will hand over
+const POW = { laser: false, rapid: false, slow: false, bomb: false };
+let holdMode = false;      // states stay on and repeat (the default interaction mode)
+const until = { laser: 0, rapid: 0, slow: 0, bomb: 0 };  // auto-decay timers
+// ---- the live interaction ----------------------------------------------------
+// Instead of freezing a state, the page PLAYS it like the game does:
+//   space  - fires the ship's real shot cadence (0.5 s, or 0.38 s with rapid), the
+//            same 2 shots/s js/player.js uses, at offsets [-14, 14] for double
+//   L      - fires the laser beam every BEAM_GAP and keeps it live for BEAM_TTL
+//   Q      - launches a bomb every BOMB_GAP while bombs are "ready"
+// Rapid and time warp run continuously while selected (they are timers in game).
+const FIRE_BASE = 0.5, RAPID_MULT = 0.76;
+const BEAM_TTL = 1.2, BEAM_GAP = 0.8;
+const BOMB_GAP = 1.1;
+let bullets = [], beams = [], bombs = [];
+let fireT = 0, beamT = 0, bombT = 0;
+let lastMs = 0;
+let firing = false;         // space held
+
+function stepWorld(dt) {
+  const rapidOn = POW.rapid;
+  // --- ship movement (arrow keys), slowed by time warp --------------------
+  const slowMult = POW.slow ? 0.5 : 1;
+  let mx = (arrows.right ? 1 : 0) - (arrows.left ? 1 : 0);
+  let my = (arrows.down ? 1 : 0) - (arrows.up ? 1 : 0);
+  const len = Math.hypot(mx, my) || 1;
+  shipX += mx / len * SHIP_SPEED * slowMult * dt * (mx || my ? 1 : 0);
+  shipY += my / len * SHIP_SPEED * slowMult * dt * (mx || my ? 1 : 0);
+  shipX = Math.max(120, Math.min(W - 120, shipX));
+  shipY = Math.max(150, Math.min(H - 90, shipY));
+  // --- bullets: the real double/single shot split -----------------------
+  fireT -= dt;
+  if ((firing || rapidOn) && fireT <= 0) {
+    fireT = FIRE_BASE * (rapidOn ? RAPID_MULT : 1);
+    // SINGLE: one shot on the centreline. DOUBLE: two shots, one from EACH gun.
+    // The spawn point is the MUZZLE TIP, read from the gun's REAL world position in
+    // the pooled mesh - not a guessed pixel offset - so a shot always leaves from
+    // the gun that fired it and can never overlap the barrel.
+    const tips = liveMuzzles();
+    const y0 = muzzleY() - 5;   // a few px clear of the muzzle ring itself
+    const points = gunTarget && tips.length >= 2 ? tips : [shipX];
+    points.forEach((px) => bullets.push({ x: px, y: y0,
+      vy: -210 * ZOOM, life: 2.4 }));
+  }
+  bullets.forEach((b) => { b.y += b.vy * dt; b.life -= dt; });
+  bullets = bullets.filter((b) => b.life > 0 && b.y > -20);
+
+  // --- laser: beam fires while selected, on a gap -----------------------
+  beamT -= dt;
+  if (POW.laser && beamT <= 0) {
+    beamT = BEAM_GAP;
+    // the beam leaves the MUZZLE TIP (never the hull centre), so it starts above
+    // the gun's barrel instead of drawing over the gun itself. beamAnchorX() adds the
+    // muzzle offset to the ship's CURRENT centre, so the column follows you as you move.
+    beams.push({ x: beamAnchorX(), y0: muzzleY() - 5,
+      ttl: BEAM_TTL, life: BEAM_TTL });
+  }
+  // A moving ship must carry its beam: the muzzle is re-read every frame so the
+  // column stays glued to the gun that fired it instead of being frozen at the
+  // spawn-time x. The mesh transform is one frame behind the ship (sync() runs
+  // after step()), so the muzzle's OFFSET from the ship centre is what we take,
+  // and we add it to the ship's CURRENT x - no lag, no drift when you move.
+  // A moving ship must carry its beam. Each live beam re-anchors to the muzzle column
+  // every frame (beamAnchorX = muzzle offset + the ship's CURRENT centre), so the laser
+  // follows you instead of being frozen where it was first fired.
+  beams.forEach((b) => {
+    b.life -= dt;
+    b.x = beamAnchorX();
+    b.y0 = muzzleY() - 5;
+  });
+  beams = beams.filter((b) => b.life > 0);
+
+  // --- bombs: launched while selected -----------------------------------
+  bombT -= dt;
+  if (POW.bomb && bombT <= 0) {
+    bombT = BOMB_GAP;
+    bombs.push({ x: liveMuzzles()[0] || shipX, y: muzzleY() - 6,
+      vy: -230 * ZOOM, life: 2.2,
+      trail: [] });
+  }
+  bombs.forEach((b) => {
+    b.y += b.vy * dt;
+    b.trail.push({ x: b.x, y: b.y, ttl: 0.28 });
+    b.trail.forEach((p) => { p.ttl -= dt; });
+    b.trail = b.trail.filter((p) => p.ttl > 0);
+    b.life -= dt;
+  });
+  bombs = bombs.filter((b) => b.life > 0 && b.y > -20);
+}
+
+function shipH() { return SHIP_W * 22 / 56; }
+
+// Real muzzle-tip screen positions, read from the pooled mesh's world transform.
+// Used for BOTH the bullets and the laser beam, so a shot/beam always originates
+// at the gun that fired it instead of at a guessed pixel offset.
+function liveMuzzles() {
+  if (!window.Iron3D) return [];
+  const it = Iron3D.pool.get("lantern");
+  if (!it) return [];
+  const parts = Object.assign({}, it.mesh.userData,
+    (it.mesh.children[0] || {}).userData || {});
+  const rig = parts.guns || {};
+  const list = gunTarget ? (rig.side || []) : (rig.center || []);
+  const out = [];
+  list.forEach((q) => {
+    if (q.role !== "muzzle" || !q.m.visible) return;
+    const v = new Iron3D.THREE.Vector3();
+    q.m.getWorldPosition(v);
+    // world z is depth; the muzzle's screen x is the world x
+    out.push(v.x);
+  });
+  // the THREE scene's y axis points DOWN-screen (sync sets -y), so the muzzle's
+  // screen height is -worldY
+  return out;
+}
+
+// muzzle tip height on screen, from the same pooled mesh
+function muzzleY() {
+  if (!window.Iron3D) return shipY - shipH() / 2 - MUZZLE_PX;
+  const it = Iron3D.pool.get("lantern");
+  if (!it) return shipY - shipH() / 2 - MUZZLE_PX;
+  const parts = Object.assign({}, it.mesh.userData,
+    (it.mesh.children[0] || {}).userData || {});
+  const rig = parts.guns || {};
+  const list = gunTarget ? (rig.side || []) : (rig.center || []);
+  const mz = list.find((q) => q.role === "muzzle" && q.m.visible);
+  if (!mz) return shipY - shipH() / 2 - MUZZLE_PX;
+  const v = new Iron3D.THREE.Vector3();
+  mz.m.getWorldPosition(v);
+  return -v.y;
+}
+
+function drawWorld() {
+  // TIME WARP: a dash-like streak trailing the ship (inspiration: the dash flame in
+  // js/drawing.js neonFlame - a fading trail, not a ring around the hull)
+  if (POW.slow) {
+    ctx.save();
+    const y1 = shipY + 14, y2 = shipY + 62;
+    const g = ctx.createLinearGradient(0, y1, 0, y2);
+    g.addColorStop(0, "rgba(214, 190, 255, 0.75)");
+    g.addColorStop(0.5, "rgba(191, 156, 255, 0.42)");
+    g.addColorStop(1, "rgba(191, 156, 255, 0)");
+    ctx.fillStyle = g;
+    // a tapered streak: wide at the stern, narrowing as it trails away
+    ctx.beginPath();
+    ctx.moveTo(shipX - 26, y1);
+    ctx.lineTo(shipX + 26, y1);
+    ctx.lineTo(shipX + 6, y2);
+    ctx.lineTo(shipX - 6, y2);
+    ctx.closePath(); ctx.fill();
+    // brighter hairlines along the streak so it reads as motion, not a blob
+    ctx.strokeStyle = "rgba(239, 226, 255, 0.55)";
+    ctx.lineWidth = 2;
+    [-12, 12].forEach((o) => {
+      ctx.beginPath(); ctx.moveTo(shipX + o, y1); ctx.lineTo(shipX + o * 0.28, y2); ctx.stroke();
+    });
+    ctx.restore();
+  }
+  // bullets (the double shot's two amber rounds, or one cyan)
+  bullets.forEach((b) => {
+    ctx.save();
+    ctx.shadowColor = gunTarget ? "#ffb04c" : "#6fdcff";
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = gunTarget ? "#ffd08a" : "#c8f4ff";
+    ctx.fillRect(b.x - 2 * ZOOM, b.y - 12 * ZOOM, 4 * ZOOM, 12 * ZOOM);
+    ctx.restore();
+  });
+  // laser beams: a wide cyan column from the muzzle to the top of the stage
+  // laser beams: a wide cyan column from the MUZZLE TIP all the way up the stage
+  beams.forEach((b) => {
+    const a = Math.min(1, b.life / 0.3) * 0.85;
+    const hgt = Math.max(0, b.y0);          // muzzle height -> top of the stage
+    ctx.save();
+    ctx.shadowColor = "#6fdcff"; ctx.shadowBlur = 18;
+    ctx.fillStyle = `rgba(111, 220, 255, ${a})`;
+    ctx.fillRect(b.x - 4 * ZOOM, 0, 8 * ZOOM, hgt);
+    ctx.fillStyle = `rgba(234, 255, 255, ${a * 0.9})`;
+    ctx.fillRect(b.x - 1.6 * ZOOM, 0, 3.2 * ZOOM, hgt);
+    ctx.restore();
+  });
+  // bombs: orange round + fading trail dots (js/drawing.js drawBombShots pattern)
+  bombs.forEach((b) => {
+    b.trail.forEach((p) => {
+      const a = Math.max(0, p.ttl / 0.28);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = `rgba(255, 153, 0, ${a * 0.55})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4 * ZOOM + a * 5 * ZOOM, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+    ctx.save();
+    ctx.shadowColor = "#ffe066"; ctx.shadowBlur = 12;
+    ctx.fillStyle = "#ffe066";
+    ctx.beginPath(); ctx.arc(b.x, b.y, 6 * ZOOM, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+function showState(k, ms) {
+  POW[k] = true;
+  until[k] = performance.now() + (holdMode ? 1e9 : ms);
+}
+
+const SHIP_Y = 380;   // ship centre
+const SHIP_X = 450;
+// ARROW-KEY MOVEMENT: the ship flies around the stage (speed the game uses: the
+// player moves ~260 px/s). Time warp slows it to 0.5x, which is what the glow is
+// meant to show.
+const SHIP_SPEED = 260;
+let shipX = SHIP_X, shipY = SHIP_Y, vx = 0, vy = 0;
+let arrows = { left: false, right: false, up: false, down: false };
+
+function draw(now) {
+  const dt = lastMs ? Math.min(0.05, (now - lastMs) / 1000) : 0.016;
+  lastMs = now;
+  // decay: a tap shows the state for ~0.9 s, hold keeps it running
+  ["laser", "rapid", "slow", "bomb"].forEach((k) => {
+    if (POW[k] && now > until[k]) { POW[k] = false; refreshBtns(); }
+  });
+  stepWorld(dt);
+
+  ctx.clearRect(0, 0, W, H);
+  // deck line + the two real bullet lanes at +-14 px, drawn from the ship centre
+  ctx.strokeStyle = "rgba(70, 230, 255, 0.10)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H - 60); ctx.lineTo(W, H - 60); ctx.stroke();
+  // the +-14 px burst lanes: at the ship's REAL gun x (not a guessed offset), so
+  // the marks always sit under the guns that will fire along them
+  const laneX = gunTarget ? (liveMuzzles().length >= 2 ? liveMuzzles() : [shipX - LANE, shipX + LANE])
+    : [shipX];
+  laneX.forEach((px) => {
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = "rgba(255, 176, 76, 0.30)";
+    ctx.beginPath(); ctx.moveTo(px, shipY + 40); ctx.lineTo(px, shipY - 150);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  drawWorld();
+  frame3D.length = 0;
+  const shipH = SHIP_W * 22 / 56;
+  // the SAME soft look the other mockup gives every ship; the state goes through pow
+  if (!push3D({ id: "lantern", key: SHIP.key, color: SHIP.hex,
+    x: shipX - SHIP_W / 2, y: shipY - shipH / 2, w: SHIP_W, h: shipH,
+    rot: [-Math.PI / 2, 0, 0], tilt: 0,
+    guns: gunTarget, alpha: 0.5,
+    pow: { laser: POW.laser, rapid: POW.rapid, slow: POW.slow, bomb: POW.bomb } })) {
+    neon("classic", shipX, shipY, SHIP_W, "#7d93b2", 7, 0.5);
+  }
+
+  // labels follow the ship
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillStyle = "#9fb8d0";
+  ctx.fillText("LANTERN", shipX - SHIP_W / 2, shipY + 70);
+  ctx.fillStyle = gunTarget ? "#ffb04c" : "#6fdcff";
+  ctx.fillText(gunTarget ? "DOUBLE - shots from both guns" : "SINGLE - one gun on the centreline",
+    shipX + SHIP_W / 2 + 14, shipY + 70);
+  const live = ["laser", "rapid", "slow", "bomb"].filter((k) => POW[k]);
+  ctx.fillStyle = live.length ? "#dfe9ff" : "#4a5a72";
+  ctx.fillText(live.length ? "RUNNING: " + live.join(" · ").toUpperCase() : "no power-up running",
+    40, 40);
+}
+
+let last = performance.now();
+function loop(now) {
+  draw(now);                       // builds frame3D for this frame
+  if (window.Iron3D && Iron3D.render) {
+    Iron3D.sync(frame3D);          // must run AFTER the pushes, or the pool is empty
+    Iron3D.render(now);
+  }
+  last = now;
+  requestAnimationFrame(loop);
+}
+
+// ---- controls --------------------------------------------------------------
+requestAnimationFrame(loop);
+
+// ---- controls --------------------------------------------------------------
+function setGun(v) { gunTarget = v ? 1 : 0; refreshBtns(); }
+function refreshBtns() {
+  document.getElementById("gunBtn").textContent = "GUNS: " + (gunTarget ? "DOUBLE" : "SINGLE");
+  document.getElementById("gunBtn").classList.toggle("on", !!gunTarget);
+  document.getElementById("holdBtn").textContent = "RUN: " + (holdMode ? "ON" : "OFF");
+  document.getElementById("holdBtn").classList.toggle("on", holdMode);
+  ["laser", "rapid", "slow", "bomb"].forEach((k) => {
+    const b = document.getElementById(k === "slow" ? "slowBtn" : k + "Btn");
+    b.classList.toggle("on", POW[k]);
+  });
+}
+document.getElementById("gunBtn").onclick = () => setGun(!gunTarget);
+document.getElementById("laserBtn").onclick = () => showState("laser", 1e9);
+document.getElementById("rapidBtn").onclick = () => showState("rapid", 1e9);
+document.getElementById("slowBtn").onclick = () => showState("slow", 1e9);
+document.getElementById("bombBtn").onclick = () => showState("bomb", 1e9);
+document.getElementById("holdBtn").onclick = () => { holdMode = !holdMode; refreshBtns(); };
+
+const KEY_STATE = { l: "laser", r: "rapid", z: "slow", b: "bomb" };
+document.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k)) {
+    e.preventDefault();
+    arrows[k.replace("arrow", "")] = true;
+    return;
+  }
+  if (k === " ") { e.preventDefault(); firing = true; return; }
+  if (k === "q") { e.preventDefault(); POW.bomb = true; until.bomb = performance.now() + 1e9;
+    refreshBtns(); return; }
+  if (k === "g") { setGun(!gunTarget); return; }
+  if (k === "h") { holdMode = !holdMode; refreshBtns(); return; }
+  if (KEY_STATE[k]) {
+    // a power-up key RUNS that power-up (it repeats, like the game timers)
+    POW[KEY_STATE[k]] = true;
+    until[KEY_STATE[k]] = performance.now() + (holdMode ? 1e9 : 2200);
+    refreshBtns();
+  }
+});
+document.addEventListener("keyup", (e) => {
+  const k = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k)) {
+    arrows[k.replace("arrow", "")] = false;
+    return;
+  }
+  if (k === " ") firing = false;
+});
+
+// width read-out, measured from the geometry (fresh builder, not the pooled mesh)
+function measure() {
+  const T = Iron3D.THREE;
+  const cfg = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
+  const m = Iron3D.BUILDERS[SHIP.key](cfg, SHIP.hex, null);
+  const inner = m.children[0];
+  const s = new T.Box3().setFromObject(inner).getSize(new T.Vector3());
+  const rawX = s.x / inner.scale.x, rawZ = s.z / inner.scale.x;
+  const drawn = s.x * 56 / 2.35 * 1.35;
+  document.getElementById("meas").innerHTML =
+    "raw X <b>" + rawX.toFixed(1) + "</b> units (" + (rawX / 2).toFixed(1) + " each side) · raw Z " +
+    rawZ.toFixed(1) + " · drawn <b>" + drawn.toFixed(1) + " px</b> · GUN_X " + GUN_X.toFixed(2) +
+    " units = 14 px";
+}
+measure();
+
+// ---- headless probes -----------------------------------------------------
+window.SANDBOX = {
+  setGun, setHold: (v) => { holdMode = !!v; refreshBtns(); },
+  set: (k, v) => { POW[k] = !!v; until[k] = performance.now() + 1e9; refreshBtns(); },
+  all: (v) => { ["laser", "rapid", "slow", "bomb"].forEach((k) => SANDBOX.set(k, v)); },
+  fire: (on) => { firing = !!on; },
+  state: () => ({ gun: gunTarget, ...POW, hold: holdMode, firing,
+    nBullets: bullets.length, nBeams: beams.length, nBombs: bombs.length }),
+  probe: () => {
+    const it = Iron3D.pool.get("lantern");
+    if (!it) return { missing: true };
+    const parts = Object.assign({}, it.mesh.userData, (it.mesh.children[0] || {}).userData || {});
+    const pow = parts.pow || {};
+    const vis = (list) => (list || []).filter((q) => q.m.visible)
+      .map((q) => +q.m.material.uniforms.uAlpha.value.toFixed(2));
+    const rig = parts.guns || {};
+    const side = (rig.side || []).filter((q) => q.m.visible)
+      .map((q) => +q.m.position.x.toFixed(2));
+    return {
+      gunRaw: it.gunRaw === undefined ? null : +it.gunRaw.toFixed(2),
+      powRaw: it.powRaw ? Object.fromEntries(Object.entries(it.powRaw)
+        .map(([k, v]) => [k, +v.toFixed(2)])) : null,
+      laserA: vis(pow.laser), rapidA: vis(pow.rapid),
+      slowA: vis(pow.slow), bombA: vis(pow.bomb),
+      sideX: side,
+      // live beam/muzzle tracking: SANDBOX.follow() checks that a beam's x is glued
+      // to the muzzle AFTER the ship moves (the "laser doesn't follow me" bug)
+      beamX: beams.map((b) => +b.x.toFixed(1)),
+      muzzleX: liveMuzzles().map((x) => +x.toFixed(1)),
+      shipX: +shipX.toFixed(1)
+    };
+  },
+  follow: () => {
+    const expect = beamAnchorX();
+    return {
+      shipX: +shipX.toFixed(1),
+      expectBeamX: +expect.toFixed(1),
+      muzzleX: liveMuzzles().map((x) => +x.toFixed(1)),
+      beams: beams.map((b) => ({ beamX: +b.x.toFixed(1),
+        gap: +(b.x - expect).toFixed(2) }))
+    };
+  }
+};
+refreshBtns();
+</script>
+</body>
+</html>

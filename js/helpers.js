@@ -39,8 +39,8 @@ function pushEnemyBullet(bullet) {
   enemyBullets.push(bullet);
 }
 
-function addExplosion(x, y, color, squash = null) {
-  explosions.push({ x, y, color, squash, ttl: 0.38 });
+function addExplosion(x, y, color, squash = null, round = false) {
+  explosions.push({ x, y, color, squash, round, ttl: 0.38 });
 }
 
 // Green hull chips thrown off the ship when a hit cracks it. 2D layer, like the explosions.

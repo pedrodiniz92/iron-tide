@@ -190,7 +190,10 @@ function checkCollisions() {
       if (hitInvader.hp > 0) {
         comboAddHit();
         playHit();
-        addExplosion(bullet.x + bullet.w / 2, bullet.y, invaderHitColor(hitInvader));
+        // a ghost's hit spark is a ROUND burst, not the four square particles that
+        // read as a white square sitting on the pale ghost
+        addExplosion(bullet.x + bullet.w / 2, bullet.y, invaderHitColor(hitInvader),
+          null, hitInvader.type.name === "ghost");
         return false;
       }
       hitInvader.alive = false;

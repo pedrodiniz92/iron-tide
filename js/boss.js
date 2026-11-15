@@ -1597,8 +1597,24 @@ function drawBossDesignShape(boss, design, tier, meshId) {
     : design.name === "SCRAPLING" ? "scrap"
     : design.name === "SPINE SENTRY" ? "sentry" : "skull";
   const fitW = boss.h * (SIL[shapeName].bb.w / SIL[shapeName].bb.h);
+  // The Venom Wyrm renders TALLER than the nominal boss box (it is 2.30 x 1.93
+  // model units and scales by the box WIDTH), so decoration laid on the box edge
+  // sits INSIDE the drawn sprite: spikes hung over the jaw, the tier-2 plate cut
+  // through the hood. The tier shapes below are raised clear of the sprite top.
+  const wyrm = design.name === "WINGED VIPER" && window.Iron3D && window.Iron3D.viperLookKey
+    && window.Iron3D.viperLookKey() === "viper_wyrm";
+  const topY = wyrm ? boss.y - boss.h * 0.62 : boss.y - 4;
+  const botY = boss.y + boss.h;
   if (window.Iron3D) {
-    push3D({ id: meshId, key: design.name === "ABYSSAL SQUID" ? "ABYSSAL SQUID" : shapeName,
+    // the WINGED VIPER wears the Venom Wyrm in ordinary play: viperLookKey()
+    // defaults to "viper_wyrm" (js/assets3d.js) and ?viper=0 is the shipped dart
+    const meshKey = design.name === "ABYSSAL SQUID" ? "ABYSSAL SQUID"
+      : shapeName === "viper" && window.Iron3D.viperLookKey ? window.Iron3D.viperLookKey()
+      : shapeName;
+    // The Venom Wyrm is TALL (2.30 x 1.93 model units) where the flat dart is WIDE.
+    // Keep the usual boss draw box (the shipped boss size) - the tier decoration
+    // follows the drawn sprite's own edges instead (see topY/botY above).
+    push3D({ id: meshId, key: meshKey,
       x: boss.x - 13, y: boss.y - 13,
       w: boss.w + 26, h: boss.h + 26, color: design.color, phase: 1.1, tilt: 0.2 });
   } else {
@@ -1704,39 +1720,57 @@ function drawBossDesignShape(boss, design, tier, meshId) {
 
   }
   if (tier >= 1) {
+    // spikes sit on the sprite's top edge: on the nominal box edge they overlapped
+    // the WINGED VIPER's tall hood and hung over the jaw as detached glowing
+    // triangles, so the wyrm raises them clear of its tall silhouette
     ctx.fillStyle = design.accent;
+    const spikeH = wyrm ? 16 : 14;
     [-26, -14, 14, 26].forEach((offset) => {
       ctx.beginPath();
-      ctx.moveTo(cx + offset, boss.y - 4);
-      ctx.lineTo(cx + offset + 4, boss.y + 10);
-      ctx.lineTo(cx + offset - 4, boss.y + 10);
+      ctx.moveTo(cx + offset, topY - spikeH);
+      ctx.lineTo(cx + offset + 4, topY);
+      ctx.lineTo(cx + offset - 4, topY);
       ctx.closePath();
       ctx.fill();
     });
   }
   if (tier >= 2 && design.name !== "ABYSSAL SQUID") {
-    ctx.strokeStyle = design.accent;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(boss.x - 7, boss.y + 14, boss.w + 14, 40);
-    ctx.lineWidth = 1;
+    // NO armour-plate RECTANGLE here (user call): a literal strokeRect across the
+    // sprite reads as a hitbox/selection box on the boss, worst on the WINGED
+    // VIPER's tall body (it cuts straight through the hood and the head). Tier is
+    // decoration only - nothing collides with it - so the ring below carries the
+    // tier-2 look alone.
     drawBossAccessoryRing(cx, cy, 52, "rgba(255,255,255,0.22)");
   }
   if (tier >= 3) {
+    // the spiked CROWN and the two side fins below are shapes, not boxes: the
+    // old tier-3 strokeRect + fillRect pair framed the hull in a rectangle
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.moveTo(cx - 36, boss.y - 20);
-    ctx.lineTo(cx - 22, boss.y - 6);
-    ctx.lineTo(cx - 8, boss.y - 20);
-    ctx.lineTo(cx + 8, boss.y - 6);
-    ctx.lineTo(cx + 22, boss.y - 20);
-    ctx.lineTo(cx + 36, boss.y - 6);
-    ctx.lineTo(cx + 26, boss.y + 2);
-    ctx.lineTo(cx - 26, boss.y + 2);
+    ctx.moveTo(cx - 36, topY - 16);
+    ctx.lineTo(cx - 22, topY - 2);
+    ctx.lineTo(cx - 8, topY - 16);
+    ctx.lineTo(cx + 8, topY - 2);
+    ctx.lineTo(cx + 22, topY - 16);
+    ctx.lineTo(cx + 36, topY - 2);
+    ctx.lineTo(cx + 26, topY + 6);
+    ctx.lineTo(cx - 26, topY + 6);
     ctx.closePath();
     ctx.fill();
+    // the two side fins: tapered blades, not `fillRect` bars (a literal rectangle
+    // on a hull reads as a UI box, same complaint as tier 2)
     ctx.fillStyle = design.accent;
-    ctx.fillRect(boss.x + 4, boss.y + 34, 12, 28);
-    ctx.fillRect(boss.x + boss.w - 16, boss.y + 34, 12, 28);
+    [-1, 1].forEach((s) => {
+      const fx = s < 0 ? cx - (wyrm ? boss.w * 0.42 : boss.w / 2) - 16
+        : cx + (wyrm ? boss.w * 0.42 : boss.w / 2) + 4;
+      ctx.beginPath();
+      ctx.moveTo(fx, botY - (wyrm ? 24 : 28));
+      ctx.lineTo(fx + 12, botY - (wyrm ? 20 : 24));
+      ctx.lineTo(fx + 12, botY);
+      ctx.lineTo(fx, botY + 2);
+      ctx.closePath();
+      ctx.fill();
+    });
   }
 
   ctx.restore();

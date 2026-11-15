@@ -2,13 +2,17 @@ import * as THREE from "../mockups/vendor/three.module.js";
 import { MOBS as BASE_MOBS, surfMaterial, addHull, finishMob } from "../mockups/toon3d.js";
 import { MOB_V2 } from "../mockups/toon3d.v2.js";
 import { buildBanshee, buildStinger } from "../mockups/banshees3d.js";
+import { VIPER_LOOKS_V2 } from "./viper3d.js";
+import { SHIPS_V2, SHIP_PALETTES, shipGunStep, shipPowerStep } from "./ships3d.js";
 
 const RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
 const TARGET = 2.35;
 const FIT = 1.35;
 const FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, stinger: 1.65,
-  squid: 1.15, zealot: 1.6, idol: 1.6, "ABYSSAL SQUID": 1.15 };
-const BUILDERS = Object.assign({}, BASE_MOBS, MOB_V2, { invSquid: BASE_MOBS.squid });
+  squid: 1.15, zealot: 1.6, idol: 1.6, "ABYSSAL SQUID": 1.15,
+  viper_wyrm: 1.2 };
+const BUILDERS = Object.assign({}, BASE_MOBS, MOB_V2, VIPER_LOOKS_V2, SHIPS_V2,
+  { invSquid: BASE_MOBS.squid });
 // mockup-side custom builders (window.Iron3D.__builders): the mockups compose
 // new looks from the kit without touching the shipped BUILDERS map
 const MOCK_BUILDERS = {};
@@ -16,7 +20,9 @@ const MOCK_BUILDERS = {};
 const KEY = {
   squid: "invSquid", octopus: "invSquid", octo: "invSquid", crab: "crab_b",
   ufo: "ufo", player: "player",
+  ship1: "ship1", ship2: "ship2", ship3: "ship3",
   scrap: "scrap", sentry: "sentry", skull: "skull", viper: "viper",
+  viper1: "viper_wyrm",
   "ABYSSAL SQUID": "squid", zealot: "zealot", idol: "idol",
   rapid: "drop_rapid", double: "drop_double", laser: "drop_laser", shield: "drop_shield",
   slow: "drop_slow", bomb: "drop_bomb", loot: "drop_loot",
@@ -495,11 +501,16 @@ function updateMaskPass(meshes, active) {
     maskClones.forEach((c) => { c.visible = false; });
     clone.visible = true;
     const rt = ensureGhostRT(mesh);
+    quad.userData.__rt = rt; // probe handle (readRenderTargetPixels)
     renderer.setRenderTarget(rt);
     renderer.setClearColor(0x000000, 1);
     renderer.render(maskScene, ghostCam);
     renderer.setRenderTarget(null);
     renderer.setClearColor(0x000000, 0);
+    // the RT has now been painted black + the ghost's white silhouette. Only from
+    // this point is it safe for the quad to sample it - an allocated-but-never-
+    // rendered RT samples WHITE on Chrome, which is the solid white square.
+    quad.userData.__rtDrawn = true;
     quad.material.uniforms.uMask.value = rt.texture;
   }
 }
@@ -571,27 +582,60 @@ function applyPhase(mesh, phaseU, mode, ac, flicker) {
   // shears the silhouette coverage into a parallelogram that flips side to side
   // with the wobble. Undo the parent rotation so the quad stays screen-parallel.
   quad.quaternion.copy(mesh.quaternion).invert();
-  // NEVER show the quad before the mask pass has fed it a texture: sampling an
-  // unbound texture returns WHITE on Chrome -> a solid white square.
-  quad.visible = useQuad && !!quad.material.uniforms.uMask.value;
-  quad.renderOrder = 999; // the alpha traverse overwrites this to 2 every frame
+  // NEVER show the quad before the mask has been RENDERED. An unbound texture (or an
+  // RT that was allocated but never painted) samples WHITE on Chrome -> a solid white
+  // square. `__rtDrawn` is set only after updateMaskPass actually renders into it.
+  quad.visible = useQuad && !!quad.material.uniforms.uMask.value && !!quad.userData.__rtDrawn;
+  // ORDER THE QUAD LAST, ALWAYS. The alpha traverse in render() overwrites
+  // renderOrder to 2 for any material with alpha < 0.999, which put the quad BEFORE
+  // other transparent parts with depthTest off - that is what let a white quad paint
+  // over a ghost that had just taken a hit. Pin it in userData so the alpha pass
+  // cannot demote it, and keep 999.
+  quad.renderOrder = 999;
+  // Hide the parts ONLY once the quad is actually on screen. On the first
+  // shimmer/fade frame the mask RT is not bound yet (it is fed later in this
+  // same render): hiding the parts then leaves a 1-frame dropout - the ghost
+  // blinks out and the white hit-spark reads as a "white square" over it.
+  const hideParts = quad.visible;
   if (useQuad) {
     quad.material.uniforms.uPhase.value = phaseU > 0.02 ? phaseU : 1;
     quad.material.uniforms.uMode.value = phaseU > 0.02 ? mode : 0;
     quad.material.uniforms.uAlpha.value = ac;
   }
+  // per-frame probe log (window.__ghostProbe = { mesh }): catches transient
+  // quad glitches (the white-square-on-hit flash) between the 1fps headless samples
+  if (window.__ghostProbe && window.__ghostProbe.mesh === mesh) {
+    const L = window.__ghostProbe.log || (window.__ghostProbe.log = []);
+    L.push({ qv: quad.visible, ph: +quad.material.uniforms.uPhase.value.toFixed(2),
+      md: quad.material.uniforms.uMode.value, al: +quad.material.uniforms.uAlpha.value.toFixed(2),
+      mb: !!quad.material.uniforms.uMask.value });
+  }
   // the quad IS the ghost in phase - hide every part so nothing double-blends.
   // EXCEPTION: in FADE mode the face (detail) parts stay visible, drawn ON TOP
   // of the quad, so the eyes/mouth read in the flat fade.
+  //
+  // THE WHITE-SQUARE FIX: renderOrder only sorts WITHIN a pass. Three.js draws the
+  // OPAQUE list before the TRANSPARENT one and renderOrder never crosses that
+  // boundary. The per-frame alpha sync (render) sets transparent = ac < 0.999, so
+  // the moment a 2HP ghost is shot - alphaCur is still exactly 1.0 while the SHIMMER
+  // quad is already on - the eyes/mouth drop into the OPAQUE pass, draw FIRST, and
+  // the quad (depthTest:false) paints its flat silhouette over them: a faceless
+  // white blob, "a white square" on the dark field. Keeping the face in the
+  // transparent pass while the quad is on makes 999 < 1000 real again.
   mesh.children.forEach((c) => {
     if (c === proxy || c === quad) return;
     const isDetail = c.isMesh && c.material.userData && c.material.userData.__detail;
-    if (useQuad && mode < 2.5 && isDetail) {
+    if (hideParts && mode < 2.5 && isDetail) {
       setSubtreeVisible(c, true);
       c.renderOrder = 1000; // above the quad (999)
+      c.material.transparent = true; // same pass as the quad, so the order holds
     } else {
-      setSubtreeVisible(c, !useQuad);
-      if (c.isMesh) c.renderOrder = 0;
+      setSubtreeVisible(c, !hideParts);
+      if (c.isMesh) {
+        c.renderOrder = 0;
+        // leaving phase: hand transparent back to the alpha sync's rule
+        if (isDetail) c.material.transparent = ac < 0.999;
+      }
     }
   });
   mesh.traverse((o) => {
@@ -618,7 +662,7 @@ function sync(list) {
       if (item) scene.remove(item.mesh);
       const mesh = build(e.key, e.color, e.quality);
       scene.add(mesh);
-      item = { mesh, id };
+      item = { mesh, id, key: e.key }; // key: shipPowerStep resolves the palette
       pool.set(e.id, item);
     }
     const fit = e.fit || FIT_KEY[e.key] || FIT;
@@ -634,6 +678,7 @@ function sync(list) {
     item.crackFade = e.crackFade === undefined ? item.crack : Math.max(0, Math.min(1, e.crackFade));
     item.tilt = e.tilt === undefined ? 0.34 : e.tilt;
     item.guns = e.guns ? 1 : 0;
+    item.pow = e.pow || null;
     item.phaseU = e.phaseU === undefined ? 0 : e.phaseU;
     item.shimmer = e.shimmer ? 1 : 0;
   }
@@ -687,7 +732,11 @@ function render(t) {
     // The centre gun sinks into the hull and fades; the pair rides out of the nose along
     // the gun bar and fades in. Both ends are exact, the middle is a 0.5 s ease.
     const rig = parts.guns;
-    if (rig) {
+    if (rig && rig.mode) {
+      // the v2 ships (js/ships3d.js) own their own single <-> double animation:
+      // split from the centre, scissor around the nose, slide out of the pontoons
+      shipGunStep(rig, item, dt);
+    } else if (rig) {
       const tgt = item.guns ? 1 : 0;
       if (item.gunRaw === undefined) item.gunRaw = tgt;
       if (item.gunRaw !== tgt) {
@@ -714,6 +763,10 @@ function render(t) {
       rig.side.forEach((q) => setG(q, q.x0 * p, -7 * (1 - p), 0.55 + 0.45 * p,
         Math.max(0, Math.min(1, p * 1.7))));
     }
+    // LANTERN power-up state lights (js/ships3d.js): laser beam firing, quick
+    // shot hot, time-warp field, bomb launch flare. Items without a pow state
+    // (every other ship and mob) skip this entirely.
+    if (item.pow) shipPowerStep(item, dt, item.pow, t);
     const shF = m.userData.shell || (m.children[0] && m.children[0].userData && m.children[0].userData.shell);
     if (item.crackFade !== item.wasCrackFade) {
       if (shF && shF.material.uniforms && shF.material.uniforms.uMapMix) {
@@ -788,7 +841,9 @@ function render(t) {
           if (o.material.userData.a0 === undefined) o.material.userData.a0 = o.material.uniforms.uAlpha.value;
           o.material.uniforms.uAlpha.value = o.material.userData.a0 * ac;
           o.material.transparent = ac < 0.999;
-          o.renderOrder = ac < 0.999 ? 2 : 0;
+          // the phase QUAD must stay last: demoting it to 2 with depthTest off
+          // painted it over the ghost it belongs to (the white square).
+          o.renderOrder = o === m.userData.__quad ? 999 : (ac < 0.999 ? 2 : 0);
         }
       });
     }
@@ -822,9 +877,37 @@ function render(t) {
   }
 }
 
+// ---- VIPER LOOK PICK (?viper=1|2|3) ---------------------------------------
+// The VENOM WYRM (js/viper3d.js) is the look the WINGED VIPER wears in ordinary
+// play - no URL parameter needed. ?viper=0 still reaches the shipped flat dart
+// (mockups/viper-looks.html look 1) for comparison; any other value falls back
+// to the wyrm.
+const VIPER_KEYS = { 0: "viper", 1: "viper_wyrm" };
+function viperLookKey() {
+  const n = Math.round(Number(new URLSearchParams(location.search).get("viper") || 1));
+  return VIPER_KEYS[n] || "viper_wyrm";
+}
+
+// ---- PLAYER SHIP PICK (?ship=1|2|3) ----------------------------------------
+// LANTERN ("ship1") is what a plain index.html shows - open the game with no
+// query string and you fly the new hull, not the shipped Bulwark. ?ship=0 (or
+// ?ship=player) still reaches the Bulwark "player" key for comparison, and the
+// other two v2 hulls are picked per page load. An unknown value falls back to
+// LANTERN, because that is the default look of the game now.
+const SHIP_KEYS = { 0: "player", 1: "ship1", 2: "ship2", 3: "ship3" };
+const SHIP_DEFAULT = "ship1";
+function shipLookKey() {
+  const raw = new URLSearchParams(location.search).get("ship");
+  if (raw === null || raw === "") return SHIP_DEFAULT;
+  const n = Math.round(Number(raw));
+  return SHIP_KEYS[n] || SHIP_DEFAULT;
+}
+
 // THREE/renderer/scene/cam are exposed for the mockups' silhouette-mask pass
 // (constant-colour depth prepass -> fused alpha rim, see mockups/ghost-hp-visuals.html)
 window.Iron3D = { sync, render, count: () => pool.size, ready: true, keys: KEY, pool,
+  viperLookKey, VIPER_KEYS, shipLookKey, SHIP_KEYS, SHIP_PALETTES, BUILDERS,
+  shipGunStep, shipPowerStep,
   THREE, renderer, scene, cam,
   // the toon kit, exported for mockup-side custom builders (same pattern as THREE)
   surfMaterial, addHull, finishMob, __builders: MOCK_BUILDERS,

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WINGED VIPER — SHIPPED vs VENOM WYRM (drawn by the game's own builders)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 10px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 8px; color: #6f8fa8; font-size: 12px; max-width: 980px; line-height: 1.5; }
+  .wrap { position: relative; width: min(900px, calc(100vw - 32px)); margin: 0 16px 20px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 3 / 2; border: 1px solid #23304a; background: #0d0d14; }
+  /* style.css:87 - the WebGL layer sits behind the 2D canvas. Both canvases MUST
+     have an explicit CSS size or Iron3D's devicePixelRatio backing store displays
+     at 2x and the 3D layer renders offset from the 2D labels. */
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  .legend { margin: 8px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .legend div { border: 1px solid #23304a; padding: 7px 8px; font-size: 11px; line-height: 1.45; color: #9fc4dd; }
+  .legend b { color: #dfe9ff; display: block; margin-bottom: 3px; letter-spacing: .06em; }
+  .legend .k { color: #ffe066; }
+</style>
+</head>
+<body>
+<h1>WINGED VIPER &mdash; SHIPPED vs VENOM WYRM</h1>
+<div class="sub">
+  <b>Key 1</b> = the shipped viper (default), <b>key 2</b> = VENOM WYRM.
+  <b>Both models come from the game's own builder map</b> through the bundled
+  <b>js/assets3d.bundle.js</b>: keys <b>viper</b> and <b>viper_wyrm</b> (js/viper3d.js) - no copies
+  in this page. The real game draws the same builders when loaded as
+  <b>index.html?viper=1</b>; without the parameter it stays on the shipped viper.
+</div>
+<div class="wrap">
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+</div>
+<div class="legend">
+  <div><b><span class="k">1</span> SHIPPED (default)</b>flat neon dart, no face. The baseline.</div>
+  <div><b><span class="k">2</span> VENOM WYRM (?viper=1)</b>spread cobra hood, slit-pupil eyes under brow ridges, fangs.</div>
+</div>
+</div>
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const has3D = () => !!window.Iron3D;
+let frame3D = [];
+function push3D(e) { if (window.Iron3D) frame3D.push(e); return !!window.Iron3D; }
+
+// js/constants.js:146-152 - the WINGED VIPER design, verbatim
+const VIPER = { color: "#2fc96f", accent: "#7dff66" };
+
+// The look list. The KEY is what the game pushes (js/boss.js drawBossDesignShape);
+// nothing here builds a model - the bundle's BUILDERS/KEY do that.
+const LOOKS = [
+  { n: 1, key: "viper",      name: "SHIPPED",    note: "flat neon dart, no face" },
+  { n: 2, key: "viper_wyrm", name: "VENOM WYRM", note: "cobra hood, slit eyes, fangs" }
+];
+let pick = 2;
+let t = 0;
+
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (k === "1" || k === "2") pick = Number(k);
+});
+function setPick(n) { pick = Math.max(1, Math.min(2, n)); }
+
+// ---- geometry -------------------------------------------------------------
+// small reference cell (left) + a big cell for the wyrm (right).
+// NOTE js/assets3d.js sync(): scale = max(w,h)/2.35*fit, so the BOX must be the
+// size the model should appear at, not the whole cell.
+const margin = 24;
+const small = 150;                       // shipped viper, game-ish size
+const big = 420;                         // venom wyrm, large
+const leftBox = { x: margin + 26, y: 96, w: small, h: small };
+const rightCx = margin + 26 + small + 74;
+const rightBox = { x: rightCx, y: 600 - 44 - big, w: big, h: big };
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  frame3D = [];
+
+  // the ground line (js/drawing.js:232-239)
+  ctx.save();
+  ctx.strokeStyle = "#246b24";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 38);
+  ctx.lineTo(W, H - 38);
+  ctx.stroke();
+  ctx.restore();
+
+  // both looks pushed through the game's exact push3D path
+  // (js/boss.js: fit from FIT_KEY 1.2, phase 1.1, tilt 0.2).
+  LOOKS.forEach((look, i) => {
+    const b = i === 0 ? leftBox : rightBox;
+    push3D({ id: "show" + look.n, key: look.key,
+      x: b.x, y: b.y, w: b.w, h: b.h,
+      color: VIPER.color, phase: 1.1 + i * 0.4, tilt: 0.2 });
+    ctx.strokeStyle = look.n === pick ? "#ffe066" : "#23304a";
+    ctx.lineWidth = look.n === pick ? 2 : 1;
+    ctx.strokeRect(b.x - 12, b.y - 12, b.w + 24, b.h + 24);
+    ctx.fillStyle = look.n === pick ? "#ffe066" : "#6f8fa8";
+    ctx.font = "bold 13px 'Courier New', monospace";
+    ctx.fillText(look.n + "  " + look.name, b.x - 12, b.y - 20);
+    ctx.fillStyle = "#6f8fa8";
+    ctx.font = "11px 'Courier New', monospace";
+    ctx.fillText(look.note, b.x - 12, b.y + b.h + 30);
+  });
+
+  const sel = LOOKS[pick - 1];
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("SELECTED: " + pick + " " + sel.name + "  (" + sel.key + ")  |  keys 1-2", margin, 20);
+  if (!has3D()) {
+    ctx.fillStyle = "#ff6a3d";
+    ctx.fillText("NO WEBGL", W - 120, 20);
+  }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  t += dt;
+  draw();
+  if (window.Iron3D) {
+    Iron3D.sync(frame3D);
+    Iron3D.render(performance.now());
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// probe surface for CDP checks
+window.SANDBOX = {
+  get state() {
+    return {
+      pick, name: LOOKS[pick - 1].name, key: LOOKS[pick - 1].key,
+      has3D: has3D(), meshes: has3D() ? Iron3D.count() : 0,
+      poolKeys: has3D() ? Array.from(Iron3D.pool.keys()) : [],
+      keys: has3D() ? Iron3D.VIPER_KEYS : null,
+      sameBuilders: has3D() ? ["viper", "viper_wyrm"]
+        .map((k) => !!Iron3D.BUILDERS[k]) : []
+    };
+  },
+  setPick
+};
+</script>
+</body>
+</html>

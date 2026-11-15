@@ -152,7 +152,9 @@ function useLaser() {
 }
 
 function fireLaserBeam() {
-  const x = player.x + player.w / 2;
+  // start the beam at the gun's muzzle x (same rule as updateLaserBeams/drawLaserBeams)
+  const x = player.x + player.w / 2
+    + ((effects.double > 0 || permanentDoubleShots) ? 14 : 0);
   const y = player.y;
   laserBeams.push({
     x,
@@ -195,7 +197,11 @@ function findLaserTarget(x, y) {
 
 function updateLaserBeams(dt) {
   laserBeams.forEach((beam) => {
-    beam.x = player.x + player.w / 2;
+    // the beam's x is the LIVE gun x, matching drawLaserBeams(): centreline at single,
+    // the left gun of the +-14 px pair at double. Damage and drawing therefore agree,
+    // and the column follows the ship as it moves (this line re-reads every frame).
+    beam.x = player.x + player.w / 2
+      + ((effects.double > 0 || permanentDoubleShots) ? 14 : 0);
 
     if (beam.ttl > 0) {
       beam.ttl -= dt;

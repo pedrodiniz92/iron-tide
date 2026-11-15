@@ -1,4 +1,8 @@
 const frame3D = [];
+// TIME-WARP TRAIL: the ship's recent stern positions while the slow power-up runs,
+// so the game paints a fading violet trail behind a ship that is actually moving
+// (js/ships3d.js only provides the outline AROUND the hull).
+const warpTrail = [];
 
 function push3D(entry) {
   if (window.Iron3D) frame3D.push(entry);
@@ -239,8 +243,7 @@ function drawGround() {
 }
 
 function drawPlayer() {
-  if (respawnTimer > 0) {
-    ctx.save();
+  if (respawnTimer > 0) {    ctx.save();
     ctx.strokeStyle = "rgba(120, 255, 120, 0.5)";
     ctx.lineWidth = 2;
     ctx.strokeRect(player.x, player.y, player.w, player.h);
@@ -263,12 +266,71 @@ function drawPlayer() {
     neonFlame(player.x + player.w / 2, player.y + player.h - 2, 6 + heat * 12,
       `rgba(102, 136, 170, ${0.3 + heat * 0.7})`);
   }
-  if (!push3D({ id: "player", key: "player", x: player.x, y: player.y, w: player.w, h: player.h,
-    color: COLORS.player, rot: [-Math.PI / 2, 0, 0], tilt: 0,
+  // Iron3D loads AFTER main.js, and init() draws before the bundle is parsed, so
+  // guard the whole object (not just shipLookKey) or the first draw throws and the
+  // game never starts.
+  const shipKey = (typeof Iron3D !== "undefined" && Iron3D.shipLookKey)
+    ? Iron3D.shipLookKey() : "player";
+  // TIME-WARP TRAIL: while slow is running, keep the last positions of the ship and
+  // paint them fading behind it. A point is laid ONLY when the ship actually moved,
+  // so a still ship shows just the outline and no false trail - the trail is the read
+  // for "greater speed", which only means something when you are flying.
+  if (effects.slow > 0 && shipKey === "ship1") {
+    const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
+    const last = warpTrail[warpTrail.length - 1];
+    if (!last || Math.abs(last.x - cx) > 0.5 || Math.abs(last.y - cy) > 0.5) {
+      warpTrail.push({ x: cx, y: cy, ttl: 0.42 });
+      if (warpTrail.length > 26) warpTrail.shift();
+    }
+  } else if (warpTrail.length) {
+    warpTrail.shift();                    // drain the trail when the power-up ends
+  }
+  warpTrail.forEach((p) => { p.ttl -= 1 / 60; });
+  while (warpTrail.length && warpTrail[0].ttl <= 0) warpTrail.shift();
+  if (warpTrail.length > 1) {
+    ctx.save();
+    warpTrail.forEach((p, i) => {
+      const a = Math.max(0, p.ttl / 0.42) * 0.5 * (i / warpTrail.length);
+      ctx.globalAlpha = a;
+      ctx.shadowColor = "#bf9cff"; ctx.shadowBlur = 12;
+      ctx.fillStyle = "#bf9cff";
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, player.w * 0.33, player.h * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+  // LANTERN shows the power-up states ON the model (laser beam firing, quick shot
+  // hot gun, time-warp field, bomb launch flare) - js/ships3d.js shipPowerStep.
+  // Other ships ignore it. The state is read from the same vars the 2D layer uses.
+  const powState = shipKey === "ship1" ? {
+    laser: laserBeams.length > 0,
+    rapid: effects.rapid > 0,
+    slow: effects.slow > 0,
+    bomb: bombShots.length > 0
+  } : null;
+  // LOOK PARITY WITH THE APPROVED MOCKUP. The v2 hulls were approved as the soft
+  // look of mockups/ship-looks-v2.html and mockups/lantern-powerups.html: drawn at
+  // alpha 0.5 over a soft neon underlay, tinted with the ship's own hex, NOT the
+  // player green (#78ff78) at alpha 1. Only the v2 keys take this; the shipped
+  // Bulwark keeps its own look.
+  const isV2 = shipKey === "ship1" || shipKey === "ship2" || shipKey === "ship3";
+  // the hex each mockup tints its hull with (mockups/ship-looks-v2.html MODELS[].hex)
+  const SHIP_TINTS = { ship1: "#5a6678", ship2: "#4a5568", ship3: "#7d8798" };
+  const shipTint = isV2 ? (SHIP_TINTS[shipKey] || COLORS.player) : COLORS.player;
+  if (!push3D({ id: "player", key: shipKey,
+    x: player.x, y: player.y, w: player.w, h: player.h,
+    color: shipTint, rot: [-Math.PI / 2, 0, 0], tilt: 0,
+    alpha: isV2 ? 0.5 : undefined,
     guns: effects.double > 0 || permanentDoubleShots ? 1 : 0,
+    pow: powState,
     crack: crackFade > 0.02, crackFade })) {
     neon("classic", player.x + player.w / 2, player.y + player.h / 2, player.w, COLORS.player);
   }
+  // the soft neon underlay every mockup draws beneath a v2 hull (alpha 0.5), so the
+  // game ship reads the same silhouette-plus-glow as the approved mockup
+  if (isV2) neon("classic", player.x + player.w / 2, player.y + player.h / 2,
+    player.w, "#7d93b2", 7, 0.5);
   if (mobilityLevel() >= 1 && dashCooldown <= 0) {
     ctx.fillStyle = "#2a3038";
     ctx.fillRect(player.x + player.w / 2 - 5, player.y + 22, 10, 2);
@@ -508,7 +570,10 @@ function drawInvaderArmor(invader) {
 }
 
 function invaderHitColor(invader) {
-  return (invader.hp || 1) > 0 ? "#ffffff" : invader.type.color;
+  if ((invader.hp || 1) <= 0) return invader.type.color;
+  // the white spark reads as a "white square" on the WHITE ghost - give ghosts a
+  // lavender spark (their abyssal accent family) so the hit flash stays visible
+  return invader.type.name === "ghost" ? "#b9a7ff" : "#ffffff";
 }
 
 function drawUfo() {
@@ -736,9 +801,18 @@ function drawBombShots() {
 
 function drawLaserBeams() {
   laserBeams.forEach((beam) => {
-    const startX = beam.x;
-    const startY = player.y;
-    const endX = beam.x;
+    // The beam issues from the GUN'S MUZZLE, not the hull's middle top edge: x is the
+    // live gun position (centreline at single, +-14 px pair at double) and y is the
+    // muzzle tip, so the column starts above the barrel and never paints over the gun.
+    // js/ships3d.js authors the muzzle MUZZLE_DZ units ahead of the gun pivot; at the
+    // game's 75.6 px draw the px-per-unit is 75.6/72, the same factor js/assets3d.js
+    // uses for GUN_X, so the mockup and the game agree.
+    const pxPerUnit = 75.6 / 72;
+    const muzzleDz = 17;                     // model units muzzle ring -> gun pivot
+    const gx = (effects.double > 0 || permanentDoubleShots) ? 14 : 0; // px, left gun
+    const startX = player.x + player.w / 2 + gx;
+    const startY = player.y - 13 + muzzleDz * pxPerUnit * 0.5;
+    const endX = startX;
     const endY = 0;
     const alpha = beam.ttl > 0 ? 1 : Math.max(0, beam.fade / beam.fadeMax);
     const tickFlash = beam.damageTimer < 0.12 ? 1.25 : 1;
@@ -1080,11 +1154,23 @@ function drawExplosions() {
     ctx.globalAlpha = 1 - p;
     ctx.fillStyle = explosion.color;
     const size = 3 - 2 * p;
-    for (let i = 0; i < 4; i += 1) {
-      ctx.save();
-      ctx.rotate(i * Math.PI / 2 + 0.4);
-      ctx.fillRect(4 + p * 14, -size / 2, size, size);
-      ctx.restore();
+    // GHOST HIT SPARK: the four square particles read as a literal WHITE SQUARE sitting
+    // on the pale ghost when you shoot it (user report). Ghosts get a small ROUND burst
+    // with a soft glow instead, so the spark never reads as a hard square over them.
+    if (explosion.round) {
+      ctx.shadowColor = explosion.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.4 + p * 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      for (let i = 0; i < 4; i += 1) {
+        ctx.save();
+        ctx.rotate(i * Math.PI / 2 + 0.4);
+        ctx.fillRect(4 + p * 14, -size / 2, size, size);
+        ctx.restore();
+      }
     }
     ctx.restore();
   });
