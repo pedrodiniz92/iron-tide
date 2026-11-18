@@ -57,20 +57,29 @@
         <span id="status" data-i18n="2.5D renderer: Three.js mob models with the toon ramp + sky rim, 2D canvas for bullets, bombs, HUD and effects.">2.5D renderer: Three.js mob models with the toon ramp + sky rim, 2D canvas for bullets, bombs, HUD and effects.</span>
       </footer>
     </main>
-    <script src="js/i18n.js?v=12"></script>
-    <script src="js/constants.js?v=19"></script>
-    <script src="js/helpers.js?v=11"></script>
-    <script src="js/state.js?v=3"></script>
-    <script src="js/audio.js?v=1"></script>
-    <script src="js/invaders.js?v=6"></script>
-    <script src="js/player.js?v=10"></script>
-    <script src="js/powerups.js?v=5"></script>
-    <script src="js/boss.js?v=12"></script>
+    <script>
+      // Crash canary: JS errors surface in the status line and collect in
+      // window.__errs (ask the player for it when reproducing a bug).
+      window.__errs = [];
+      addEventListener("error", (e) => {
+        window.__errs.push(e.message + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno);
+        if (window.updateStatus) window.updateStatus("JS: " + e.message);
+      });
+    </script>
+    <script src="js/i18n.js?v=18"></script>
+    <script src="js/constants.js?v=25"></script>
+    <script src="js/helpers.js?v=16"></script>
+    <script src="js/state.js?v=7"></script>
+    <script src="js/audio.js?v=3"></script>
+    <script src="js/invaders.js?v=7"></script>
+    <script src="js/player.js?v=15"></script>
+    <script src="js/powerups.js?v=6"></script>
+    <script src="js/boss.js?v=15"></script>
     <script src="js/silhouettes.js?v=1"></script>
-    <script src="js/drawing.js?v=21"></script>
-    <script src="js/testmode.js?v=8"></script>
-    <script src="js/main.js?v=19"></script>
+    <script src="js/drawing.js?v=24"></script>
+    <script src="js/testmode.js?v=9"></script>
+    <script src="js/main.js?v=24"></script>
     <script src="js/mobile.js"></script>
-    <script src="js/assets3d.bundle.js?v=31"></script>
+    <script src="js/assets3d.bundle.js?v=32"></script>
   </body>
 </html>

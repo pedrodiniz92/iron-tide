@@ -45,6 +45,10 @@ function startGame(skipStartingUpgrade = false) {
   dashTimer = 0;
   dashCooldown = 0;
   dashGrace = 0;
+  dashGraceMax = 0;
+  dashRingT = 9;
+  dodgePopupT = 0;
+  counterFanT = 0;
   dashGhosts = [];
   shieldHits = 0;
   itemShieldHits = 0;
@@ -76,6 +80,7 @@ function startGame(skipStartingUpgrade = false) {
   permanentFireRateBonus = 0;
   permanentDamage = 0;
   permanentLongPowerups = false;
+  permanentDropRateMult = 1;
   maxShieldHits = 1;
   shieldRestoreDelay = 0;
   shieldRestoreTimer = 0;
@@ -317,7 +322,8 @@ function checkCollisions() {
       return false;
     }
 
-    const shieldHit = firstShieldCellHit(bullet);
+    // OFFENSE I counter-fan passes your own barrier (it is a last-second gesture).
+    const shieldHit = bullet.fan ? null : firstShieldCellHit(bullet);
     if (shieldHit) {
       damageShieldCell(shieldHit.shield, shieldHit.cell);
       addExplosion(shieldHit.cell.x + shieldHit.cell.w / 2, shieldHit.cell.y, COLORS.shield);
@@ -343,7 +349,15 @@ function checkCollisions() {
     }
 
     if (overlaps(bullet, player)) {
-      if (isPlayerInvulnerable()) return false;
+      if (isPlayerInvulnerable()) {
+        // DASH DODGE: a mob bullet passing through the dash grace window gets
+        // called out rising off the ship (respawn/invuln-frame passes stay quiet).
+        if (dashGrace > 0 && dodgePopupT <= 0) {
+          dodgePopupT = 0.25;
+          showFloatingMessage(t("DODGE!"), player.x + player.w / 2, player.y - 16, 0.6, "#7fd8ea");
+        }
+        return false;
+      }
       addExplosion(player.x + player.w / 2, player.y + player.h / 2, COLORS.player);
 
       if (shieldHits > 0 && effects.shield > 0) {
@@ -531,6 +545,7 @@ function chooseUpgrade(index) {
   if (!choice || choice.maxed) return;
 
   applyUpgrade(choice);
+  playUpgrade();
   upgradeChoices = [];
   waveClearing = false;
   nextWaveIsBoss = isFullBossWave(level);
@@ -573,7 +588,9 @@ function applyUpgrade(choice) {
   }
 
   if (choice.treeId === "mobility") {
+    // UTI II: powerups last 2x AND drop 50% more often (the "powerup tree" point).
     permanentLongPowerups = choice.level >= 2;
+    permanentDropRateMult = choice.level >= 2 ? 1.5 : 1;
     dashCooldown = Math.min(dashCooldown, mobilityDashCooldown());
   }
   updateDashHint();

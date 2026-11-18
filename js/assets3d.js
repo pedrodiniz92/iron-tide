@@ -4,6 +4,7 @@ import { MOB_V2 } from "../mockups/toon3d.v2.js";
 import { buildBanshee, buildStinger } from "../mockups/banshees3d.js";
 import { VIPER_LOOKS_V2 } from "./viper3d.js";
 import { SHIPS_V2, SHIP_PALETTES, shipGunStep, shipPowerStep } from "./ships3d.js";
+import { buildSkull3D } from "./skull3d.js";
 
 const RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
 const TARGET = 2.35;
@@ -13,6 +14,11 @@ const FIT_KEY = { scrap: 1.2, sentry: 1.2, skull: 1.15, viper: 1.2, stinger: 1.6
   viper_wyrm: 1.2 };
 const BUILDERS = Object.assign({}, BASE_MOBS, MOB_V2, VIPER_LOOKS_V2, SHIPS_V2,
   { invSquid: BASE_MOBS.squid });
+// The Skull Cruiser's head is the anatomical 3D skull (js/skull3d.js) - the single
+// source of truth shared with mockups/skull-mouth-lab.html. It overrides the old
+// flat/pink "skull" builders (BASE_MOBS.skull, MOB_V2.skull) so the game and the
+// mockup draw the SAME geometry.
+BUILDERS.skull = buildSkull3D;
 // mockup-side custom builders (window.Iron3D.__builders): the mockups compose
 // new looks from the kit without touching the shipped BUILDERS map
 const MOCK_BUILDERS = {};
@@ -25,6 +31,7 @@ const KEY = {
   viper1: "viper_wyrm",
   "ABYSSAL SQUID": "squid", zealot: "zealot", idol: "idol",
   rapid: "drop_rapid", double: "drop_double", laser: "drop_laser", shield: "drop_shield",
+  laserBox: "drop_laser_box", laserBeam: "drop_laser_beam",
   slow: "drop_slow", bomb: "drop_bomb", loot: "drop_loot",
   banshee: "banshee", ghost: "ghost", stinger: "stinger"
 };

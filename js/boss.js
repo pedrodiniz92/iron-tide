@@ -1411,7 +1411,7 @@ function bossHitReward(boss) {
   const mini = boss.mini === true;
   addScore((mini ? 4 : 8) + level);
 
-  const chance = Math.min(0.08, (mini ? 0.022 : 0.016) + level * 0.0015 + dropRateBonus * 0.55);
+  const chance = Math.min(0.08, ((mini ? 0.022 : 0.016) + level * 0.0015 + dropRateBonus * 0.55) * permanentDropRateMult);
   if (Math.random() > chance) return;
 
   const type = pickLootType(mini ? 2 : 3);
@@ -1614,9 +1614,14 @@ function drawBossDesignShape(boss, design, tier, meshId) {
     // The Venom Wyrm is TALL (2.30 x 1.93 model units) where the flat dart is WIDE.
     // Keep the usual boss draw box (the shipped boss size) - the tier decoration
     // follows the drawn sprite's own edges instead (see topY/botY above).
-    push3D({ id: meshId, key: meshKey,
+    // The Skull Cruiser's 3D head (js/skull3d.js) is authored face-on +z with the
+    // cranium toward -y, so it must be stood up with rot [0,0,PI] (screen y =
+    // -model y) - the same flip the mockup's "AS IN GAME" view uses. The other
+    // bosses are authored upright and keep the default rot [0,0,0].
+    push3D(Object.assign({ id: meshId, key: meshKey,
       x: boss.x - 13, y: boss.y - 13,
-      w: boss.w + 26, h: boss.h + 26, color: design.color, phase: 1.1, tilt: 0.2 });
+      w: boss.w + 26, h: boss.h + 26, color: design.color, phase: 1.1, tilt: 0.2 },
+      design.name === "SKULL CRUISER" ? { rot: [0, 0, Math.PI] } : {}));
   } else {
   if (design.name === "ABYSSAL SQUID") {
     ctx.save();
@@ -1678,8 +1683,13 @@ function drawBossDesignShape(boss, design, tier, meshId) {
   if (design.name === "SKULL CRUISER") {
     const open = boss.laser && boss.laser.state !== "idle";
     const jawY = cy + boss.h * 0.19 + (open ? 6 : 2);
-    ctx.fillStyle = "#0d0d14";
-    ctx.fillRect(cx - 10, cy + boss.h * 0.16, 20, open ? 10 : 5);
+    // PLAIN TEETH mouth (v1.2.1, from mockups/skull-mouth-lab.html): the
+    // mouth-line rect + 3px tooth squares become a dark rounded opening with
+    // a closed tooth row inside - 5 uppers hanging from the top edge, 4
+    // lowers from the bottom, interlocking at the bite line, thin dark seams.
+    // Chin block first, then the opening cuts into it, then the teeth.
+    const mY = cy + boss.h * 0.16;
+    const mH = open ? 13 : 11;
     ctx.save();
     ctx.fillStyle = design.color;
     ctx.beginPath();
@@ -1692,12 +1702,10 @@ function drawBossDesignShape(boss, design, tier, meshId) {
     ctx.shadowBlur = 5;
     ctx.fill();
     ctx.restore();
-    ctx.fillStyle = "#f2f4f8";
-    for (let i = 0; i < 4; i += 1) {
-      const tx = cx - 9 + i * 6;
-      ctx.fillRect(tx, cy + boss.h * 0.16 + 1, 3, 3);
-      ctx.fillRect(tx + 3, jawY - 3, 3, 3);
-    }
+    ctx.fillStyle = "#0d0d14";
+    ctx.beginPath();
+    ctx.roundRect(cx - 12, mY - 2, 24, mH, 3);
+    ctx.fill();
     if (open) {
       ctx.save();
       ctx.fillStyle = "#ff3366";
@@ -1708,6 +1716,12 @@ function drawBossDesignShape(boss, design, tier, meshId) {
       ctx.fill();
       ctx.restore();
     }
+    ctx.fillStyle = "#f2f2f8";
+    const midY = mY - 2 + mH * 0.52;
+    [-10.4, -6.3, -2.1, 2.1, 6.3].forEach((tx) =>
+      ctx.fillRect(cx + tx, mY - 1, 3.8, midY - (mY - 1) + 1.2));
+    [-8.4, -4.2, 0, 4.2].forEach((tx) =>
+      ctx.fillRect(cx + tx, midY - 1, 3.8, mY - 2 + mH - (midY - 1) - 1));
     ctx.fillStyle = "#0d0d14";
     ctx.beginPath();
     ctx.moveTo(cx - 3.5, cy + boss.h * 0.04);
@@ -1719,10 +1733,11 @@ function drawBossDesignShape(boss, design, tier, meshId) {
 
 
   }
-  if (tier >= 1) {
+  if (tier >= 1 && design.name !== "SKULL CRUISER") {
     // spikes sit on the sprite's top edge: on the nominal box edge they overlapped
     // the WINGED VIPER's tall hood and hung over the jaw as detached glowing
-    // triangles, so the wyrm raises them clear of its tall silhouette
+    // triangles, so the wyrm raises them clear of its tall silhouette.
+    // The Skull Cruiser is excluded (user call): it wears no crown/spikes.
     ctx.fillStyle = design.accent;
     const spikeH = wyrm ? 16 : 14;
     [-26, -14, 14, 26].forEach((offset) => {
@@ -1742,9 +1757,10 @@ function drawBossDesignShape(boss, design, tier, meshId) {
     // tier-2 look alone.
     drawBossAccessoryRing(cx, cy, 52, "rgba(255,255,255,0.22)");
   }
-  if (tier >= 3) {
+  if (tier >= 3 && design.name !== "SKULL CRUISER") {
     // the spiked CROWN and the two side fins below are shapes, not boxes: the
-    // old tier-3 strokeRect + fillRect pair framed the hull in a rectangle
+    // old tier-3 strokeRect + fillRect pair framed the hull in a rectangle.
+    // The Skull Cruiser is excluded (user call): it wears no crown.
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
     ctx.moveTo(cx - 36, topY - 16);

@@ -33,6 +33,10 @@ let ghostPhaseT = 0;
 // SHIMMER clock: a wounded (1 HP) ghost flickers; this drives the sine
 let ghostFlickerT = 0;
 let screamTimer = 6;
+// The designated NEXT screamer (a living banshee). Crowned the instant the
+// previous wail ends; glows as it charges (drawScreamerCharge). Kill it before
+// the wail and the scream is cancelled + the kill pays 3x (registerInvaderKill).
+let screamNext = null;
 let frenzyZones = [];
 let upgradeSel = 0;
 let effects = { rapid: 0, double: 0, laser: 0, slow: 0, shield: 0 };
@@ -71,7 +75,9 @@ let keys = new Set();
 let sfxGain = null;
 let musicGain = null;
 let sfxOn = true;
-let musicOn = true;
+// Music is OFF by default: the game opens quiet (SFX only). The player can turn
+// it on with the Music button.
+let musicOn = false;
 let musicTimer = 0;
 let musicStep = 0;
 let musicTrack = 0;
@@ -91,6 +97,10 @@ let dashCooldown = 0;
 let dashFrom = 0;
 let dashTo = 0;
 let dashGrace = 0;
+let dashGraceMax = 0;   // grace window of the CURRENT dash (glow intensity = grace/max)
+let dashRingT = 9;      // shockwave ring age (>= 0.35 = dormant)
+let dodgePopupT = 0;    // "DODGE!" spam gate (min 0.25s between callouts)
+let counterFanT = 0;    // OFFENSE II counter-fan gate (0.5s between volleys)
 let dashGhosts = [];
 let bombSpeedMultiplier = 1;
 let bombRadiusBonus = 0;
@@ -99,6 +109,8 @@ let permanentDoubleShots = false;
 let permanentFireRateBonus = 0;
 let permanentDamage = 0;
 let permanentLongPowerups = false;
+// UTI II (LONG DASH): powerup drop chance multiplier (1.5 = +50%).
+let permanentDropRateMult = 1;
 // INK BLIGHT (ABYSSAL SQUID): { phase: "fly" | "cloud", ... } or null.
 let inkBlight = null;
 // Seconds spent inside the ink cloud (drives the -10% -> -20% move-slow ramp).

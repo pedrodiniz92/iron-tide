@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LASER POWERUP EXPIRE LAB</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 10px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 8px; color: #6f8fa8; font-size: 12px; max-width: 1000px; }
+  .wrap { width: min(1000px, calc(100vw - 32px)); margin: 0 16px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 5 / 3; border: 1px solid #23304a; background: #0d0d14; }
+  #stage3d, #game { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #stage3d { z-index: 0; }
+  #game { z-index: 1; }
+  .hint { color: #6f8fa8; font-size: 11px; margin: 8px 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<h1>LASER POWERUP &mdash; EXPIRE FADE (CURRENT + 2 SUGGESTIONS)</h1>
+<div class="sub">Each column drops the <b>real 3D laser powerup box</b> (the game's own geometry, drawn by the
+shared engine) and lets it expire (looping). The box wobbles / turns to the side exactly as in game. Only the
+expire fade differs. In game the box starts expiring when ttl &lt; 1.8s.</div>
+<div class="wrap">
+  <div class="stage">
+    <canvas id="stage3d" width="1000" height="600" aria-hidden="true"></canvas>
+    <canvas id="game" width="1000" height="600"></canvas>
+  </div>
+</div>
+<div class="hint">
+  <b>1 &middot; CURRENT (true to code):</b> 3D-mesh alpha flickers 0.35&harr;1.0 (sin, ~1.5s period, smoothed) &mdash; dips dark = the "black" look.<br>
+  <b>2 &middot; SMOOTH FADE:</b> the box shell eases 1&rarr;0 while the laser beam stays bright &mdash; the beam "lets through" the fading shell, never goes black.<br>
+  <b>3 &middot; PULSE-OUT:</b> box scales up + a bright ring flares as it dies, then pops &mdash; reads as "expiring", not "broken".
+</div>
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 1000, H = 600;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const COLOR = "#6fdcff"; // the laser powerup colour
+
+// ---- SPLIT BUILDERS: box shell + laser beam as SEPARATE meshes ----------------
+// The game's drop_laser is one mesh, so the engine fades the whole thing with one
+// alpha (the shell goes dark over the black field = the "black" look). For the
+// SMOOTH FADE we want the shell to fade away while the laser beam stays bright and
+// "lets through". So we rebuild the SAME geometry as two meshes (box body / beam)
+// and fade them independently. An invisible bounding box makes finishMob scale both
+// groups identically (matching the original combined drop_laser extent) so they line up.
+const THREE = Iron3D.THREE;
+const GLYPH = "#141420";
+function polyShape(pts) {
+  const sh = new THREE.Shape();
+  pts.forEach(([x, y], i) => (i ? sh.lineTo(x, -y) : sh.moveTo(x, -y)));
+  sh.closePath();
+  return sh;
+}
+function part2(group, geo, hex, cfg, x, y, z, thick, sx, sy, sz) {
+  const mesh = new THREE.Mesh(geo, Iron3D.surfMaterial(hex, cfg));
+  mesh.position.set(x, y, z);
+  if (sx) mesh.scale.set(sx, sy, sz);
+  Iron3D.addHull(group, mesh, geo, thick || 0.012, cfg, hex);
+  group.add(mesh);
+  return mesh;
+}
+// Flat-colour material with a uAlpha uniform (so the engine's fade touches it).
+// MeshBasicMaterial has no uAlpha (never fades); surfMaterial has toon shading
+// (white bars read as a solid block). This keeps the flat layered beam look AND fades.
+function flatFadeMaterial(hex, alpha) {
+  const c = new THREE.Color(hex);
+  return new THREE.ShaderMaterial({
+    vertexShader: "void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "uniform vec3 uColor; uniform float uAlpha; void main(){ gl_FragColor = vec4(uColor, uAlpha); }",
+    uniforms: { uColor: { value: c }, uAlpha: { value: alpha } },
+    transparent: true
+  });
+}
+function addBound(g) {
+  // spans the original combined group's extent: x[-12,12] y[-16,12] z[-6.9,10.4]
+  const b = new THREE.Mesh(new THREE.BoxGeometry(24, 28, 17.3), new THREE.MeshBasicMaterial());
+  b.position.set(0, -2, 1.75);
+  b.visible = false; // still counted by Box3.setFromObject, never rendered
+  g.add(b);
+}
+Iron3D.__builders.laserBoxBody = (cfg, hex) => {
+  const g = new THREE.Group();
+  addBound(g);
+  const shape = polyShape([[-12, -8], [-8, -12], [8, -12], [12, -8], [12, 8], [8, 12], [-8, 12], [-12, 8]]);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 9, bevelEnabled: true, bevelThickness: 2.4, bevelSize: 2.2, bevelSegments: 3 });
+  geo.center();
+  const mesh = new THREE.Mesh(geo, Iron3D.surfMaterial(hex, cfg));
+  Iron3D.addHull(g, mesh, geo, 0.022, cfg, hex);
+  g.add(mesh);
+  return Iron3D.finishMob(g, 2.1);
+};
+Iron3D.__builders.laserBeam = (cfg, hex) => {
+  const g = new THREE.Group();
+  addBound(g);
+  const inner = new THREE.Group();
+  inner.position.z = 4.5 + 2.4 + 1; // b.front + 1 (same as drop_laser)
+  // The game's beam bars are MeshBasicMaterial (flat opacity) - the engine's fade
+  // (uAlpha) never touches them, so the laser never fades. Use flatFadeMaterial
+  // (flat colour + uAlpha) so the WHOLE laser fades and reveals the box behind it.
+  [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w, a]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 24, 3),
+      flatFadeMaterial("#f6fbff", a));
+    m.position.z = 1;
+    inner.add(m);
+  });
+  part2(inner, new THREE.BoxGeometry(1.6, 24, 4), "#ffffff", cfg, 0, 0, 1.6, 0.006);
+  part2(inner, new THREE.SphereGeometry(4, 20, 14), "#f6fbff", cfg, 0, -11, 2, 0.012, 1, 0.8, 1);
+  part2(inner, new THREE.CylinderGeometry(2, 3.4, 6, 16), GLYPH, cfg, 0, -13, 1, 0.010);
+  g.add(inner);
+  return Iron3D.finishMob(g, 2.1);
+};
+// Full laser powerup (box + beam) with FADEABLE bars. Overrides the standard
+// drop_laser (key "laser") so the laser actually fades: the game's MeshBasicMaterial
+// bars never fade, so they'd stay visible even when the powerup is gone (EMPTY).
+Iron3D.__builders.laser = (cfg, hex) => {
+  const g = new THREE.Group();
+  const color = hex || "#6fdcff";
+  const shape = polyShape([[-12, -8], [-8, -12], [8, -12], [12, -8], [12, 8], [8, 12], [-8, 12], [-12, 8]]);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 9, bevelEnabled: true, bevelThickness: 2.4, bevelSize: 2.2, bevelSegments: 3 });
+  geo.center();
+  const boxMesh = new THREE.Mesh(geo, Iron3D.surfMaterial(color, cfg));
+  Iron3D.addHull(g, boxMesh, geo, 0.022, cfg, color);
+  g.add(boxMesh);
+  const inner = new THREE.Group();
+  inner.position.z = 4.5 + 2.4 + 1; // b.front + 1 (same as drop_laser)
+  [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w, a]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 24, 3),
+      flatFadeMaterial("#f6fbff", a));
+    m.position.z = 1;
+    inner.add(m);
+  });
+  part2(inner, new THREE.BoxGeometry(1.6, 24, 4), "#ffffff", cfg, 0, 0, 1.6, 0.006);
+  part2(inner, new THREE.SphereGeometry(4, 20, 14), "#f6fbff", cfg, 0, -11, 2, 0.012, 1, 0.8, 1);
+  part2(inner, new THREE.CylinderGeometry(2, 3.4, 6, 16), GLYPH, cfg, 0, -13, 1, 0.010);
+  g.add(inner);
+  return Iron3D.finishMob(g, 2.1);
+};
+
+// Timeline (ms): 0..3000 active, 3000..4800 expiring (1.8s, matches game ttl<1.8), 4800..5500 empty.
+const T_ACTIVE = 3000, T_FADE = 1800, T_EMPTY = 700, T_LOOP = T_ACTIVE + T_FADE + T_EMPTY;
+function phase(tMs) {
+  const m = tMs % T_LOOP;
+  if (m < T_ACTIVE) return { state: "active", f: 0 };
+  if (m < T_ACTIVE + T_FADE) return { state: "expire", f: (m - T_ACTIVE) / T_FADE }; // 0..1
+  return { state: "empty", f: 1 };
+}
+
+const BOX = 120; // px (game pushes 30; enlarged so the 3D chamfer + glyph read clearly)
+const CY = 300;
+const COLS = [
+  { id: "cur", x: 180, label: "1 · CURRENT", note: "flicker 0.35↔1.0 (shipped)" },
+  { id: "smo", x: 500, label: "2 · SMOOTH FADE", note: "ease 1→0, no flicker" },
+  { id: "pul", x: 820, label: "3 · PULSE-OUT", note: "scale up + flare + pop" }
+];
+
+// Build the 3 real 3D boxes for this instant. The engine owns the wobble + the
+// CURRENT flicker (it reads the absolute render time, exactly like the game).
+function frame3DList(tMs) {
+  const { state, f } = phase(tMs);
+  const list = [];
+  for (const col of COLS) {
+    if (col.id === "smo") {
+      // SMOOTH FADE: the BLUE BOX stays (it's the backdrop); the laser beam fades by
+      // reducing its own alpha, so its outskirts reveal the box behind them - not the
+      // dark background. The end state is the plain blue box, not a black square.
+      const shellAlpha = state === "empty" ? 0 : 1;
+      const beamAlpha = state === "active" ? 1 : (state === "expire" ? 1 - f : 0);
+      const box = BOX;
+      list.push({ id: "smoBox", key: "laserBoxBody", x: col.x - box / 2, y: CY - box / 2,
+        w: box, h: box, color: COLOR, alpha: shellAlpha, flicker: false, phase: col.x * 0.05, tilt: 0.34 });
+      list.push({ id: "smoBeam", key: "laserBeam", x: col.x - box / 2, y: CY - box / 2,
+        w: box, h: box, color: COLOR, alpha: beamAlpha, flicker: false, phase: col.x * 0.05, tilt: 0.34 });
+      continue;
+    }
+    let flicker = false, alpha = 1, box = BOX;
+    if (state === "active") {
+      flicker = false; alpha = 1;
+    } else if (state === "expire") {
+      if (col.id === "cur") {
+        // CURRENT: hand the flicker to the engine (0.35..1.0, sin(t/240), smoothed)
+        flicker = true;
+      } else {
+        // PULSE-OUT: stay bright, grow; the 2D layer adds the flare + pop
+        alpha = 1;
+        box = BOX * (1 + f * 0.5);
+      }
+    } else {
+      alpha = 0;
+    }
+    list.push({
+      id: col.id, key: "laser", x: col.x - box / 2, y: CY - box / 2,
+      w: box, h: box, color: COLOR, flicker, alpha, phase: col.x * 0.05, tilt: 0.34
+    });
+  }
+  return list;
+}
+
+function draw2D(tMs) {
+  ctx.clearRect(0, 0, W, H);
+  const { state, f } = phase(tMs);
+  for (const col of COLS) {
+    // PULSE-OUT flare + pop (2D, painted over the 3D box)
+    if (col.id === "pul" && state === "expire") {
+      const r = 46 + f * 74;
+      const g = ctx.createRadialGradient(col.x, CY, 0, col.x, CY, r);
+      g.addColorStop(0, "rgba(191,239,255," + (0.55 * (1 - f * 0.5)).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(191,239,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(col.x, CY, r, 0, Math.PI * 2); ctx.fill();
+      if (f > 0.8) {
+        const p = (f - 0.8) / 0.2;
+        ctx.strokeStyle = "rgba(191,239,255," + ((1 - p) * 0.9).toFixed(3) + ")";
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(col.x, CY, 34 + p * 64, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    // labels + state readout
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#dfe9ff";
+    ctx.font = "bold 15px 'Courier New', monospace";
+    ctx.fillText(col.label, col.x, 60);
+    ctx.fillStyle = "#6f8fa8";
+    ctx.font = "12px 'Courier New', monospace";
+    ctx.fillText(col.note, col.x, 78);
+    ctx.fillStyle = state === "active" ? "#6fdcff" : (state === "expire" ? "#ffe066" : "#4a5568");
+    ctx.fillText(state.toUpperCase() + (state === "expire" ? " " + Math.round((1 - f) * 100) + "%" : ""), col.x, CY + 92);
+    ctx.textAlign = "left";
+  }
+}
+
+// tMs = timeline position (ms since start); nowMs = absolute render time (ms) the
+// engine uses for the wobble + CURRENT flicker (same as the game's performance.now()).
+function frame(tMs, nowMs) {
+  draw2D(tMs);
+  Iron3D.sync(frame3DList(tMs));
+  Iron3D.render(nowMs);
+}
+
+window.__frame = (tMs) => frame(tMs, tMs);
+if (!new URLSearchParams(location.search).has("static")) {
+  const start = performance.now();
+  (function loop(now) {
+    frame(now - start, now);
+    requestAnimationFrame(loop);
+  })(performance.now());
+}
+window.SANDBOX = { state: () => ({ meshes: Iron3D.count() }) };
+</script>
+</body>
+</html>

@@ -11,6 +11,12 @@ const H = canvas.height;
 // screen froze and cleared itself; the powerup should help, not play the game.
 const SLOW_FACTORS = { enemy: 0.62, ufo: 0.62, boss: 0.85 };
 
+// BANSHEE SCREAM cadence: the first wail comes SCREAM_FIRST seconds into the
+// wave, then every SCREAM_INTERVAL seconds. The designated next-screamer is
+// crowned the instant a wail ends (or is defused) and charges for that long.
+const SCREAM_FIRST = 6;
+const SCREAM_INTERVAL = 8;
+
 const COLORS = {
   player: "#78ff78",
   hud: "#66ff66",
@@ -197,7 +203,7 @@ const UPGRADE_TREES = [
     id: "offense",
     name: "OFFENSE",
     levels: [
-      { label: "RAPID I", desc: "Faster firing" },
+      { label: "RAPID I", desc: "Faster firing; hits answer back with a 3-shot fan" },
       { label: "RAPID II", desc: "Faster firing; unlocks W to detonate your bomb" },
       { label: "DOUBLE CORE", desc: "Permanent double firing; costs 1 max HP" }
     ]
@@ -215,9 +221,9 @@ const UPGRADE_TREES = [
     id: "mobility",
     name: "UTILITY",
     levels: [
-      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3.5s reload; hull slowdowns cannot touch you, ink slows you half as much" },
-      { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer" },
-      { label: "SHARP DASH", desc: "Invulnerable while dashing, 210px, 2.5s reload" }
+      { label: "QUICK DASH", desc: "Shift+Arrow dashes 210px, 3s reload, brief invulnerability; hull drag halved" },
+      { label: "LONG DASH", desc: "Dash 3s reload; powerups last 2x longer, drop 50% more often; ink and hull drag halved" },
+      { label: "SHARP DASH", desc: "Invulnerable while dashing, 210px, 2.5s reload; every dash grants 1.5s of rapid fire" }
     ]
   }
 ];
@@ -456,11 +462,12 @@ const ENEMY_SHOT_SPEED_SCALES = { 1: 0.85, 2: 0.9, 3: 0.9, 4: 0.95 };
 const SHIELD_BLAST_RADIUS = 40;
 
 // Hull damage. A hit that leaves the ship at 1 HP cracks the hull, throws green hull chips off
-// it, and slows the ship 30% on the spot, easing back to 15% over HP_SLOW_EASE_TIME. The hull
+// it, and slows the ship 40% on the spot, easing back to 15% over HP_SLOW_EASE_TIME (v1.2.1:
+// was -30% -> -15%, too soft to feel). UTI I halves the drag, UTI II quarters it. The hull
 // knits itself back to full HP after HP_REGEN_TIME at 1 HP (or on any HP gain), the crack fading
 // out as it does, and the speed goes with it.
 const HP_REGEN_TIME = 15;
-const HP_SLOW_START = 0.70;
+const HP_SLOW_START = 0.60;
 const HP_SLOW_EASE = 0.85;
 const HP_SLOW_EASE_TIME = 2;
 

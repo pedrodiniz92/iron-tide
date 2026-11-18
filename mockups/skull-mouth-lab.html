@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKULL CRUISER - MOUTH LAB (scratch)</title>
+<style>
+  body { margin: 0; background: #0d0d14; color: #cfefff; font: 13px 'Courier New', monospace; }
+  h1 { font-size: 17px; margin: 10px 16px 2px; color: #dfe9ff; }
+  .sub { margin: 0 16px 6px; color: #6f8fa8; font-size: 12px; max-width: 900px; }
+  .wrap { position: relative; width: min(900px, calc(100vw - 32px)); margin: 0 16px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 3 / 2; border: 1px solid #23304a; background: #0d0d14; }
+  #stage3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; background: transparent; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #panel { position: absolute; right: 10px; bottom: 10px; width: 250px; padding: 8px 10px; z-index: 2;
+    box-sizing: border-box; border: 1px solid #3a4460; background: rgba(13, 13, 20, 0.92); }
+  #panel h2 { margin: 0 0 7px; font-size: 11px; color: #dfe9ff; letter-spacing: .1em; }
+  #panel label { display: block; font-size: 11px; line-height: 1.35; color: #cfefff; margin: 0 0 7px; cursor: pointer; }
+  #panel input { vertical-align: middle; margin-right: 6px; accent-color: #dfe9ff; }
+  #panel .hint { color: #6f8fa8; font-size: 10px; margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>SKULL CRUISER &mdash; MOUTH LAB</h1>
+<div class="sub">One opaque 3D skull - no 2D face painted on top. Sockets, nose, mandible and the
+tooth row are real geometry. Bones/spikes remain 2D decoration outside the head.</div>
+<div class="wrap">
+<div class="stage">
+<canvas id="stage3d" width="900" height="600" aria-hidden="true"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
+</div>
+<div id="panel">
+  <h2>SKULL</h2>
+  <label><input type="checkbox" id="bones" checked> crossed bones (3D, behind)</label>
+  <h2 style="margin-top:10px">CROWN (pick one &rarr; SSOT)</h2>
+  <label><input type="radio" name="crown" value="none" checked> none</label>
+  <label><input type="radio" name="crown" value="spikes"> A &mdash; spikes (5 cones)</label>
+  <label><input type="radio" name="crown" value="band"> B &mdash; band + tips</label>
+  <label><input type="radio" name="crown" value="pirate"> C &mdash; pirate (gem)</label>
+  <div class="hint">One opaque 3D skull. The crown you pick ships in the SSOT
+  (js/skull3d.js) so it shows in the game too.</div>
+</div>
+</div>
+<script src="../js/assets3d.bundle.js"></script>
+<script>
+"use strict";
+const W = 900, H = 600;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const HEX = "#ff3366";      // design.color (the boss's pink; the skull itself is white bone)
+
+// ---- THE SKULL (single source of truth: js/skull3d.js) -----------------------
+// The geometry lives in js/skull3d.js (imported by js/assets3d.js, bundled into
+// js/assets3d.bundle.js). The game draws the Skull Cruiser from it (boss.js pushes
+// key "skull") and this mockup draws it from the SAME code via Iron3D.BUILDERS.skull,
+// so a change to the skull shows up in both by default. The only mockup-side knob is
+// the crossed-bones toggle (bonesOn, below).
+
+// The skull geometry is the SHARED builder (js/skull3d.js). This lab (key
+// "skull3D1") and the game (key "skull") both resolve to the SAME
+// Iron3D.BUILDERS.skull, so the only mockup-side knob is the crossed-bones
+// toggle (bonesOn, below).
+// Register a builder per (crown, bones) combo so the Iron3D pool's id
+// (key|color|quality) changes when either toggles - otherwise the cached mesh
+// is reused and the toggle appears to do nothing.
+["none", "spikes", "band", "pirate"].forEach((crown) => {
+  [true, false].forEach((bones) => {
+    const key = "skull3D1" + (crown === "none" ? "" : "-" + crown) + (bones ? "-b" : "-nb");
+    Iron3D.__builders[key] = (cfg, hex) => Iron3D.BUILDERS.skull(cfg, hex, { bones, crown });
+  });
+});
+
+// ---- THE HEAD ----------------------------------------------------------------
+// One opaque 3D skull (buildSkull3D). The crossed bones are 3D parts INSIDE
+// the model (behind the head). The 2D layer is gone entirely - no face, no
+// bones, no neon, no tier spikes (user call: the yellow triangles are out).
+const LOOKS = {
+  1: { name: "CLOSED BITE", note: "3D crowns in a dental arch: 6 uppers + 5 lowers, real depth, dark gaps, overbite" }
+};
+
+let mouth = 1;
+let bonesOn = true;
+let crownOn = "none";
+// Single mouth now (closed bite) - setLook kept as a no-op for the SANDBOX hook.
+function setLook() { mouth = 1; }
+document.getElementById("bones").addEventListener("change", (e) => { bonesOn = e.target.checked; });
+document.querySelectorAll('input[name="crown"]').forEach((el) =>
+  el.addEventListener("change", (e) => { crownOn = e.target.value; }));
+
+// ---- PUSH + DRAW -----------------------------------------------------------
+// Close-up: box 300 -> scale (300/2.35)*1.15 = 147, head ~360 px tall.
+const BOX = 300;
+const HEAD = { cx: 330, cy: 250 };
+// the shipped in-game push (js/boss.js:1617-1619): box 128x64 +13, tilt 0.2
+const GW = 128 + 26, GH = 64 + 26;
+const LIVE = { cx: 690, cy: 120 };
+function frame3DList() {
+  // key encodes (crown, bones) so the Iron3D pool rebuilds when either toggles
+  const key = "skull3D1" + (crownOn === "none" ? "" : "-" + crownOn) + (bonesOn ? "-b" : "-nb");
+  return [
+    { id: "head", key, x: HEAD.cx - BOX / 2, y: HEAD.cy - BOX / 2,
+      w: BOX, h: BOX, color: HEX, phase: 0, tilt: 0, rot: [0, 0, Math.PI], fit: 1.15 },
+    { id: "live", key, x: LIVE.cx - GW / 2, y: LIVE.cy - GH / 2,
+      w: GW, h: GH, color: HEX, phase: 1.1, tilt: 0.2, rot: [0, 0, Math.PI], fit: 1.15 }
+  ];
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#6f8fa8";
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillText("SKULL CRUISER - " + LOOKS[mouth].name, 14, 22);
+  ctx.fillText(LOOKS[mouth].note, 14, 40);
+  ctx.fillText("AS IN GAME", LIVE.cx - 40, 232);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  draw();
+  Iron3D.sync(frame3DList());
+  Iron3D.render(now);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+// headless hook: drive one frame at an explicit time
+window.__frame = (t) => { draw(); Iron3D.sync(frame3DList()); Iron3D.render(t); };
+
+window.SANDBOX = {
+  setLook,
+  setBones(v) { bonesOn = !!v; document.getElementById("bones").checked = !!v; },
+  setCrown(v) { crownOn = v; const el = document.querySelector('input[name="crown"][value="' + v + '"]'); if (el) el.checked = true; },
+  state() { return { mouth, name: LOOKS[mouth].name, bones: bonesOn, crown: crownOn, meshes: Iron3D.count() }; }
+};
+</script>
+</body>
+</html>

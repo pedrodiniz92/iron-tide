@@ -601,7 +601,7 @@ export function buildSquidAbyssal(cfg, hex) {
     pupil.position.set(s * 0.42, 0.05, 0.62);
     g.add(pupil);
   }
-  for (let i = 0; i < 8; i += 1) {
+  for (let i = 1; i < 7; i += 1) {
     const a = (i / 7 - 0.5) * 2.4;
     const arm = new THREE.Group();
     arm.position.set(Math.sin(a) * 0.5, -0.55, Math.cos(a) * 0.35);
@@ -672,6 +672,27 @@ const QUALITY = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
 const GLYPH = "#141420";
 export const SHIELD_GREEN = "#0c6b3d";
 
+// Flat-colour material with a uAlpha uniform, so the engine's per-mesh fade touches
+// it. MeshBasicMaterial has no uAlpha (never fades); surfMaterial has toon shading
+// (white bars read as a solid block). This keeps the flat layered beam look AND fades.
+function flatFadeMaterial(hex, alpha) {
+  const c = new THREE.Color(hex);
+  return new THREE.ShaderMaterial({
+    vertexShader: "void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "uniform vec3 uColor; uniform float uAlpha; void main(){ gl_FragColor = vec4(uColor, uAlpha); }",
+    uniforms: { uColor: { value: c }, uAlpha: { value: alpha } },
+    transparent: true
+  });
+}
+// Invisible bounding box so finishMob scales the split box/beam groups identically
+// (matching the combined drop_laser extent) - they line up when pushed as two meshes.
+function addBound(g) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(24, 28, 17.3), new THREE.MeshBasicMaterial());
+  b.position.set(0, -2, 1.75);
+  b.visible = false; // counted by Box3.setFromObject, never rendered
+  g.add(b);
+}
+
 function dropBase(cfg, hex, g) {
   const shape = polyShape([[-12, -8], [-8, -12], [8, -12], [12, -8], [12, 8], [8, 12], [-8, 12], [-12, 8]]);
   const geo = new THREE.ExtrudeGeometry(shape, {
@@ -741,6 +762,30 @@ export const DROPS_V2 = {
       [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w, a]) => {
         const m = new THREE.Mesh(new THREE.BoxGeometry(w, 24, 3),
           new THREE.MeshBasicMaterial({ color: "#f6fbff", transparent: true, opacity: a }));
+        m.position.z = 1;
+        inner.add(m);
+      });
+      part(inner, new THREE.BoxGeometry(1.6, 24, 4), "#ffffff", cfg, 0, 0, 1.6, 0.006);
+      part(inner, new THREE.SphereGeometry(4, 20, 14), "#f6fbff", cfg, 0, -11, 2, 0.012, 1, 0.8, 1);
+      part(inner, new THREE.CylinderGeometry(2, 3.4, 6, 16), GLYPH, cfg, 0, -13, 1, 0.010);
+    });
+    return finishMob(g, 2.1);
+  },
+  // SPLIT laser powerup: box shell + beam as SEPARATE meshes so the game can fade
+  // the beam (revealing the box) while the shell stays - the SMOOTH FADE. The beam
+  // bars use flatFadeMaterial (the game's MeshBasicMaterial bars never fade).
+  drop_laser_box(cfg, color) {
+    const g = new THREE.Group();
+    addBound(g);
+    dropBase(cfg, color || "#6fdcff", g);
+    return finishMob(g, 2.1);
+  },
+  drop_laser_beam(cfg, color) {
+    const g = new THREE.Group();
+    addBound(g);
+    dropIcon(g, 4.5 + 2.4 + 1, (inner) => {
+      [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w, a]) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 24, 3), flatFadeMaterial("#f6fbff", a));
         m.position.z = 1;
         inner.add(m);
       });
@@ -845,6 +890,7 @@ export const MOB_V2 = {
   scrap: buildScrapB, skull: buildSkullB, turtle: buildTurtleB,
   squid: buildSquidAbyssal, zealot: buildZealotV2, idol: buildIdolSquid,
   drop_bomb: DROPS_V2.drop_bomb, drop_shield: DROPS_V2.drop_shield, drop_laser: DROPS_V2.drop_laser,
+  drop_laser_box: DROPS_V2.drop_laser_box, drop_laser_beam: DROPS_V2.drop_laser_beam,
   drop_rapid: DROPS_V2.drop_rapid, drop_double: DROPS_V2.drop_double, drop_slow: DROPS_V2.drop_slow,
   drop_loot: DROPS_V2.drop_loot
 };

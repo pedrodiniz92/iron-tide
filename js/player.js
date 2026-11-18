@@ -35,8 +35,8 @@ function mobilityLevel() {
 }
 
 function mobilityDashCooldown() {
-  const level = mobilityLevel();
-  return level >= 4 ? 1.75 : 3.5 - (level - 1) * 0.5;
+  // v1.2.1 UTI rework: 3.0s from level I (was 3.5), 2.5s at SHARP DASH.
+  return mobilityLevel() >= 3 ? 2.5 : 3.0;
 }
 
 function mobilityDashDistance() {
@@ -53,7 +53,17 @@ function tryDash(dir) {
   dashTo = clamp(player.x + dir * mobilityDashDistance(), 10, W - player.w - 10);
   dashTimer = 0.14;
   dashCooldown = mobilityDashCooldown();
-  if (mobilityDashInvuln()) dashGrace = 0.2;
+  // UTI I: 0.12s of invulnerability at dash START (dodge frames - the dash
+  // prevents a death on the wave you take it, DEF's value unit).
+  // UTI III: invulnerable through the whole dash + a short tail.
+  dashGrace = mobilityDashInvuln() ? 0.2 : 0.12;
+  dashGraceMax = dashGrace;
+  dashRingT = 0;
+  // A dash is a scored move: +150 with the standard score popup (combo rides).
+  addScore(150, player.x + player.w / 2, player.y);
+  // UTI III: dashing is an offensive move - 1.5s of rapid fire (refresh,
+  // never shortens an existing rapid run).
+  if (mobilityDashInvuln()) effects.rapid = Math.max(effects.rapid, 1.5);
   playDash();
 }
 
@@ -66,27 +76,34 @@ function updateDash(dt) {
     if (dashTimer <= 0) player.x = dashTo;
   }
   if (dashGrace > 0) dashGrace = Math.max(0, dashGrace - dt);
+  dashRingT += dt;
+  dodgePopupT = Math.max(0, dodgePopupT - dt);
+  counterFanT = Math.max(0, counterFanT - dt);
   dashGhosts.forEach((ghost) => {
     ghost.ttl -= dt;
   });
   dashGhosts = dashGhosts.filter((ghost) => ghost.ttl > 0);
 }
 
-// A cracked hull (1 HP) drags the ship: -30% on the spot, easing to -15% over HP_SLOW_EASE_TIME.
-// The speed comes back when the hull knits (see updateHpRegen). Mobility I+ shrugs the hull off.
-// Ink blight adds -15% -> -30% (ramp); Mobility I+ HALVES the ink penalty, never removes it.
+// A cracked hull (1 HP) drags the ship: -40% on the spot, easing to -15% over HP_SLOW_EASE_TIME.
+// UTI I halves the drag, UTI II quarters it. The speed comes back when the hull knits (see updateHpRegen).
+// Ink blight adds -15% -> -30% (ramp); Mobility II+ HALVES the ink penalty, never removes it.
 function playerSpeedMul() {
   let mul = 1;
-  if (upgradeLevels.mobility < 1 && playerHp < maxPlayerHp) {
+  if (playerHp < maxPlayerHp) {
     const t = clamp(hpSlowTimer / HP_SLOW_EASE_TIME, 0, 1);
-    mul = HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
+    let slow = HP_SLOW_START + (HP_SLOW_EASE - HP_SLOW_START) * t;
+    if (upgradeLevels.mobility >= 2) slow = 1 - (1 - slow) / 4;
+    else if (upgradeLevels.mobility >= 1) slow = 1 - (1 - slow) / 2;
+    mul = slow;
   }
   if (inkSlowT > 0) {
     // -15% on entry, easing to -30% after INK_SLOW_RAMP seconds in the cloud;
     // Mobility I+ halves it.
     const p = clamp(inkSlowT / INK_SLOW_RAMP, 0, 1);
     let slow = INK_MOVE_SLOW_START + (INK_MOVE_SLOW_END - INK_MOVE_SLOW_START) * p;
-    if (upgradeLevels.mobility >= 1) slow = 1 - (1 - slow) / 2;
+    // v1.2.1: ink immunity moved from UTI I to UTI II (I is the dodge point).
+    if (upgradeLevels.mobility >= 2) slow = 1 - (1 - slow) / 2;
     mul *= slow;
   }
   return mul;
@@ -121,8 +138,8 @@ function firePlayer() {
   const rapidMult = rapid ? 0.76 : 1;
   // v1.10.4 tuning: base 2 shots/s (0.5s), OFFENSE I 2.4/s, II/III 2.8/s.
   const offenseMult = 1 - Math.min(0.2857, permanentFireRateBonus);
-  // Standing in an ink cloud fires 20% slower; Mobility I+ ignores it.
-  const inkMult = (upgradeLevels.mobility < 1 && playerInInk()) ? INK_FIRE_SLOW : 1;
+  // Standing in an ink cloud fires 20% slower; UTI II+ ignores it.
+  const inkMult = (upgradeLevels.mobility < 2 && playerInInk()) ? INK_FIRE_SLOW : 1;
   fireCooldown = 0.5 * rapidMult * offenseMult * inkMult;
 
   // DOUBLE on top of the OFFENSE III permanent double fires a triple.
@@ -318,6 +335,7 @@ function damageLaserTarget(target) {
 function updatePlayerBullets(dt) {
   playerBullets.forEach((bullet) => {
     bullet.y -= bullet.speed * dt;
+    if (bullet.vx) bullet.x += bullet.vx * dt; // OFF II counter-fan spread
   });
   playerBullets = playerBullets.filter((bullet) => bullet.y > -30);
 }

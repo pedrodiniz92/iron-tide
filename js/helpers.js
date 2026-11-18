@@ -118,6 +118,22 @@ function addScorePopup(x, y, points) {
 function registerInvaderKill(invader) {
   comboAddKill();
   const score = invader.type.score;
+  // SCREAMER DOWN: the crowned next-screamer, killed before its wail. The
+  // scream is CANCELLED (no frenzy zone) and the kill pays 3x. A new screamer
+  // is crowned with a fresh full charge. No text message - the fat gold popup
+  // and the defuse chime are the tell (same pattern as SILENCED).
+  if (invader === screamNext) {
+    const gained = Math.max(1, Math.floor(score * 3 * comboMultiplier));
+    addScore(score * 3);
+    scorePopups.push({
+      x: invader.x + invader.w / 2, y: invader.y - 12, points: gained,
+      ttl: 1.3, maxTtl: 1.3, color: "#ffd76a", big: true
+    });
+    playScreamerDefused();
+    pickScreamer(invader);
+    screamTimer = SCREAM_INTERVAL;
+    return;
+  }
   // SILENCED: a banshee killed while her frenzy wail zone is live pays double.
   // No text message - the fat green popup and the silenced chime are the tell.
   const silenced = invader.type.name === "banshee" &&
@@ -171,6 +187,19 @@ function isPlayerInvulnerable() {
 
 // Single entry point for player damage: HP first, lives second.
 // A non-lethal hit costs no reset, so it buys a short grace to reposition.
+// OFFENSE I COUNTER-FAN: the hull spits a 3-shot fan upward when it eats
+// a hit (shield absorbs never reach this function - they stay clean).
+function fireCounterFan() {
+  const fanX = player.x + player.w / 2;
+  [-14, 0, 14].forEach((deg) => {
+    const a = (deg * Math.PI) / 180;
+    // fan: true - the fan is a dying/last-second gesture: it passes your own
+    // barrier cells (main.js skips the shield check for it) so it reads on screen.
+    playerBullets.push({ x: fanX - 2, y: player.y - 10, w: 4, h: 12,
+      speed: 560, damage: 1 + permanentDamage, vx: Math.sin(a) * 560, fan: true });
+  });
+}
+
 function damagePlayer(hits = 1) {
   if (state !== "playing" || isPlayerInvulnerable()) return false;
 
@@ -183,6 +212,12 @@ function damagePlayer(hits = 1) {
     addHullChips(player.x + player.w / 2, player.y + player.h / 2);
     playShieldHit();
     showGameMessage(t("HIT! {n} HP LEFT", { n: playerHp }), 0.9, "#ffb04c");
+    // OFFENSE I COUNTER-FAN: the hull spits a 3-shot fan upward when it eats
+    // a hit (shield absorbs never reach this function - they stay clean).
+    if (upgradeLevels.offense >= 1 && counterFanT <= 0) {
+      counterFanT = 0.5;
+      fireCounterFan();
+    }
     return false;
   }
 
@@ -193,7 +228,11 @@ function damagePlayer(hits = 1) {
   clearWeaponUpgrades();
   clearEnemyFire();
   playerBullets = [];
-  clearPlayerBulletsPending = true;
+  // OFFENSE I DEATH-FAN: the dying ship spits its fan last. The wipe above is
+  // the pending-wipe's job done early, so the pending flag is cancelled - the
+  // fan flies through the death pause (resetPlayer's wipe clears it on respawn).
+  if (upgradeLevels.offense >= 1) fireCounterFan();
+  clearPlayerBulletsPending = false;
 
   if (lives <= 0) {
     gameOver();

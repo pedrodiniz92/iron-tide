@@ -129,17 +129,49 @@ function jumpToWave(target) {
 }
 
 function showUpgradePrompt(target, earned) {
+  // Points model: the budget is 1 (the starting upgrade) + earned (one per 3
+  // waves, the simplified boss-kill model). All three trees are always listed.
+  // If the run is live and already has upgradeLevels picked, those levels are
+  // prefilled and locked as the floor: they count as already spent, and only
+  // the remaining points can be distributed (a selector cannot be lowered
+  // below its floor). If the run is not live, the floor is all zeros and the
+  // player distributes the full budget (picking the starting upgrade here).
+  // If the floor exceeds the budget (jumping to an earlier wave than the run
+  // has reached), the floor is reduced from the end of the tree list (UTILITY,
+  // then SHIELD, then OFFENSE) until it fits.
+  const budget = 1 + earned;
+  const live = runIsLive();
+  const floor = {};
+  UPGRADE_TREES.forEach((tree) => {
+    floor[tree.id] = live ? Math.min(upgradeLevels[tree.id] || 0, tree.levels.length) : 0;
+  });
+  let overFloor = UPGRADE_TREES.reduce((sum, tree) => sum + floor[tree.id], 0) - budget;
+  for (let i = UPGRADE_TREES.length - 1; i >= 0 && overFloor > 0; i--) {
+    const tree = UPGRADE_TREES[i];
+    const reduce = Math.min(floor[tree.id], overFloor);
+    floor[tree.id] -= reduce;
+    overFloor -= reduce;
+  }
+
   const box = document.getElementById("testUpgradePrompt");
   box.innerHTML = "";
   const title = document.createElement("div");
-  title.textContent = t("WAVE {n}: you'd have {m} upgrade{s} from killed bosses. Pick them:", { n: target, m: earned, s: earned > 1 ? "s" : "" });
+  title.textContent = t("WAVE {n}: {total} points (1 starting + {boss} from killed bosses). Distribute:", { n: target, total: budget, boss: earned });
   title.style.cssText = "color:#ffe066;margin-bottom:6px;";
   box.appendChild(title);
 
+  const budgetLine = document.createElement("div");
+  budgetLine.style.cssText = "color:#9ae6ff;margin-bottom:6px;";
+  box.appendChild(budgetLine);
+
   const rows = [];
-  const trees = UPGRADE_TREES.slice(0, earned);
   const totalPoints = () => rows.reduce((sum, row) => sum + Number(row.lvlSel.value), 0);
-  trees.forEach((tree) => {
+  const refreshBudget = () => {
+    const spent = totalPoints();
+    budgetLine.textContent = t("SPENT {spent}/{total} · LEFT {left}", { spent, total: budget, left: budget - spent });
+  };
+
+  UPGRADE_TREES.forEach((tree) => {
     const row = document.createElement("div");
     row.style.cssText = "margin:4px 0;";
     const name = document.createElement("span");
@@ -150,23 +182,30 @@ function showUpgradePrompt(target, earned) {
     const none = document.createElement("option");
     none.value = "0";
     none.textContent = t("none");
+    if (floor[tree.id] > 0) none.disabled = true;
     lvlSel.appendChild(none);
     for (let l = 1; l <= tree.levels.length; l += 1) {
       const opt = document.createElement("option");
       opt.value = String(l);
       opt.textContent = t("lvl {n} {label}", { n: l, label: t(tree.levels[l - 1].label) });
+      if (l < floor[tree.id]) opt.disabled = true;
       lvlSel.appendChild(opt);
     }
-    lvlSel.value = "1";
+    lvlSel.value = String(floor[tree.id]);
     lvlSel.addEventListener("change", () => {
-      const over = totalPoints() - earned;
-      if (over > 0) lvlSel.value = String(Math.max(0, Number(lvlSel.value) - over));
+      let v = Number(lvlSel.value);
+      if (v < floor[tree.id]) v = floor[tree.id];
+      const overBudget = totalPoints() - budget;
+      if (overBudget > 0) v = Math.max(floor[tree.id], v - overBudget);
+      lvlSel.value = String(v);
+      refreshBudget();
     });
     row.appendChild(name);
     row.appendChild(lvlSel);
     box.appendChild(row);
     rows.push({ tree, lvlSel });
   });
+  refreshBudget();
 
   const startBtn = document.createElement("button");
   startBtn.textContent = t("START WAVE {n}", { n: target });

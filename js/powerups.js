@@ -47,7 +47,8 @@ function updateEffects(dt) {
 }
 
 function maybeDropPowerup(invader) {
-  const chance = Math.min(0.16, 0.05 + level * 0.004 + dropRateBonus);
+  // UTI II multiplies the kill-drop chance (cap applies AFTER the multiplier).
+  const chance = Math.min(0.16, (0.05 + level * 0.004 + dropRateBonus) * permanentDropRateMult);
   if (Math.random() > chance) return;
 
   const roll = Math.random();

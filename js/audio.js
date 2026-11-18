@@ -1,5 +1,5 @@
 function playBombLaunch() {
-  playTone({ start: 520, end: 1200, duration: 0.12, gain: 0.14 });
+  playTone({ start: 520, end: 1200, duration: 0.12, gain: 0.09 });
 }
 
 function playBombExplosion() {
@@ -104,7 +104,13 @@ function ensureMusicAudio() {
 }
 
 function playShoot() {
-  playTone({ start: 920, end: 180, duration: 0.08, gain: 0.12 });
+  // Very quiet: a faint laser sweep under a subtle percussive tick. The tick
+  // (a short high-frequency noise burst) is what makes each shot read as a
+  // "shot" - present but never loud. The jitter keeps rapid fire from sounding
+  // like one identical click on loop.
+  const j = 1 + (Math.random() - 0.5) * 0.14;
+  playTone({ start: 900 * j, end: 220 * j, duration: 0.06, gain: 0.028 });
+  playNoise({ duration: 0.028, gain: 0.05, frequency: 3400 });
 }
 
 function playDash() {
@@ -112,8 +118,11 @@ function playDash() {
 }
 
 function playHit() {
-  playNoise({ duration: 0.16, gain: 0.2, frequency: 1500 });
-  playTone({ start: 260, end: 50, duration: 0.11, type: "sawtooth", gain: 0.12 });
+  // Quieter + pitch jitter: hits are the other constant SFX - they stay audible
+  // but low, and the jitter keeps a wall of hits from sounding mechanical.
+  const j = 1 + (Math.random() - 0.5) * 0.16;
+  playNoise({ duration: 0.14, gain: 0.09, frequency: 1500 });
+  playTone({ start: 260 * j, end: 50 * j, duration: 0.11, type: "sawtooth", gain: 0.05 });
 }
 
 function playScream() {
@@ -149,8 +158,8 @@ function playScream() {
 }
 
 function playShieldHit() {
-  playNoise({ duration: 0.09, gain: 0.13, frequency: 1100 });
-  playTone({ start: 900, end: 420, duration: 0.12, type: "triangle", gain: 0.09 });
+  playNoise({ duration: 0.09, gain: 0.08, frequency: 1100 });
+  playTone({ start: 900, end: 420, duration: 0.12, type: "triangle", gain: 0.05 });
 }
 
 function playPlayerDeath() {
@@ -159,8 +168,10 @@ function playPlayerDeath() {
 }
 
 function playLevelClear() {
+  // Boosted: this is the boss-kill / wave-clear reward - a satisfying "you did
+  // it" arpeggio that should land clearly above the quieter combat SFX.
   [440, 587, 740, 988].forEach((freq, index) => {
-    playTone({ start: freq, end: freq, duration: 0.1, gain: 0.13, delay: index * 0.085 });
+    playTone({ start: freq, end: freq, duration: 0.1, gain: 0.18, delay: index * 0.085 });
   });
 }
 
@@ -202,10 +213,11 @@ function playDashCharge() {
 }
 
 function playExtraLife() {
+  // Boosted: an extra life is a big reward - it should feel special.
   [330, 392, 494, 660].forEach((freq, index) => {
-    playTone({ start: freq, end: freq, duration: 0.11, type: "square", gain: 0.07, delay: index * 0.09 });
+    playTone({ start: freq, end: freq, duration: 0.11, type: "square", gain: 0.11, delay: index * 0.09 });
   });
-  playTone({ start: 220, end: 110, duration: 0.4, type: "triangle", gain: 0.08 });
+  playTone({ start: 220, end: 110, duration: 0.4, type: "triangle", gain: 0.11 });
 }
 
 function playComboScore(points) {
@@ -226,22 +238,47 @@ function playComboScore(points) {
 // SILENCED (banshee killed mid-wail): a clean rising major chime - the sound
 // of a hard-to-get reward. No text needed.
 function playSilencedChime() {
+  // Boosted: a rare, hard-to-get reward - it must punch through the quieter
+  // background SFX.
   [659, 831, 988, 1319].forEach((freq, index) => {
-    playTone({ start: freq, end: freq, duration: 0.16, type: "sine", gain: 0.12, delay: index * 0.07 });
+    playTone({ start: freq, end: freq, duration: 0.16, type: "sine", gain: 0.17, delay: index * 0.07 });
   });
-  playTone({ start: 1319, end: 1319, duration: 0.34, type: "sine", gain: 0.08, delay: 0.32 });
+  playTone({ start: 1319, end: 1319, duration: 0.34, type: "sine", gain: 0.11, delay: 0.32 });
+}
+
+// SCREAMER DOWN (the crowned next-screamer killed before its wail): a sharp
+// "defused" tick - the charge stops - then a bright reward blip. Distinct from
+// the SILENCED chime (a smooth rising major).
+function playScreamerDefused() {
+  // Boosted: the 3x reward for defusing the crowned screamer - a clear, bright
+  // "you got the bonus" sting.
+  playNoise({ duration: 0.05, gain: 0.16, frequency: 2600 });
+  playTone({ start: 1046, end: 1568, duration: 0.1, type: "square", gain: 0.2, delay: 0.05 });
+  playTone({ start: 1568, end: 2093, duration: 0.14, type: "square", gain: 0.17, delay: 0.14 });
+}
+
+// UPGRADE PICKED (a permanent tree level taken at the choice panel): a warm
+// "level up" chime - distinct from the powerup blip and the level-clear
+// arpeggio. Picking an upgrade used to play nothing; now it feels earned.
+function playUpgrade() {
+  [440, 554, 659, 880].forEach((freq, index) => {
+    playTone({ start: freq, end: freq, duration: 0.13, type: "triangle", gain: 0.16, delay: index * 0.07 });
+  });
+  playTone({ start: 880, end: 1320, duration: 0.28, type: "sine", gain: 0.1, delay: 0.28 });
 }
 
 function playPowerup() {
+  // Boosted: grabbing a powerup is a reward - it should clearly stand out.
   [880, 1120, 1320, 1560].forEach((freq, index) => {
-    playTone({ start: freq, end: freq * 1.15, duration: 0.09, gain: 0.15, delay: index * 0.06 });
+    playTone({ start: freq, end: freq * 1.15, duration: 0.09, gain: 0.2, delay: index * 0.06 });
   });
-  playNoise({ duration: 0.1, gain: 0.12, frequency: 1900 });
+  playNoise({ duration: 0.1, gain: 0.15, frequency: 1900 });
 }
 
 function playUfoKill() {
-  playTone({ start: 1100, end: 150, duration: 0.22, type: "square", gain: 0.16 });
-  playNoise({ duration: 0.2, gain: 0.18, frequency: 2200 });
+  // Boosted: a rare bonus kill - a clear, punchy reward.
+  playTone({ start: 1100, end: 150, duration: 0.22, type: "square", gain: 0.2 });
+  playNoise({ duration: 0.2, gain: 0.2, frequency: 2200 });
 }
 
 function toggleSfx() {

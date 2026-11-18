@@ -259,6 +259,45 @@ function drawPlayer() {
     ctx.globalAlpha = (ghost.ttl / 0.25) * 0.35;
     neon("classic", ghost.x + player.w / 2, ghost.y + 15, player.w, COLORS.player);
   });
+  // DASH INVULN GLOW (UTI I/III dodge frames) - the approved "both + shockwave"
+  // look from mockups/dodge-glow.html: additive cyan halo + neon silhouette
+  // underlay + expanding ring. The 3D hull draws at alpha 0.5 over this 2D
+  // layer, so the rim reads through it (same trick as the ship's own underlay).
+  if (dashGrace > 0 && dashGraceMax > 0) {
+    const gi = dashGrace / dashGraceMax;
+    const gx = player.x + player.w / 2;
+    const gy = player.y + player.h / 2;
+    if (dashRingT < 0.35) {
+      const a = dashRingT / 0.35;
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = "rgba(127, 216, 234, " + (0.8 * (1 - a)).toFixed(3) + ")";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 24 + 90 * a, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    const gr = 46 * (1 + 0.18 * (1 - gi));
+    const gg = ctx.createRadialGradient(gx, gy, 2, gx, gy, gr);
+    gg.addColorStop(0, "rgba(190, 240, 255, " + (0.85 * gi).toFixed(3) + ")");
+    gg.addColorStop(0.45, "rgba(127, 216, 234, " + (0.5 * gi).toFixed(3) + ")");
+    gg.addColorStop(1, "rgba(127, 216, 234, 0)");
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = gg;
+    ctx.beginPath();
+    ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 0.45 * gi;
+    neon("classic", gx, gy, 75, "#7fd8ea", 18 * gi);
+    neon("classic", gx, gy, 75, "#7fd8ea", 18 * gi);
+    ctx.restore();
+  }
   ctx.globalAlpha = invulnBlink ? 0.42 : 1;
 
   if (mobilityLevel() >= 1 && dashCooldown > 0) {
@@ -439,7 +478,46 @@ function drawInvaders() {
       ctx.stroke();
       ctx.restore();
     }
+    // SCREAMER CHARGE: the crowned next-screamer glows as its wail nears - but the
+    // ring only activates once the current wail's AoE (frenzy zone) is down, so the
+    // player isn't told what to focus on while still dealing with the wail.
+    if (invader === screamNext && frenzyZones.length === 0) drawScreamerCharge(invader);
   });
+}
+
+// SCREAMER CHARGE: the crowned next-screamer wears a ring that brightens,
+// thickens and pulses faster as its wail nears, plus a progress arc that fills
+// clockwise from the top. Amber -> hot white as it charges. Drawn on top of the
+// body (2D or 3D) so it's always readable. Kill it before the arc fills and the
+// wail is cancelled (3x points).
+function drawScreamerCharge(invader) {
+  const cx = invader.x + invader.w / 2;
+  const cy = invader.y + invader.h / 2;
+  const charge = clamp(1 - screamTimer / SCREAM_INTERVAL, 0, 1);
+  const pulse = 0.5 + 0.5 * Math.sin(waveTime * (5 + charge * 9));
+  const R = invader.w * 0.72 + charge * 5;
+  // amber (#ffb04c) -> hot white as the wail nears
+  const g = Math.round(176 + (255 - 176) * charge);
+  const b = Math.round(76 + (255 - 76) * charge);
+  const col = "rgb(255," + g + "," + b + ")";
+  ctx.save();
+  // aura: a soft glow that builds with the charge
+  ctx.globalAlpha = (0.18 + 0.5 * charge) * (0.7 + 0.3 * pulse);
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 6 + 20 * charge;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5 + 2.5 * charge;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+  // progress arc: fills clockwise from the top as the wail approaches
+  ctx.globalAlpha = 0.55 + 0.45 * charge;
+  ctx.shadowBlur = 4 + 14 * charge;
+  ctx.lineWidth = 3 + 2.5 * charge;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * charge);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // SPLIT GHOST: small pale ghosts fleeing upward (the 3D layer reuses the
@@ -647,6 +725,20 @@ function drawPowerups() {
     ctx.shadowColor = color;
 
     if (powerup.meshId === undefined) powerup.meshId = ++lastPowerupMeshId;
+
+    // LASER powerup: SMOOTH FADE. The blue box shell stays; the laser beam fades by
+    // reducing its own alpha (revealing the box behind it) - not the old flicker that
+    // dipped the whole box to black. Two meshes so the beam can fade independently.
+    if (powerup.type.id === "laser" && window.Iron3D) {
+      const beamAlpha = expiring ? Math.max(0, powerup.ttl / 1.8) : 1;
+      push3D({ id: "powBox" + powerup.meshId, key: "laserBox", x: cx - 15, y: cy - 15,
+        w: 30, h: 30, color, alpha: 1, phase: cx * 0.05 });
+      push3D({ id: "powBeam" + powerup.meshId, key: "laserBeam", x: cx - 15, y: cy - 15,
+        w: 30, h: 30, color, alpha: beamAlpha, phase: cx * 0.05 });
+      ctx.restore();
+      return;
+    }
+
     if (!push3D({ id: "pow" + powerup.meshId, key: powerup.type.id, x: cx - 15, y: cy - 15,
       w: 30, h: 30, color, quality: powerup.lootQuality, flicker: expiring, phase: cx * 0.05 })) {
       neon("box", cx, cy, 26, color);

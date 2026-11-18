@@ -33,7 +33,8 @@ function newWave() {
   }
   ghostPhaseT = 0;
   ghostFlickerT = 0;
-  screamTimer = 6;
+  screamTimer = SCREAM_FIRST;
+  pickScreamer(null);
   frenzyZones = [];
   fledglings = [];
   applyRowRoles();
@@ -236,6 +237,18 @@ function fireEnemyBullet() {
   return source.threatened > 0 ? "threat" : aimed;
 }
 
+// CROWN THE NEXT SCREAMER: pick a random living banshee to be the next wail.
+// `exclude` is the banshee that just screamed (or was defused), so a DIFFERENT
+// one is crowned when more than one is alive. The crowned banshee glows as it
+// charges (drawScreamerCharge); kill it before the wail and the scream is
+// cancelled and the kill pays 3x (registerInvaderKill).
+function pickScreamer(exclude) {
+  const wailing = invaders.filter((invader) => invader.alive && invader.type.name === "banshee");
+  if (!wailing.length) { screamNext = null; return; }
+  const pool = exclude && wailing.length > 1 ? wailing.filter((invader) => invader !== exclude) : wailing;
+  screamNext = pool[Math.floor(Math.random() * pool.length)];
+}
+
 function updateInvaders(dt) {
   const alive = invaders.filter((invader) => invader.alive);
   // SPLIT GHOST: fledglings flee straight up (120 px/s vs the ship's 290 -
@@ -335,11 +348,16 @@ function updateInvaders(dt) {
       Math.max(-190, Math.min(190, (player.x + player.w / 2 - bx) * 1.5)),
       560 * Math.min(1, 0.85 + (level - 1) * 0.05));
   });
+  // The crowned screamer may have died (registerInvaderKill re-crowns it the
+  // instant it falls); this is the safety net for any other path that takes a
+  // banshee down, so the charge never points at a corpse.
+  if (screamNext && (!screamNext.alive || screamNext.type.name !== "banshee")) {
+    pickScreamer(null);
+  }
   screamTimer -= dt;
   if (screamTimer <= 0) {
-    const wailing = alive.filter((invader) => invader.type.name === "banshee");
-    if (wailing.length) {
-      const b = wailing[Math.floor(Math.random() * wailing.length)];
+    if (screamNext && screamNext.alive) {
+      const b = screamNext;
       playScream();
       frenzyZones.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, r: 210, t: 3.2, arm: 0.8, sx: b.x + b.w / 2, sy: b.y + b.h / 2, b });
       addShockwave(b.x + b.w / 2, b.y + b.h / 2, 210);
@@ -350,8 +368,13 @@ function updateInvaders(dt) {
           invader.frenzyShotT = 0.3 + Math.random() * 1.1;
         }
       });
-      screamTimer = 8;
+      // The wail is done - immediately crown the NEXT screamer (a different
+      // banshee when more than one is alive) and start its full charge.
+      pickScreamer(b);
+      screamTimer = SCREAM_INTERVAL;
     } else {
+      // No banshee alive to scream - recheck soon.
+      pickScreamer(null);
       screamTimer = 1;
     }
   }

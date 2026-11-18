@@ -15200,7 +15200,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
       pupil.position.set(s2 * 0.42, 0.05, 0.62);
       g2.add(pupil);
     }
-    for (let i2 = 0; i2 < 8; i2 += 1) {
+    for (let i2 = 1; i2 < 7; i2 += 1) {
       const a2 = (i2 / 7 - 0.5) * 2.4;
       const arm = new jl();
       arm.position.set(Math.sin(a2) * 0.5, -0.55, Math.cos(a2) * 0.35);
@@ -15268,6 +15268,21 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
   var QUALITY = { 1: "#ffe066", 2: "#62ffa1", 3: "#ff3366" };
   var GLYPH = "#141420";
   var SHIELD_GREEN = "#0c6b3d";
+  function flatFadeMaterial(hex, alpha) {
+    const c2 = new Kr(hex);
+    return new Xs({
+      vertexShader: "void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "uniform vec3 uColor; uniform float uAlpha; void main(){ gl_FragColor = vec4(uColor, uAlpha); }",
+      uniforms: { uColor: { value: c2 }, uAlpha: { value: alpha } },
+      transparent: true
+    });
+  }
+  function addBound(g2) {
+    const b2 = new Bs(new ks(24, 28, 17.3), new es());
+    b2.position.set(0, -2, 1.75);
+    b2.visible = false;
+    g2.add(b2);
+  }
   function dropBase(cfg, hex, g2) {
     const shape = polyShape([[-12, -8], [-8, -12], [8, -12], [12, -8], [12, 8], [8, 12], [-8, 12], [-12, 8]]);
     const geo = new Ku(shape, {
@@ -15356,6 +15371,30 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
             new ks(w2, 24, 3),
             new es({ color: "#f6fbff", transparent: true, opacity: a2 })
           );
+          m2.position.z = 1;
+          inner.add(m2);
+        });
+        part(inner, new ks(1.6, 24, 4), "#ffffff", cfg, 0, 0, 1.6, 6e-3);
+        part(inner, new id(4, 20, 14), "#f6fbff", cfg, 0, -11, 2, 0.012, 1, 0.8, 1);
+        part(inner, new pu(2, 3.4, 6, 16), GLYPH, cfg, 0, -13, 1, 0.01);
+      });
+      return finishMob(g2, 2.1);
+    },
+    // SPLIT laser powerup: box shell + beam as SEPARATE meshes so the game can fade
+    // the beam (revealing the box) while the shell stays - the SMOOTH FADE. The beam
+    // bars use flatFadeMaterial (the game's MeshBasicMaterial bars never fade).
+    drop_laser_box(cfg, color) {
+      const g2 = new jl();
+      addBound(g2);
+      dropBase(cfg, color || "#6fdcff", g2);
+      return finishMob(g2, 2.1);
+    },
+    drop_laser_beam(cfg, color) {
+      const g2 = new jl();
+      addBound(g2);
+      dropIcon(g2, 4.5 + 2.4 + 1, (inner) => {
+        [[12, 0.18], [6.5, 0.5], [2.6, 1]].forEach(([w2, a2]) => {
+          const m2 = new Bs(new ks(w2, 24, 3), flatFadeMaterial("#f6fbff", a2));
           m2.position.z = 1;
           inner.add(m2);
         });
@@ -15476,6 +15515,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     drop_bomb: DROPS_V2.drop_bomb,
     drop_shield: DROPS_V2.drop_shield,
     drop_laser: DROPS_V2.drop_laser,
+    drop_laser_box: DROPS_V2.drop_laser_box,
+    drop_laser_beam: DROPS_V2.drop_laser_beam,
     drop_rapid: DROPS_V2.drop_rapid,
     drop_double: DROPS_V2.drop_double,
     drop_slow: DROPS_V2.drop_slow,
@@ -16293,8 +16334,197 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     }
   }
 
-  // js/assets3d.js
+  // js/skull3d.js
   var RIG = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
+  var BONE2 = "#f2f2f8";
+  var DARK2 = "#0d0d14";
+  var GOLD = "#ffe066";
+  function part3(g2, geo, hex, pos, rot, sc2, thick) {
+    const m2 = new Bs(geo, surfMaterial(hex, RIG));
+    m2.position.set(pos[0], pos[1], pos[2]);
+    if (rot) m2.rotation.set(rot[0], rot[1], rot[2]);
+    if (sc2) m2.scale.set(sc2[0], sc2[1], sc2[2]);
+    addHull(g2, m2, geo, thick === void 0 ? 0.01 : thick, RIG, hex);
+    g2.add(m2);
+    return m2;
+  }
+  function addBones(g2) {
+    const mk = (x2, y2, r2) => {
+      const s2 = new Bs(new id(r2, 14, 10), surfMaterial(BONE2, RIG));
+      s2.position.set(x2, y2, 0);
+      return s2;
+    };
+    [Math.PI / 4, -Math.PI / 4].forEach((rz) => {
+      const b2 = new jl();
+      const shaft = new Bs(new pu(3, 3, 58, 14), surfMaterial(BONE2, RIG));
+      b2.add(shaft);
+      [-1, 1].forEach((s2) => {
+        b2.add(mk(-2.6, s2 * 30.5, 4.6));
+        b2.add(mk(2.6, s2 * 30.5, 4.6));
+      });
+      b2.position.set(0, -1, -10);
+      b2.rotation.z = rz;
+      g2.add(b2);
+    });
+  }
+  function addCrown(g2, style) {
+    if (!style || style === "none") return;
+    const spike = (x2, h2, r2) => {
+      const m2 = part3(g2, new mu(r2, h2, 8), GOLD, [x2, -18 - h2 / 2, 0], null, null, 0.01);
+      m2.rotation.x = Math.PI;
+    };
+    if (style === "spikes") {
+      [[-8, 5], [-4, 6], [0, 7], [4, 6], [8, 5]].forEach(([x2, h2]) => spike(x2, h2, 1.6));
+    } else if (style === "band") {
+      part3(g2, new pu(9.5, 10.5, 3.5, 18), GOLD, [0, -17.5, 0], null, null, 0.012);
+      [[-8, 5], [-4, 6], [0, 7], [4, 6], [8, 5]].forEach(([x2, h2]) => spike(x2, h2, 1.5));
+    } else if (style === "pirate") {
+      spike(0, 9, 2.4);
+      [[-7, 5], [-3.5, 6], [3.5, 6], [7, 5]].forEach(([x2, h2]) => spike(x2, h2, 1.4));
+      part3(g2, new id(1.6, 12, 10), "#ff3366", [0, -19, 5], null, null, 0);
+    }
+  }
+  function buildSkull3D(cfg, hex, opts) {
+    const o2 = opts && typeof opts === "object" ? opts : {};
+    const g2 = new jl();
+    if (o2.bones !== false) addBones(g2);
+    addCrown(g2, o2.crown);
+    part3(g2, new id(12.5, 28, 20), BONE2, [0, -6.5, 0], null, [1.15, 1, 0.92], 0.018);
+    const face2 = new Su();
+    const fr2 = 3;
+    face2.moveTo(-12.5 + fr2, -3.5);
+    face2.lineTo(12.5 - fr2, -3.5);
+    face2.quadraticCurveTo(12.5, -3.5, 12.5, -3.5 + fr2);
+    face2.quadraticCurveTo(14.6, 0.5, 13.6, 3);
+    face2.quadraticCurveTo(12, 9, 9.5, 9);
+    face2.lineTo(-9.5, 9);
+    face2.quadraticCurveTo(-12, 9, -13.6, 3);
+    face2.quadraticCurveTo(-14.6, 0.5, -12.5, -3.5 + fr2);
+    face2.quadraticCurveTo(-12.5, -3.5, -12.5 + fr2, -3.5);
+    face2.closePath();
+    const faceGeo = new Ku(face2, {
+      depth: 10,
+      bevelEnabled: true,
+      bevelThickness: 1.2,
+      bevelSize: 1.2,
+      bevelSegments: 3,
+      curveSegments: 8
+    });
+    faceGeo.center();
+    part3(g2, faceGeo, BONE2, [0, 2.5, 2.5], null, null, 0.018);
+    const eye = new id(5.4, 22, 16);
+    [[-1, 8], [1, -8]].forEach(([s2, rz]) => {
+      const m2 = part3(g2, eye, DARK2, [s2 * 7.6, -0.5, 6.6], null, [1, 1.15, 0.7], 0);
+      m2.rotation.z = rz * Math.PI / 180;
+      part3(g2, new id(1.3, 12, 10), "#ffffff", [s2 * 7.6, -1.2, 10.9], null, null, 0);
+    });
+    const nose = new Su();
+    nose.moveTo(-2.7, 0);
+    nose.lineTo(2.7, 0);
+    nose.quadraticCurveTo(2.4, -2.9, 0, -6);
+    nose.quadraticCurveTo(-2.4, -2.9, -2.7, 0);
+    nose.closePath();
+    const noseGeo = new Ku(nose, { depth: 4, bevelEnabled: false });
+    noseGeo.center();
+    part3(g2, noseGeo, DARK2, [0, 3.6, 8.6], null, null, 0);
+    {
+      part3(g2, new ks(19, 7.5, 11.5), BONE2, [0, 11.5, 2], null, null, 0.016);
+      [[-1, 14], [1, -14]].forEach(([s2, rz]) => part3(g2, new ks(5, 8, 7), BONE2, [s2 * 10.5, 11, -1.5], null, null, 0.01).rotation.z = rz * Math.PI / 180);
+      const jaw = new Su();
+      const jr2 = 3.2;
+      jaw.moveTo(-8.5 + jr2, 0);
+      jaw.lineTo(8.5 - jr2, 0);
+      jaw.quadraticCurveTo(8.5, 0, 8.5, jr2);
+      jaw.lineTo(8.5, 5 - jr2);
+      jaw.quadraticCurveTo(8.5, 5, 8.5 - jr2, 5);
+      jaw.lineTo(-8.5 + jr2, 5);
+      jaw.quadraticCurveTo(-8.5, 5, -8.5, 5 - jr2);
+      jaw.lineTo(-8.5, jr2);
+      jaw.quadraticCurveTo(-8.5, 0, -8.5 + jr2, 0);
+      jaw.closePath();
+      const jawGeo = new Ku(jaw, {
+        depth: 10,
+        bevelEnabled: true,
+        bevelThickness: 1,
+        bevelSize: 1,
+        bevelSegments: 3,
+        curveSegments: 8
+      });
+      jawGeo.center();
+      part3(g2, jawGeo, BONE2, [0, 16.5, 2.5], null, null, 0.014);
+      [[-1, -16], [1, 16]].forEach(([s2, rz]) => part3(g2, new ks(4.5, 7, 6.5), BONE2, [s2 * 9, 14.5, -1], null, null, 0.01).rotation.z = rz * Math.PI / 180);
+      part3(g2, new ks(17.5, 6.4, 3), DARK2, [0, 12, 8.2], null, null, 0);
+      const BONE22 = "#c9c9d4";
+      const toothGeo = (wTop, wBottom, h2, depth) => {
+        const s2 = new Su();
+        s2.moveTo(-wTop / 2, h2 / 2);
+        s2.lineTo(wTop / 2, h2 / 2);
+        s2.lineTo(wBottom / 2, -h2 / 2);
+        s2.lineTo(-wBottom / 2, -h2 / 2);
+        s2.closePath();
+        const geo = new Ku(s2, { depth, bevelEnabled: false });
+        geo.center();
+        return geo;
+      };
+      const archZ = (x2, zFront, k2) => zFront - k2 * x2 * x2;
+      const upTeeth = [
+        [-7.25, 2.9, 2.5, 3.6, 4.4],
+        // molar (wide, flat, deep)
+        [-4.35, 2.5, 0.9, 4.8, 4.6],
+        // canine (long, pointed, deep)
+        [-1.45, 2.9, 2.3, 3.9, 4.6],
+        // incisor (wide, flat, deep)
+        [1.45, 2.9, 2.3, 3.9, 4.6],
+        // incisor
+        [4.35, 2.5, 0.9, 4.8, 4.6],
+        // canine
+        [7.25, 2.9, 2.5, 3.6, 4.4]
+        // molar
+      ];
+      upTeeth.forEach(([x2, wt2, wb, h2, d2]) => {
+        const m2 = part3(
+          g2,
+          toothGeo(wt2, wb, h2, d2),
+          BONE2,
+          [x2, 8.7 + h2 / 2, archZ(x2, 10.8, 0.055)],
+          null,
+          null,
+          0
+        );
+        m2.rotation.y = x2 * 0.028;
+        m2.rotation.x = -0.22;
+      });
+      const loTeeth = [
+        [-6, 2.5, 2.9, 3.4, 4],
+        // molar
+        [-3, 2.1, 2.7, 3.6, 4],
+        // premolar
+        [0, 2.3, 2.7, 3.8, 4],
+        // incisor
+        [3, 2.1, 2.7, 3.6, 4],
+        // premolar
+        [6, 2.5, 2.9, 3.4, 4]
+        // molar
+      ];
+      loTeeth.forEach(([x2, wt2, wb, h2, d2]) => {
+        const m2 = part3(
+          g2,
+          toothGeo(wt2, wb, h2, d2),
+          BONE22,
+          [x2, 15.5 - h2 / 2, archZ(x2, 10.1, 0.055)],
+          null,
+          null,
+          0
+        );
+        m2.rotation.y = x2 * 0.028;
+        m2.rotation.x = 0.08;
+      });
+    }
+    return finishMob(g2, 2.3);
+  }
+
+  // js/assets3d.js
+  var RIG2 = { toon: 1, inkHull: 0, inkBlack: 0, inkPx: 4, rim: 0.55, backRim: 0.35 };
   var TARGET2 = 2.35;
   var FIT = 1.35;
   var FIT_KEY = {
@@ -16317,6 +16547,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     SHIPS_V2,
     { invSquid: MOBS.squid }
   );
+  BUILDERS.skull = buildSkull3D;
   var MOCK_BUILDERS = {};
   var KEY = {
     squid: "invSquid",
@@ -16340,6 +16571,8 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     double: "drop_double",
     laser: "drop_laser",
     shield: "drop_shield",
+    laserBox: "drop_laser_box",
+    laserBeam: "drop_laser_beam",
     slow: "drop_slow",
     bomb: "drop_bomb",
     loot: "drop_loot",
@@ -16613,25 +16846,25 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
     return shellMesh.userData.crackSkin === "ship" ? shipCrackTexture() : crackTexture();
   }
   function build(key, color, quality) {
-    if (MOCK_BUILDERS[key]) return MOCK_BUILDERS[key](RIG, color, quality);
-    if (key === "banshee") return buildBanshee("wail", RIG, color);
+    if (MOCK_BUILDERS[key]) return MOCK_BUILDERS[key](RIG2, color, quality);
+    if (key === "banshee") return buildBanshee("wail", RIG2, color);
     if (key === "ghost") {
-      const g2 = buildBanshee("ghost", RIG, color);
+      const g2 = buildBanshee("ghost", RIG2, color);
       g2.userData.__ghost = true;
       patchGhost(g2);
       ensureProxy(g2);
       return g2;
     }
-    if (key === "stinger") return buildStinger(RIG, color);
-    const mesh = key === "crab" ? BUILDERS.crab_b(RIG, color, {
+    if (key === "stinger") return buildStinger(RIG2, color);
+    const mesh = key === "crab" ? BUILDERS.crab_b(RIG2, color, {
       map: blankTexture(),
       mapS: new Jn(1 / 36, 1 / 18),
       mapO: new Jn(0.5, 0.5)
-    }) : key === "player" || key === "playerC" ? BUILDERS[key](RIG, color, {
+    }) : key === "player" || key === "playerC" ? BUILDERS[key](RIG2, color, {
       map: blankTexture(),
       mapS: new Jn(1, 1),
       mapO: new Jn(0, 0)
-    }) : BUILDERS[KEY[key] || key](RIG, color, quality);
+    }) : BUILDERS[KEY[key] || key](RIG2, color, quality);
     return mesh;
   }
   var PHASE_SNIP = `float a = uAlpha;
@@ -17027,7 +17260,7 @@ void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
               if (item.glowMats.indexOf(o2.material) < 0) item.glowMats.push(o2.material);
             } else {
               o2.material.uniforms.uRim.value.copy(o2.material.userData.rim0);
-              o2.material.uniforms.uRimW.value = RIG.rim;
+              o2.material.uniforms.uRimW.value = RIG2.rim;
             }
           }
         });
