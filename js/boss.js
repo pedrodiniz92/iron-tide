@@ -975,7 +975,11 @@ function updateBossUnit(boss, dt) {
     // THE LADDER: INK BLIGHT is the phase-3 payoff - zealots alone in phase 1,
     // zealots + idol in phase 2, all three in phase 3. The cadence clock lives
     // inside updateInkBlight, so it starts counting the moment phase 3 begins.
-    if (boss.phase >= 3) updateInkBlight(boss, dt);
+    // INK BLIGHT DISABLED (user request): the squid no longer fires the ink blob
+    // at all. Commented out the phase-3 fire call, so inkBlight is never created
+    // (no blob, no cloud, no move/fire slow). The blinding cloud fill is already
+    // commented out in js/drawing.js.
+    // if (boss.phase >= 3) updateInkBlight(boss, dt);
   }
 
   if (boss.laserEnabled === false) {
