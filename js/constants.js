@@ -141,7 +141,7 @@ const MINIBOSS_DESIGNS = [
   }
 ];
 
-// The squid is the wave-9 finale. Flat 130 HP (user tuning, v1.0.1+): it does
+// The squid is the wave-9 finale. Flat 115 HP (user tuning, v1.0.1+): it does
 // not scale with level - wave 9 is its only stage.
 const BOSS_DESIGNS = [
   {
@@ -160,7 +160,7 @@ const BOSS_DESIGNS = [
   },
   {
     name: "ABYSSAL SQUID",
-    hp: 130, hpScale: 0, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
+    hp: 115, hpScale: 0, speed: 56, bombTimer: 2.6, color: "#8b5cf6", accent: "#c9a7ff",
     ability: "ABYSSAL RITE", bulletCap: 6, bombMax: 2, bombRadius: 60, laserFollow: 0,
     laser: false, bombsPerLaunch: 1, bombShieldDamage: 20,
     callingInterval: 7, bellInterval: 13, staggerEase: 1.125

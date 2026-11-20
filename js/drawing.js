@@ -1155,13 +1155,15 @@ function drawInkBlight() {
     ctx.stroke();
   } else {
     // Solid for the whole cloud, then a slow fade-out over the last 0.5s (user call).
-    const a = clamp(inkBlight.t / 0.5, 0, 1);
+    // DISABLED (user request): the opaque cloud blinded the player when inside it.
+    // Commented out so the cloud no longer blacks out the screen/bullets.
+    // const a = clamp(inkBlight.t / 0.5, 0, 1);
     // Fully opaque core: enemy bullets inside the cloud are truly invisible.
-    ctx.globalAlpha = a;
-    ctx.fillStyle = "#0a0813";
-    ctx.beginPath();
-    ctx.ellipse(inkBlight.x, inkBlight.cy, INK_CLOUD_RX, INK_CLOUD_RY, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // ctx.globalAlpha = a;
+    // ctx.fillStyle = "#0a0813";
+    // ctx.beginPath();
+    // ctx.ellipse(inkBlight.x, inkBlight.cy, INK_CLOUD_RX, INK_CLOUD_RY, 0, 0, Math.PI * 2);
+    // ctx.fill();
   }
   ctx.restore();
 }
