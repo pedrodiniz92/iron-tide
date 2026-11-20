@@ -1773,20 +1773,9 @@ function drawBossDesignShape(boss, design, tier, meshId) {
     ctx.lineTo(cx - 26, topY + 6);
     ctx.closePath();
     ctx.fill();
-    // the two side fins: tapered blades, not `fillRect` bars (a literal rectangle
-    // on a hull reads as a UI box, same complaint as tier 2)
-    ctx.fillStyle = design.accent;
-    [-1, 1].forEach((s) => {
-      const fx = s < 0 ? cx - (wyrm ? boss.w * 0.42 : boss.w / 2) - 16
-        : cx + (wyrm ? boss.w * 0.42 : boss.w / 2) + 4;
-      ctx.beginPath();
-      ctx.moveTo(fx, botY - (wyrm ? 24 : 28));
-      ctx.lineTo(fx + 12, botY - (wyrm ? 20 : 24));
-      ctx.lineTo(fx + 12, botY);
-      ctx.lineTo(fx, botY + 2);
-      ctx.closePath();
-      ctx.fill();
-    });
+    // The two side fins are REMOVED (user call, repeated): the lilac accent blades
+    // on each side read as detached UI boxes floating beside the hull. The white
+    // crown above stays.
   }
 
   ctx.restore();
